@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "AniList Tracker",
+  "version": "0.1.0",
+  "description": "Automatically sync your manga/manhwa reading progress to AniList.",
+  "permissions": [
+    "storage",
+    "identity",
+    "tabs"
+  ],
+  "host_permissions": [
+  "https://graphql.anilist.co/*",
+  "https://anilist.co/*"
+  ],
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://asuracomic.net/*",
+        "https://www.asuracomic.net/*",
+        "https://flamecomics.xyz/*",
+        "https://www.flamecomics.xyz/*",
+        "https://reaperscans.com/*",
+        "https://www.reaperscans.com/*",
+        "https://luminousscans.gg/*",
+        "https://www.luminousscans.gg/*",
+        "https://raijin-scans.fr/*",
+        "https://www.raijin-scans.fr/*"
+      ],
+      "js": ["src/content/index.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
