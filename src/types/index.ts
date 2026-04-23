@@ -1,16 +1,10 @@
-// ── Detected manga info from a reading page ──
 export interface MangaDetection {
-  /** Title as found on the page */
   title: string;
-  /** Current chapter number */
   chapter: number;
-  /** Source site identifier */
   source: SupportedSite;
-  /** URL of the page */
   url: string;
 }
 
-// ── Supported scan sites ──
 export type SupportedSite =
   | "asura"
   | "flame"
@@ -18,7 +12,6 @@ export type SupportedSite =
   | "luminous"
   | "raijin";
 
-// ── AniList types ──
 export interface AniListMedia {
   id: number;
   title: {
@@ -39,12 +32,12 @@ export interface AniListMediaList {
   media: AniListMedia;
 }
 
-// ── Chrome message passing ──
 export type MessageType =
   | "MANGA_DETECTED"
   | "UPDATE_PROGRESS"
   | "SEARCH_ANILIST"
   | "GET_AUTH_TOKEN"
+  | "GET_PROGRESS"
   | "AUTH_SUCCESS";
 
 export interface ExtensionMessage {
@@ -65,15 +58,10 @@ export interface UpdateProgressMessage extends ExtensionMessage {
   };
 }
 
-// ── Storage schema ──
 export interface StorageData {
-  /** AniList OAuth access token */
   accessToken: string | null;
-  /** AniList user ID */
   userId: number | null;
-  /** Manual title mappings: site title → AniList media ID */
   titleMappings: Record<string, number>;
-  /** Whether to auto-update without confirmation */
   autoUpdate: boolean;
 }
 

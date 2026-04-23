@@ -1,15 +1,11 @@
 import type { MangaDetection, SupportedSite } from "../types";
 
-// ── Base parser interface ──
 export interface SiteParser {
   site: SupportedSite;
-  /** Check if we're on a chapter reading page */
   isChapterPage(): boolean;
-  /** Extract manga title and chapter number */
   detect(): MangaDetection | null;
 }
 
-// ── Utility: extract a number from a string ──
 function extractChapterNumber(text: string): number | null {
   // Matches patterns like "Chapter 123", "Ch. 45", "ch 6.5"
   const match = text.match(/(?:chapter|ch\.?)\s*([\d]+(?:\.[\d]+)?)/i);
@@ -25,7 +21,6 @@ function extractChapterNumber(text: string): number | null {
 }
 
 // ── Asura Comics parser ──
-// URL pattern: https://asuracomic.net/series/<slug>/chapter-<num>
 export class AsuraParser implements SiteParser {
   site: SupportedSite = "asura";
 
@@ -36,14 +31,12 @@ export class AsuraParser implements SiteParser {
   detect(): MangaDetection | null {
     if (!this.isChapterPage()) return null;
 
-    // Try to get title from breadcrumb or heading
     const title =
       document.querySelector<HTMLElement>("h1.entry-title")?.textContent?.trim() ??
       document.querySelector<HTMLElement>("[class*='series-title']")?.textContent?.trim() ??
       document.querySelector<HTMLAnchorElement>("ol.breadcrumb li:nth-child(2) a")?.textContent?.trim() ??
       null;
 
-    // Try chapter number from URL first, then from page content
     const urlMatch = window.location.pathname.match(/chapter-(\d+(?:\.\d+)?)/i);
     let chapter: number | null = urlMatch ? parseFloat(urlMatch[1]) : null;
 
@@ -58,7 +51,7 @@ export class AsuraParser implements SiteParser {
 
     return {
       title: cleanTitle(title),
-      chapter: Math.floor(chapter), // AniList uses integers
+      chapter: Math.floor(chapter),
       source: this.site,
       url: window.location.href,
     };
@@ -66,12 +59,10 @@ export class AsuraParser implements SiteParser {
 }
 
 // ── Flame Comics parser ──
-// URL pattern: https://flamecomics.xyz/manga/<slug>/<chapter-slug>
 export class FlameParser implements SiteParser {
   site: SupportedSite = "flame";
 
   isChapterPage(): boolean {
-    // At least 3 path segments: /manga/<slug>/<chapter>
     const parts = window.location.pathname.split("/").filter(Boolean);
     return parts.length >= 3 && parts[0] === "manga";
   }
@@ -138,21 +129,18 @@ export class RaijinParser implements SiteParser {
   site: SupportedSite = "raijin";
 
   isChapterPage(): boolean {
-    // If there's a chapter navigation bar with current chapter, we're on a chapter page
     return !!document.querySelector("b.current-type-number");
   }
 
   detect(): MangaDetection | null {
     if (!this.isChapterPage()) return null;
 
-    // Chapter number from the "Chapitre X" element
     const chapterEl = document.querySelector<HTMLElement>("b.current-type-number");
     const chapterText = chapterEl?.textContent?.trim() ?? "";
     const chapterMatch = chapterText.match(/(\d+)/);
     if (!chapterMatch) return null;
     const chapter = parseInt(chapterMatch[1], 10);
 
-    // Title: try manga-title link first, then extract from page title
     const title =
       document.querySelector<HTMLAnchorElement>("a.manga-title")?.textContent?.trim() ??
       this.extractTitleFromPageTitle() ??
@@ -169,7 +157,6 @@ export class RaijinParser implements SiteParser {
   }
 
   private extractTitleFromPageTitle(): string | null {
-    // Format: "Title Chapter X | Read Manga Online | Raijin Scans"
     const pageTitle = document.title;
     const cleaned = pageTitle
       .replace(/\s*\|.*$/, "")                    // Remove everything after |
@@ -182,7 +169,6 @@ export class RaijinParser implements SiteParser {
 
 
 
-// ── Title cleanup ──
 function cleanTitle(raw: string): string {
   return raw
     .replace(/\s*(manga|manhwa|manhua|webtoon|comic)\s*/gi, " ")
@@ -190,7 +176,6 @@ function cleanTitle(raw: string): string {
     .trim();
 }
 
-// ── Factory: pick the right parser based on hostname ──
 export function getParser(): SiteParser | null {
   const host = window.location.hostname.replace("www.", "");
 
