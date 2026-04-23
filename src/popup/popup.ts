@@ -1,7 +1,6 @@
 import { getStorage } from "../utils/storage";
 import type { AniListMedia, MangaDetection } from "../types";
 
-// ── DOM elements ──
 const loginView = document.getElementById("login-view")!;
 const mainView = document.getElementById("main-view")!;
 const btnLogin = document.getElementById("btn-login")!;
@@ -19,7 +18,6 @@ const btnUpdate = document.getElementById("btn-update")!;
 let currentDetection: MangaDetection | null = null;
 let selectedMediaId: number | null = null;
 
-// ── Init ──
 async function init() {
   const storage = await getStorage();
 
@@ -34,7 +32,6 @@ async function init() {
   }
 }
 
-// ── Login ──
 btnLogin.addEventListener("click", async () => {
   btnLogin.textContent = "Connecting...";
   const response = await chrome.runtime.sendMessage({ type: "GET_AUTH_TOKEN" });
@@ -50,7 +47,6 @@ btnLogin.addEventListener("click", async () => {
   }
 });
 
-// ── Load last detection from session storage ──
 async function loadDetection() {
   const session = await chrome.storage.session.get([
     "lastDetection",
@@ -73,7 +69,6 @@ async function loadDetection() {
   detectedChapter.textContent = `Chapter ${currentDetection.chapter}`;
   detectedSource.textContent = `Source: ${currentDetection.source} · ${new URL(currentDetection.url).hostname}`;
 
-  // Show current progress if available
   const currentProgress = session.currentProgress as number | null;
   if (currentProgress !== null) {
     detectedChapter.textContent = `Chapter ${currentDetection.chapter} (currently at ${currentProgress})`;
@@ -89,7 +84,6 @@ async function loadDetection() {
   }
 }
 
-// ── Show AniList search results ──
 function showResults(results: AniListMedia[]) {
   resultsList.innerHTML = "";
   resultsSection.style.display = "block";
@@ -109,7 +103,6 @@ function showResults(results: AniListMedia[]) {
   }
 }
 
-// ── Update button based on current progress ──
 async function updateButtonState() {
   if (!currentDetection) return;
 
@@ -134,7 +127,6 @@ async function updateButtonState() {
   }
 }
 
-// ── User selects a manga from results ──
 async function selectMedia(media: AniListMedia) {
   selectedMediaId = media.id;
 
@@ -143,12 +135,20 @@ async function selectMedia(media: AniListMedia) {
     await saveTitleMapping(currentDetection.title, media.id);
   }
 
+  const response = await chrome.runtime.sendMessage({
+    type: "GET_PROGRESS",
+    payload: { mediaId: media.id },
+  });
+
+  if (response?.progress !== undefined) {
+    await chrome.storage.session.set({ currentProgress: response.progress });
+  }
+
   resultsSection.style.display = "none";
   confirmSection.style.display = "block";
   await updateButtonState();
 }
 
-// ── Confirm update ──
 btnUpdate.addEventListener("click", async () => {
   if (!selectedMediaId || !currentDetection) return;
 
@@ -172,7 +172,6 @@ btnUpdate.addEventListener("click", async () => {
     btnUpdate.classList.remove("btn-success");
     btnUpdate.classList.add("btn-ghost");
 
-    // Clear badge
     chrome.action.setBadgeText({ text: "" });
   } else {
     btnUpdate.textContent = "Error — Retry?";
@@ -180,5 +179,4 @@ btnUpdate.addEventListener("click", async () => {
   }
 });
 
-// ── Boot ──
 init();

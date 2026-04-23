@@ -2,7 +2,6 @@ import type { AniListMedia, AniListMediaList } from "../types";
 
 const ANILIST_API = "https://graphql.anilist.co";
 
-// ── Generic GraphQL fetch ──
 async function gqlRequest<T>(
   query: string,
   variables: Record<string, unknown>,
@@ -32,7 +31,6 @@ async function gqlRequest<T>(
   return json.data as T;
 }
 
-// ── Search for a manga by title ──
 const SEARCH_MANGA = `
 query ($search: String) {
   Page(perPage: 5) {
@@ -61,7 +59,6 @@ export async function searchManga(
   return data.Page.media;
 }
 
-// ── Get user's current progress on a media ──
 const GET_PROGRESS = `
 query ($mediaId: Int, $userId: Int) {
   MediaList(mediaId: $mediaId, userId: $userId) {
@@ -95,12 +92,10 @@ export async function getProgress(
 
     return data.MediaList;
   } catch {
-    // Not on user's list yet
     return null;
   }
 }
 
-// ── Update (or create) progress on a manga ──
 const SAVE_PROGRESS = `
 mutation ($mediaId: Int, $progress: Int, $status: MediaListStatus) {
   SaveMediaListEntry(mediaId: $mediaId, progress: $progress, status: $status) {
@@ -126,7 +121,6 @@ export async function updateProgress(
   return data.SaveMediaListEntry;
 }
 
-// ── Get the authenticated user's ID ──
 const GET_VIEWER = `
 query {
   Viewer {
