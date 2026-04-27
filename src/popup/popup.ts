@@ -1,93 +1,198 @@
-import { getStorage } from "../utils/storage";
-import type { AniListMedia, MangaDetection } from "../types";
+import { getStorage, setTheme, getTheme } from "../utils/storage";
+import type { AniListMedia, MangaDetection, PopupState, SupportedSite } from "../types";
+import { t } from "../utils/i18n";
+
+const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
+  "asuracomic.net": "asura",
+  "www.asuracomic.net": "asura",
+  "flamecomics.xyz": "flame",
+  "www.flamecomics.xyz": "flame",
+  "reaperscans.com": "reaper",
+  "www.reaperscans.com": "reaper",
+  "raijin-scans.fr": "raijin",
+  "www.raijin-scans.fr": "raijin",
+};
+
+const SITE_NAMES: Record<SupportedSite, string> = {
+  asura: "Asura Comics",
+  flame: "Flame Comics",
+  reaper: "Reaper Scans",
+  luminous: "Luminous Scans",
+  raijin: "Raijin Scans",
+};
 
 const loginView = document.getElementById("login-view")!;
 const mainView = document.getElementById("main-view")!;
 const btnLogin = document.getElementById("btn-login")!;
 const usernameEl = document.getElementById("username")!;
-const detectionSection = document.getElementById("detection-section")!;
-const emptySection = document.getElementById("empty-section")!;
-const detectedTitle = document.getElementById("detected-title")!;
-const detectedChapter = document.getElementById("detected-chapter")!;
-const detectedSource = document.getElementById("detected-source")!;
-const resultsSection = document.getElementById("results-section")!;
-const resultsList = document.getElementById("results-list")!;
-const confirmSection = document.getElementById("confirm-section")!;
-const btnUpdate = document.getElementById("btn-update")!;
+const stateContainer = document.getElementById("state-container")!;
+const btnSettings = document.getElementById("btn-settings")!;
 
 let currentDetection: MangaDetection | null = null;
 let selectedMediaId: number | null = null;
 
 async function init() {
   const storage = await getStorage();
+  const theme = await getTheme();
+  applyTheme(theme);
 
   if (!storage.accessToken) {
-    loginView.style.display = "block";
-    mainView.style.display = "none";
-  } else {
-    loginView.style.display = "none";
-    mainView.style.display = "block";
-    usernameEl.textContent = `User #${storage.userId}`;
-    await loadDetection();
+    showView("login");
+    return;
   }
+
+  showView("main");
+  usernameEl.textContent = storage.userId ? `#${storage.userId}` : "—";
+  await resolveState();
 }
 
-btnLogin.addEventListener("click", async () => {
-  btnLogin.textContent = "Connecting...";
-  const response = await chrome.runtime.sendMessage({ type: "GET_AUTH_TOKEN" });
+function applyTheme(theme: "dark" | "light") {
+  document.documentElement.setAttribute("data-theme", theme);
+}
 
-  if (response?.success) {
-    usernameEl.textContent = response.username;
-    loginView.style.display = "none";
-    mainView.style.display = "block";
-    await loadDetection();
-  } else {
-    btnLogin.textContent = "Connect to AniList";
-    alert("Connection failed. Please try again.");
+async function resolveState() {
+  renderState({ type: "loading" });
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });  
+  const url = tab?.url;
+
+  if (!url || url.startsWith("chrome://") || url.startsWith("edge://") || url.startsWith("about:")) {
+    renderState({ type: "unsupported_site", hostname: "cette page système" });
+    return;
   }
-});
 
-async function loadDetection() {
+  const hostname = new URL(url).hostname;
+  const site = SUPPORTED_HOSTNAMES[hostname];
+
+  if (!site) {
+    renderState({ type: "unsupported_site", hostname });
+    return;
+  }
+
   const session = await chrome.storage.session.get([
     "lastDetection",
     "searchResults",
     "confirmedMediaId",
     "currentProgress",
+    "detectionFailed",
+    "lastDetectionUrl",
   ]);
 
-  if (!session.lastDetection) {
-    detectionSection.style.display = "none";
-    emptySection.style.display = "block";
+  const lastUrl = session.lastDetectionUrl as string | null;
+  const isCurrentPage = lastUrl && new URL(lastUrl).hostname === hostname && lastUrl === url;
+
+  if (session.detectionFailed && isCurrentPage) {
+    renderState({ type: "detection_failed", site });
+    return;
+  }
+
+  if (!session.lastDetection || !isCurrentPage) {
+    renderState({ type: "unsupported_page", site });
     return;
   }
 
   currentDetection = session.lastDetection as MangaDetection;
-  detectionSection.style.display = "block";
-  emptySection.style.display = "none";
+  selectedMediaId = (session.confirmedMediaId as number | null) ?? null;
 
-  detectedTitle.textContent = currentDetection.title;
-  detectedChapter.textContent = `Chapter ${currentDetection.chapter}`;
-  detectedSource.textContent = `Source: ${currentDetection.source} · ${new URL(currentDetection.url).hostname}`;
+  renderState({
+    type: "detected",
+    detection: currentDetection,
+    progress: (session.currentProgress as number | null) ?? null,
+    mediaId: selectedMediaId,
+    searchResults: selectedMediaId ? null : (session.searchResults as AniListMedia[] | null),
+  });
+}
 
-  const currentProgress = session.currentProgress as number | null;
-  if (currentProgress !== null) {
-    detectedChapter.textContent = `Chapter ${currentDetection.chapter} (currently at ${currentProgress})`;
+function renderState(state: PopupState) {
+  stateContainer.innerHTML = "";
+
+  switch (state.type) {
+    case "loading":
+      stateContainer.innerHTML = `
+        <div class="state-box">
+          <div class="spinner"></div>
+          <p class="state-text">${t("stateLoading")}</p>
+        </div>`;
+      break;
+
+    case "unsupported_site":
+      stateContainer.innerHTML = `
+        <div class="state-box">
+          <div class="state-icon">🌐</div>
+          <p class="state-title">${t("stateUnsupportedSite")}</p>
+          <p class="state-text"><strong>${state.hostname}</strong> ${t("stateUnsupportedSiteText")}</p>
+          <p class="state-hint">${t("stateSupportedSites")}</p>
+        </div>`;
+      break;
+
+    case "unsupported_page":
+      stateContainer.innerHTML = `
+        <div class="state-box">
+          <div class="state-icon">📖</div>
+          <p class="state-title">${t("stateNoChapter")}</p>
+          <p class="state-text">${t("youAreOn")} <strong>${SITE_NAMES[state.site]}</strong>.</p>
+          <p class="state-hint">${t("stateNoChapterText")}</p>
+        </div>`;
+      break;
+
+    case "detection_failed":
+      stateContainer.innerHTML = `
+        <div class="state-box">
+          <div class="state-icon">⚠️</div>
+          <p class="state-title">${t("stateDetectionFailed")}</p>
+          <p class="state-text">${t("stateDetectionFailedText")}</p>
+          <p class="state-hint">${t("stateDetectionFailedHint")} <a href="https://github.com/TheNesur/anilist-tracker/issues" target="_blank">${t("reportBug")}</a></p>
+        </div>`;
+      break;
+
+    case "detected":
+      renderDetected(state);
+      break;
+
+    case "error":
+      stateContainer.innerHTML = `
+        <div class="state-box">
+          <div class="state-icon">❌</div>
+          <p class="state-title">Erreur</p>
+          <p class="state-text">${state.message}</p>
+        </div>`;
+      break;
   }
-  
-  if (session.confirmedMediaId) {
-    selectedMediaId = session.confirmedMediaId;
-    resultsSection.style.display = "none";
-    confirmSection.style.display = "block";
-    await updateButtonState();
-  } else if (session.searchResults) {
-    showResults(session.searchResults as AniListMedia[]);
+}
+
+function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
+  const { detection, progress, mediaId, searchResults } = state;
+
+  const chapterText = progress !== null
+    ? `${t("stateLoading").replace("…", "")} ${detection.chapter} <span class="progress-hint">(${t("youAreOn")} ${progress})</span>`
+    : `Chapitre ${detection.chapter}`;
+
+  stateContainer.innerHTML = `
+    <div class="detection-card">
+      <div class="manga-title">${detection.title}</div>
+      <div class="manga-chapter">${chapterText}</div>
+      <div class="manga-source">${t("sourceLabel")} : ${detection.source} · ${new URL(detection.url).hostname}</div>
+    </div>
+    <div id="results-section" style="display:none">
+      <p class="results-label">${t("selectManga")}</p>
+      <ul class="results-list" id="results-list"></ul>
+    </div>
+    <div id="confirm-section" style="display:none">
+      <button class="btn btn-success" id="btn-update" style="width:100%">${t("updateBtn")}</button>
+    </div>`;
+
+  if (mediaId) {
+    showConfirm(detection, progress);
+  } else if (searchResults && searchResults.length > 0) {
+    showResults(searchResults);
   }
 }
 
 function showResults(results: AniListMedia[]) {
-  resultsList.innerHTML = "";
-  resultsSection.style.display = "block";
-  confirmSection.style.display = "none";
+  const section = document.getElementById("results-section")!;
+  const list = document.getElementById("results-list")!;
+  section.style.display = "block";
+  list.innerHTML = "";
 
   for (const media of results) {
     const li = document.createElement("li");
@@ -96,35 +201,29 @@ function showResults(results: AniListMedia[]) {
       <div class="info">
         <div class="title">${media.title.english ?? media.title.romaji}</div>
         <div class="subtitle">${media.title.romaji}</div>
-      </div>
-    `;
+      </div>`;
     li.addEventListener("click", () => selectMedia(media));
-    resultsList.appendChild(li);
+    list.appendChild(li);
   }
 }
 
-async function updateButtonState() {
-  if (!currentDetection) return;
+function showConfirm(detection: MangaDetection, progress: number | null) {
+  const section = document.getElementById("confirm-section")!;
+  const btn = document.getElementById("btn-update") as HTMLButtonElement;
+  section.style.display = "block";
 
-  const session = await chrome.storage.session.get("currentProgress");
-  const currentProgress = session.currentProgress as number | null;
-
-  if (currentProgress !== null && currentDetection.chapter <= currentProgress) {
-    btnUpdate.textContent = `Already at Ch. ${currentProgress} — no update needed`;
-    btnUpdate.classList.remove("btn-success");
-    btnUpdate.classList.add("btn-ghost");
-    btnUpdate.setAttribute("disabled", "true");
-  } else if (currentProgress !== null) {
-    btnUpdate.textContent = `Update ${currentProgress} → ${currentDetection.chapter}`;
-    btnUpdate.classList.add("btn-success");
-    btnUpdate.classList.remove("btn-ghost");
-    btnUpdate.removeAttribute("disabled");
+  if (progress !== null && detection.chapter <= progress) {
+    btn.textContent = t("alreadyUpToDate", String(progress));
+    btn.classList.remove("btn-success");
+    btn.classList.add("btn-ghost");
+    btn.disabled = true;
+  } else if (progress !== null) {
+    btn.textContent = t("updateBtnProgress", String(progress), String(detection.chapter));
   } else {
-    btnUpdate.textContent = `Update to Chapter ${currentDetection.chapter}`;
-    btnUpdate.classList.add("btn-success");
-    btnUpdate.classList.remove("btn-ghost");
-    btnUpdate.removeAttribute("disabled");
+    btn.textContent = t("updateBtn");
   }
+
+  btn.addEventListener("click", handleUpdate);
 }
 
 async function selectMedia(media: AniListMedia) {
@@ -140,43 +239,64 @@ async function selectMedia(media: AniListMedia) {
     payload: { mediaId: media.id },
   });
 
-  if (response?.progress !== undefined) {
-    await chrome.storage.session.set({ currentProgress: response.progress });
+  const progress = response?.progress ?? null;
+  if (progress !== null) {
+    await chrome.storage.session.set({ currentProgress: progress, confirmedMediaId: media.id });
   }
 
-  resultsSection.style.display = "none";
-  confirmSection.style.display = "block";
-  await updateButtonState();
+  if (currentDetection) showConfirm(currentDetection, progress);
+  document.getElementById("results-section")!.style.display = "none";
+  document.getElementById("confirm-section")!.style.display = "block";
 }
 
-btnUpdate.addEventListener("click", async () => {
+async function handleUpdate() {
   if (!selectedMediaId || !currentDetection) return;
 
-  btnUpdate.textContent = "Updating...";
-  btnUpdate.setAttribute("disabled", "true");
+  const btn = document.getElementById("btn-update") as HTMLButtonElement;
+  btn.textContent = "Mise à jour…";
+  btn.disabled = true;
 
   const response = await chrome.runtime.sendMessage({
     type: "UPDATE_PROGRESS",
-    payload: {
-      mediaId: selectedMediaId,
-      chapter: currentDetection.chapter,
-    },
+    payload: { mediaId: selectedMediaId, chapter: currentDetection.chapter },
   });
 
   if (response?.success) {
-    if (response.skipped) {
-      btnUpdate.textContent = `Already at Ch. ${response.current} ✓`;
-    } else {
-      btnUpdate.textContent = `Updated to Ch. ${response.progress} ✓`;
-    }
-    btnUpdate.classList.remove("btn-success");
-    btnUpdate.classList.add("btn-ghost");
-
+    btn.textContent = response.skipped
+      ? t("alreadyUpToDate", String(response.current))
+      : t("updatedSuccess", String(response.progress));
+    btn.classList.remove("btn-success");
+    btn.classList.add("btn-ghost");
     chrome.action.setBadgeText({ text: "" });
   } else {
-    btnUpdate.textContent = "Error — Retry?";
-    btnUpdate.removeAttribute("disabled");
+    btn.textContent = t("updateError");
+    btn.disabled = false;
+  }
+}
+
+// Login
+btnLogin.addEventListener("click", async () => {
+  btnLogin.textContent = t("stateLoading");
+  const response = await chrome.runtime.sendMessage({ type: "GET_AUTH_TOKEN" });
+
+  if (response?.success) {
+    usernameEl.textContent = response.username;
+    showView("main");
+    await resolveState();
+  } else {
+    btnLogin.textContent = t("btnLogin");
+    alert(t("connectionFailed"));
   }
 });
+
+// Settings
+btnSettings.addEventListener("click", () => {
+  chrome.runtime.openOptionsPage();
+});
+
+function showView(view: "login" | "main") {
+  loginView.style.display = view === "login" ? "block" : "none";
+  mainView.style.display = view === "main" ? "block" : "none";
+}
 
 init();

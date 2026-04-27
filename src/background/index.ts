@@ -2,10 +2,8 @@ import { searchManga, getProgress, updateProgress, getViewer } from "../utils/an
 import { getStorage, setStorage, getToken, getTitleMapping, saveTitleMapping } from "../utils/storage";
 import type { MangaDetection, AniListMedia } from "../types";
 
-//  AniList OAuth config 
-// TODO: Replace with your AniList app client ID
 const CLIENT_ID = import.meta.env.VITE_ANILIST_CLIENT_ID;
-const CLIENT_SECRET = import.meta.env.VITE_ANILIST_CLIENT_SECRET;
+//const CLIENT_SECRET = import.meta.env.VITE_ANILIST_CLIENT_SECRET;
 const REDIRECT_URL = import.meta.env.VITE_ANILIST_REDIRECT_URL;
 
 const OAUTH_URL = `https://anilist.co/api/v2/oauth/authorize?client_id=${CLIENT_ID}&response_type=token`;
@@ -121,6 +119,7 @@ function notifyUser(
     searchResults,
     confirmedMediaId: confirmedMediaId ?? null,
     currentProgress: currentProgress ?? null,
+    lastDetectionUrl: detection.url,
   });
 
   chrome.action.setBadgeText({ text: "?" });
@@ -149,22 +148,16 @@ async function startOAuth() {
 
     console.log("[AniList Tracker] Got auth code, exchanging for token...");
 
-    const tokenRes = await fetch("https://anilist.co/api/v2/oauth/token", {
+    const tokenRes = await fetch("https://auth.mraitchkovitch.fr/callback", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json",
       },
-      body: JSON.stringify({
-        grant_type: "authorization_code",
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        redirect_uri: REDIRECT_URL,
-        code,
-      }),
+      body: JSON.stringify({ code }),
     });
 
     const tokenData = await tokenRes.json();
+
     console.log("[AniList Tracker] Token response:", tokenData);
 
     if (!tokenData.access_token) {

@@ -1,17 +1,19 @@
 {
   "manifest_version": 3,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnTSu2pooV+WtphkLfuB5hKHx1Zh6y+HjpBs2vnnO/cbOVDCql/ClzF2y7flgRo7srtYO43Wo7mZD+vY1h3HhCCxLSERSLsHEAepuibLFzud66UEeBoeVPz0AK7RGOAr1PKt9hXSeiUIx0VZHKnDUvAoBKpGNIly/ao3SK2+5+0WbDXPGk/VxGzZwotiiRJIibEEOSrwjVmcy8dI8/aYCUn7VjH+A08tJwGDcGrdsuiZ53ay+qKN3b1yFG1deRPitqWADq50cCTr0tU0h7o8FS5gWj2eQ3fXw4oe/ppMiFr1DOfYHLi5yVCNWLzPDLg559Wy3EYlAKH8U3YVPGFtyewIDAQAB",
-  "name": "AniList Tracker",
-  "version": "0.1.0",
-  "description": "Automatically sync your manga/manhwa reading progress to AniList.",
+  "name": "__MSG_extensionName__",
+  "version": "0.2.0",
+  "description": "__MSG_extensionDescription__",
+  "default_locale": "en",
   "permissions": [
-    "storage",
-    "identity",
-    "tabs"
+  "storage",
+  "identity",
+  "activeTab"
   ],
   "host_permissions": [
-  "https://graphql.anilist.co/*",
-  "https://anilist.co/*"
+    "https://graphql.anilist.co/*",
+    "https://anilist.co/*",
+    "https://auth.mraitchkovitch.fr/*"
   ],
   "background": {
     "service_worker": "src/background/index.ts",
@@ -47,5 +49,6 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "options_page": "src/options/options.html"
 }

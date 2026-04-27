@@ -63,6 +63,7 @@ export interface StorageData {
   userId: number | null;
   titleMappings: Record<string, number>;
   autoUpdate: boolean;
+  theme: Theme;
 }
 
 export const DEFAULT_STORAGE: StorageData = {
@@ -70,4 +71,16 @@ export const DEFAULT_STORAGE: StorageData = {
   userId: null,
   titleMappings: {},
   autoUpdate: false,
+  theme: "dark",
 };
+
+export type Theme = "dark" | "light";
+
+export type PopupState =
+  | { type: "unauthenticated" }
+  | { type: "loading" }
+  | { type: "unsupported_site"; hostname: string }
+  | { type: "unsupported_page"; site: SupportedSite }
+  | { type: "detection_failed"; site: SupportedSite }
+  | { type: "detected"; detection: MangaDetection; progress: number | null; mediaId: number | null; searchResults: AniListMedia[] | null }
+  | { type: "error"; message: string };

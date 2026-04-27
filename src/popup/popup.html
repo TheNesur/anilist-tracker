@@ -1,66 +1,109 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=320" />
   <title>AniList Tracker</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root[data-theme="dark"] {
+      --bg-primary: #0b1622;
+      --bg-secondary: #151f2e;
+      --bg-tertiary: #1a2738;
+      --border: #1f2d40;
+      --text-primary: #e0e6ed;
+      --text-secondary: #c5cae9;
+      --text-muted: #6b7c93;
+      --accent: #3db4f2;
+      --success: #2ecc71;
+      --error: #e74c3c;
     }
+
+    :root[data-theme="light"] {
+      --bg-primary: #f0f4f8;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e8edf2;
+      --border: #d0d9e4;
+      --text-primary: #1a2738;
+      --text-secondary: #2d3f55;
+      --text-muted: #6b7c93;
+      --accent: #1a8ac4;
+      --success: #27ae60;
+      --error: #c0392b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       width: 340px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0b1622;
-      color: #c5cae9;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
       font-size: 14px;
     }
 
-    /* ── Header ── */
     .header {
-      background: #151f2e;
+      background: var(--bg-secondary);
       padding: 12px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #1f2d40;
+      border-bottom: 1px solid var(--border);
     }
 
     .header h1 {
       font-size: 15px;
-      color: #3db4f2;
+      color: var(--accent);
       font-weight: 600;
     }
 
-    .header .status {
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status {
       font-size: 11px;
-      color: #6b7c93;
+      color: var(--success);
     }
 
-    .header .status.connected {
-      color: #2ecc71;
+    .btn-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
     }
 
-    /* ── Content sections ── */
-    .section {
-      padding: 14px 16px;
+    .btn-icon:hover { color: var(--text-primary); }
+
+    .btn-icon svg {
+      width: 16px;
+      height: 16px;
     }
 
-    /* ── Login view ── */
+    /* Login */
     #login-view {
       text-align: center;
       padding: 32px 16px;
     }
 
+    #login-view h2 {
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
     #login-view p {
       margin-bottom: 16px;
-      color: #8896a8;
+      color: var(--text-muted);
       font-size: 13px;
     }
 
+    /* Buttons */
     .btn {
       display: inline-block;
       padding: 10px 20px;
@@ -70,57 +113,113 @@
       font-weight: 600;
       cursor: pointer;
       transition: opacity 0.2s;
+      width: 100%;
     }
 
-    .btn:hover {
-      opacity: 0.85;
-    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.5; cursor: default; }
 
-    .btn-primary {
-      background: #3db4f2;
-      color: #0b1622;
-    }
-
-    .btn-success {
-      background: #2ecc71;
-      color: #0b1622;
-    }
-
+    .btn-primary { background: var(--accent); color: #0b1622; }
+    .btn-success { background: var(--success); color: #0b1622; }
     .btn-ghost {
       background: transparent;
-      color: #6b7c93;
-      border: 1px solid #1f2d40;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
     }
 
-    /* ── Detection card ── */
-    .detection-card {
-      background: #151f2e;
-      border-radius: 8px;
-      padding: 12px;
+    /* State container */
+    #state-container { padding: 14px 16px; }
+
+    /* State boxes */
+    .state-box {
+      text-align: center;
+      padding: 24px 16px;
+      color: var(--text-muted);
+    }
+
+    .state-icon {
+      font-size: 28px;
       margin-bottom: 10px;
     }
 
-    .detection-card .manga-title {
+    .state-title {
+      font-size: 14px;
       font-weight: 600;
-      color: #e0e6ed;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .state-text {
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+    }
+
+    .state-text strong { color: var(--text-primary); }
+
+    .state-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .state-hint a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Detection card */
+    .detection-card {
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .manga-title {
+      font-weight: 600;
+      color: var(--text-primary);
       margin-bottom: 4px;
     }
 
-    .detection-card .manga-chapter {
-      color: #3db4f2;
+    .manga-chapter {
+      color: var(--accent);
       font-size: 13px;
     }
 
-    .detection-card .manga-source {
-      color: #6b7c93;
+    .progress-hint {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .manga-source {
+      color: var(--text-muted);
       font-size: 11px;
       margin-top: 4px;
     }
 
-    /* ── Search results list ── */
-    .results-list {
-      list-style: none;
+    /* Results */
+    .results-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
     }
+
+    .results-list { list-style: none; }
 
     .results-list li {
       display: flex;
@@ -132,9 +231,7 @@
       transition: background 0.15s;
     }
 
-    .results-list li:hover {
-      background: #1a2738;
-    }
+    .results-list li:hover { background: var(--bg-tertiary); }
 
     .results-list li img {
       width: 36px;
@@ -143,14 +240,11 @@
       border-radius: 4px;
     }
 
-    .results-list li .info {
-      flex: 1;
-      min-width: 0;
-    }
+    .results-list li .info { flex: 1; min-width: 0; }
 
     .results-list li .info .title {
       font-size: 13px;
-      color: #e0e6ed;
+      color: var(--text-primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -158,89 +252,47 @@
 
     .results-list li .info .subtitle {
       font-size: 11px;
-      color: #6b7c93;
+      color: var(--text-muted);
     }
 
-    /* ── Settings ── */
-    .setting-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 0;
-    }
-
-    .setting-row label {
-      font-size: 13px;
-    }
-
-    /* ── No detection ── */
-    .empty {
-      text-align: center;
-      padding: 24px 16px;
-      color: #6b7c93;
-      font-size: 13px;
-    }
-
+    /* Footer */
     .footer {
       padding: 8px 16px;
       text-align: center;
-      border-top: 1px solid #1f2d40;
+      border-top: 1px solid var(--border);
       font-size: 11px;
-      color: #4a5568;
+      color: var(--text-muted);
     }
 
-    .footer a {
-      color: #3db4f2;
-      text-decoration: none;
-    }
+    .footer a { color: var(--accent); text-decoration: none; }
   </style>
 </head>
 <body>
-  <!-- Login view (shown when not authenticated) -->
-  <div id="login-view" style="display: none;">
-    <h2 style="color: #3db4f2; margin-bottom: 8px;">AniList Tracker</h2>
-    <p>Connect your AniList account to start tracking your reading progress.</p>
-    <button class="btn btn-primary" id="btn-login">Connect to AniList</button>
+
+  <div id="login-view" style="display:none">
+    <h2>AniList Tracker</h2>
+    <p>Connecte ton compte AniList pour synchroniser ta progression.</p>
+    <button class="btn btn-primary" id="btn-login">Se connecter à AniList</button>
   </div>
 
-  <!-- Main view (shown when authenticated) -->
-  <div id="main-view" style="display: none;">
+  <div id="main-view" style="display:none">
     <div class="header">
       <h1>AniList Tracker</h1>
-      <span class="status connected" id="username">—</span>
-    </div>
-
-    <!-- Detection info -->
-    <div class="section" id="detection-section" style="display: none;">
-      <div class="detection-card">
-        <div class="manga-title" id="detected-title">—</div>
-        <div class="manga-chapter" id="detected-chapter">—</div>
-        <div class="manga-source" id="detected-source">—</div>
-      </div>
-
-      <!-- AniList search results (pick the right one) -->
-      <div id="results-section" style="display: none;">
-        <p style="font-size: 12px; color: #8896a8; margin-bottom: 8px;">
-          Select the correct manga on AniList:
-        </p>
-        <ul class="results-list" id="results-list"></ul>
-      </div>
-
-      <!-- Confirm update -->
-      <div id="confirm-section" style="display: none;">
-        <button class="btn btn-success" id="btn-update" style="width: 100%;">
-          Update Progress
+      <div class="header-right">
+        <span class="status" id="username">—</span>
+        <button class="btn-icon" id="btn-settings" title="Paramètres">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
         </button>
       </div>
     </div>
 
-    <!-- No detection -->
-    <div class="empty" id="empty-section">
-      Navigate to a manga chapter page to detect and sync your progress.
-    </div>
+    <div id="state-container"></div>
 
     <div class="footer">
-      <a href="https://anilist.co/settings/apps" target="_blank">Manage AniList Apps</a>
+      <a href="https://anilist.co" target="_blank">Ouvrir AniList</a>
     </div>
   </div>
 
