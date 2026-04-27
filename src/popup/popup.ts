@@ -44,6 +44,13 @@ async function init() {
   showView("main");
   usernameEl.textContent = storage.userId ? `#${storage.userId}` : "—";
   await resolveState();
+
+
+  chrome.storage.session.onChanged.addListener((changes) => {
+    if (changes.lastDetection || changes.lastDetectionUrl || changes.detectionFailed) {
+      resolveState();
+    }
+  });
 }
 
 function applyTheme(theme: "dark" | "light") {
