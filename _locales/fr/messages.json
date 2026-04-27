@@ -1,0 +1,147 @@
+{
+  "extensionName": {
+    "message": "AniList Tracker"
+  },
+  "extensionDescription": {
+    "message": "Synchronise automatiquement ta progression manga/manhwa vers AniList."
+  },
+  "btnLogin": {
+    "message": "Se connecter à AniList"
+  },
+  "loginDescription": {
+    "message": "Connecte ton compte AniList pour synchroniser ta progression de lecture."
+  },
+  "stateLoading": {
+    "message": "Détection en cours…"
+  },
+  "stateUnsupportedSite": {
+    "message": "Site non supporté"
+  },
+  "stateUnsupportedSiteText": {
+    "message": "n'est pas compatible avec AniList Tracker."
+  },
+  "stateSupportedSites": {
+    "message": "Sites supportés : Raijin Scans, Asura Comics, Flame Comics, Reaper Scans"
+  },
+  "stateNoChapter": {
+    "message": "Aucun chapitre détecté"
+  },
+  "stateNoChapterText": {
+    "message": "Navigue vers une page de chapitre pour synchroniser ta progression."
+  },
+  "stateDetectionFailed": {
+    "message": "Détection échouée"
+  },
+  "stateDetectionFailedText": {
+    "message": "Impossible de lire le titre ou le numéro de chapitre sur cette page."
+  },
+  "stateDetectionFailedHint": {
+    "message": "Le site a peut-être changé sa structure."
+  },
+  "reportBug": {
+    "message": "Signaler un bug"
+  },
+  "sourceLabel": {
+    "message": "Source"
+  },
+  "selectManga": {
+    "message": "Sélectionne le bon manga sur AniList :"
+  },
+  "updateBtn": {
+    "message": "Mettre à jour"
+  },
+  "updateBtnProgress": {
+    "message": "Mettre à jour $from$ → $to$",
+    "placeholders": {
+      "from": { "content": "$1" },
+      "to": { "content": "$2" }
+    }
+  },
+  "alreadyUpToDate": {
+    "message": "Déjà au Ch. $chapter$ — aucune mise à jour nécessaire",
+    "placeholders": {
+      "chapter": { "content": "$1" }
+    }
+  },
+  "updatedSuccess": {
+    "message": "Mis à jour au Ch. $chapter$ ✓",
+    "placeholders": {
+      "chapter": { "content": "$1" }
+    }
+  },
+  "updateError": {
+    "message": "Erreur — Réessayer ?"
+  },
+  "openAniList": {
+    "message": "Ouvrir AniList"
+  },
+  "settingsTitle": {
+    "message": "Paramètres"
+  },
+  "sectionAccount": {
+    "message": "Compte"
+  },
+  "accountName": {
+    "message": "Utilisateur AniList"
+  },
+  "accountId": {
+    "message": "ID : $id$",
+    "placeholders": {
+      "id": { "content": "$1" }
+    }
+  },
+  "sectionAppearance": {
+    "message": "Apparence"
+  },
+  "themeDark": {
+    "message": "Sombre"
+  },
+  "themeLight": {
+    "message": "Clair"
+  },
+  "sectionBehavior": {
+    "message": "Comportement"
+  },
+  "autoUpdate": {
+    "message": "Mise à jour automatique"
+  },
+  "autoUpdateHint": {
+    "message": "Met à jour la progression sans confirmation"
+  },
+  "sectionInfo": {
+    "message": "Informations"
+  },
+  "linkSourceCode": {
+    "message": "Code source (GitHub)"
+  },
+  "linkReportBug": {
+    "message": "Signaler un bug"
+  },
+  "linkPrivacy": {
+    "message": "Politique de confidentialité"
+  },
+  "linkAniList": {
+    "message": "Ouvrir AniList"
+  },
+  "dangerZone": {
+    "message": "Zone dangereuse"
+  },
+  "logout": {
+    "message": "Déconnecter"
+  },
+  "logoutHint": {
+    "message": "Supprime le token et les données locales"
+  },
+  "logoutConfirm": {
+    "message": "Se déconnecter et supprimer toutes les données locales ?"
+  },
+  "notConnected": {
+    "message": "Non connecté"
+  },
+  "connectionFailed": {
+    "message": "Connexion échouée. Réessaie."
+  },
+  "youAreOn": {
+    "message": "Tu es sur"
+  }
+}

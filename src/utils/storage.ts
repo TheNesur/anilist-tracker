@@ -1,4 +1,4 @@
-import { DEFAULT_STORAGE, type StorageData } from "../types";
+import { DEFAULT_STORAGE, type StorageData, type Theme } from "../types";
 
 export async function getStorage(): Promise<StorageData> {
   const data = await chrome.storage.local.get(DEFAULT_STORAGE);
@@ -30,4 +30,13 @@ export async function saveTitleMapping(
   const { titleMappings } = await getStorage();
   titleMappings[siteTitle] = mediaId;
   await setStorage({ titleMappings });
+}
+
+export async function getTheme(): Promise<Theme> {
+  const { theme } = await chrome.storage.local.get({ theme: "dark" });
+  return theme as Theme;
+}
+
+export async function setTheme(theme: Theme): Promise<void> {
+  await chrome.storage.local.set({ theme });
 }
