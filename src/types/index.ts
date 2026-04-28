@@ -61,6 +61,7 @@ export interface UpdateProgressMessage extends ExtensionMessage {
 export interface StorageData {
   accessToken: string | null;
   userId: number | null;
+  username: string | null;
   titleMappings: Record<string, number>;
   autoUpdate: boolean;
   theme: Theme;
@@ -69,6 +70,7 @@ export interface StorageData {
 export const DEFAULT_STORAGE: StorageData = {
   accessToken: null,
   userId: null,
+  username: null,
   titleMappings: {},
   autoUpdate: false,
   theme: "dark",

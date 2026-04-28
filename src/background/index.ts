@@ -171,6 +171,7 @@ async function startOAuth() {
     await setStorage({
       accessToken,
       userId: viewer.id,
+      username: viewer.name,
     });
 
     return { success: true, username: viewer.name };
