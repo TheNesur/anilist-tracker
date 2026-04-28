@@ -21,7 +21,7 @@
     "message": "is not compatible with AniList Tracker."
   },
   "stateSupportedSites": {
-    "message": "Supported sites: Raijin Scans, Asura Comics, Flame Comics, Reaper Scans"
+    "message": "Supported sites: Raijin Scans, Webtoon"
   },
   "stateNoChapter": {
     "message": "No chapter detected"

@@ -10,7 +10,8 @@ export type SupportedSite =
   | "flame"
   | "reaper"
   | "luminous"
-  | "raijin";
+  | "raijin"
+  | "webtoon";
 
 export interface AniListMedia {
   id: number;
