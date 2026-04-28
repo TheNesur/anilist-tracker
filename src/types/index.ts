@@ -11,7 +11,8 @@ export type SupportedSite =
   | "reaper"
   | "luminous"
   | "raijin"
-  | "webtoon";
+  | "webtoon"
+  | "mangadex";
 
 export interface AniListMedia {
   id: number;

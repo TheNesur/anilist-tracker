@@ -168,6 +168,34 @@ export class RaijinParser implements SiteParser {
 }
 
 
+// ── MangaDex parser ──
+export class MangaDexParser implements SiteParser {
+  site: SupportedSite = "mangadex";
+
+  isChapterPage(): boolean {
+    return /^\/chapter\/[0-9a-f-]{36}/.test(window.location.pathname);
+  }
+
+  detect(): MangaDetection | null {
+    if (!this.isChapterPage()) return null;
+
+    const titleEl = document.querySelectorAll<HTMLAnchorElement>("a[href*='/title/']")[1];
+    const title = titleEl?.textContent?.trim() ?? null;
+
+    const titleMatch = document.title.match(/Chapter\s+([\d]+(?:\.[\d]+)?)/i);
+    const chapter = titleMatch ? parseFloat(titleMatch[1]) : null;
+
+    if (!title || !chapter) return null;
+
+    return {
+      title: cleanTitle(title),
+      chapter: Math.floor(chapter),
+      source: this.site,
+      url: window.location.href,
+    };
+  }
+}
+
 
 
 // ── Webtoon parser ──
@@ -233,6 +261,7 @@ export function getParser(): SiteParser | null {
   if (host.includes("reaperscans")) return new ReaperParser();
   if (host.includes("raijin-scans") || host.includes("raijinscan"))  return new RaijinParser();
   if (host.includes("webtoons")) return new WebtoonParser();
+  if (host.includes("mangadex")) return new MangaDexParser();
   
   return null;
 }

@@ -13,6 +13,8 @@ const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
   "www.raijin-scans.fr": "raijin",
   "webtoons.com": "webtoon",
   "www.webtoons.com": "webtoon",
+  "mangadex.org": "mangadex",
+  "www.mangadex.org": "mangadex",
 };
 
 const SITE_NAMES: Record<SupportedSite, string> = {
@@ -22,6 +24,7 @@ const SITE_NAMES: Record<SupportedSite, string> = {
   luminous: "Luminous Scans",
   raijin: "Raijin Scans",
   webtoon: "Webtoon",
+  mangadex: "MangaDex",
 };
 
 const loginView = document.getElementById("login-view")!;

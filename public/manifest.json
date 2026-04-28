@@ -33,7 +33,9 @@
         "https://raijin-scans.fr/*",
         "https://www.raijin-scans.fr/*",
         "https://www.webtoons.com/*",
-        "https://webtoons.com/*"
+        "https://webtoons.com/*",
+        "https://mangadex.org/*",
+        "https://www.mangadex.org/*"
       ],
       "js": ["src/content/index.ts"],
       "run_at": "document_idle"
