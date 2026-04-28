@@ -40,3 +40,11 @@ export async function getTheme(): Promise<Theme> {
 export async function setTheme(theme: Theme): Promise<void> {
   await chrome.storage.local.set({ theme });
 }
+
+export async function removeTitleMapping(title: string): Promise<void> {
+  const storage = await getStorage();
+  const mappings = { ...storage.titleMappings };
+  delete mappings[title];
+  await setStorage({ titleMappings: mappings });
+  await chrome.storage.session.set({ confirmedMediaId: null });
+}
