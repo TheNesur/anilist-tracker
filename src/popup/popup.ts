@@ -268,8 +268,8 @@ function showConfirm(detection: MangaDetection, progress: number | null) {
   changeBtn.style.marginTop = "6px";
   changeBtn.textContent = t("changeMapping");
   changeBtn.addEventListener("click", async () => {
-    const { removeTitleMapping } = await import("../utils/storage");
-    await removeTitleMapping(detection.title);
+    //const { removeTitleMapping } = await import("../utils/storage");
+    //await removeTitleMapping(detection.title);
     selectedMediaId = null;
 
     section.style.display = "none";
