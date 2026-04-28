@@ -146,5 +146,11 @@
   },
   "tokenExpired": {
     "message": "Your session has expired. Please reconnect."
+  },
+  "chapterLabel": {
+    "message": "Chapter $chapter$",
+    "placeholders": {
+      "chapter": { "content": "$1" }
+    }
   }
 }

@@ -51,6 +51,8 @@ async function init() {
       resolveState();
     }
   });
+
+  document.getElementById("footer-anilist")!.textContent = t("openAniList");
 }
 
 function applyTheme(theme: "dark" | "light") {
@@ -187,8 +189,8 @@ function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
   const { detection, progress, mediaId, searchResults } = state;
 
   const chapterText = progress !== null
-    ? `${t("stateLoading").replace("…", "")} ${detection.chapter} <span class="progress-hint">(${t("youAreOn")} ${progress})</span>`
-    : `Chapitre ${detection.chapter}`;
+    ? `${t("chapterLabel", String(detection.chapter))} <span class="progress-hint">(${t("youAreOn")} ${progress})</span>`
+    : t("chapterLabel", String(detection.chapter));
 
   stateContainer.innerHTML = `
     <div class="detection-card">
