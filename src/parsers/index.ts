@@ -169,6 +169,55 @@ export class RaijinParser implements SiteParser {
 
 
 
+
+// ── Webtoon parser ──
+export class WebtoonParser implements SiteParser {
+  site: SupportedSite = "webtoon";
+
+  isChapterPage(): boolean {
+    return /\/ep-?\d+\/viewer/.test(window.location.pathname);
+  }
+
+  detect(): MangaDetection | null {
+    if (!this.isChapterPage()) return null;
+
+    const title =
+      document.querySelector<HTMLElement>(".subj")?.textContent?.trim() ?? null;
+
+    // Matches both /ep20/viewer and /ep-21/viewer
+    const urlMatch = window.location.pathname.match(/\/ep-?(\d+)\/viewer/i);
+    const chapter = urlMatch ? parseInt(urlMatch[1], 10) : null;
+
+    if (!title || !chapter) return null;
+
+    return {
+      title: cleanTitle(title),
+      chapter,
+      source: this.site,
+      url: window.location.href,
+    };
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function cleanTitle(raw: string): string {
   return raw
     .replace(/\s*(manga|manhwa|manhua|webtoon|comic)\s*/gi, " ")
@@ -183,6 +232,7 @@ export function getParser(): SiteParser | null {
   if (host.includes("flamecomics")) return new FlameParser();
   if (host.includes("reaperscans")) return new ReaperParser();
   if (host.includes("raijin-scans") || host.includes("raijinscan"))  return new RaijinParser();
-
+  if (host.includes("webtoons")) return new WebtoonParser();
+  
   return null;
 }

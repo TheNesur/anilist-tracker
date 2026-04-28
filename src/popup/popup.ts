@@ -11,6 +11,8 @@ const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
   "www.reaperscans.com": "reaper",
   "raijin-scans.fr": "raijin",
   "www.raijin-scans.fr": "raijin",
+  "webtoons.com": "webtoon",
+  "www.webtoons.com": "webtoon",
 };
 
 const SITE_NAMES: Record<SupportedSite, string> = {
@@ -19,6 +21,7 @@ const SITE_NAMES: Record<SupportedSite, string> = {
   reaper: "Reaper Scans",
   luminous: "Luminous Scans",
   raijin: "Raijin Scans",
+  webtoon: "Webtoon",
 };
 
 const loginView = document.getElementById("login-view")!;

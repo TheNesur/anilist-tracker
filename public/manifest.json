@@ -31,7 +31,9 @@
         "https://luminousscans.gg/*",
         "https://www.luminousscans.gg/*",
         "https://raijin-scans.fr/*",
-        "https://www.raijin-scans.fr/*"
+        "https://www.raijin-scans.fr/*",
+        "https://www.webtoons.com/*",
+        "https://webtoons.com/*"
       ],
       "js": ["src/content/index.ts"],
       "run_at": "document_idle"
