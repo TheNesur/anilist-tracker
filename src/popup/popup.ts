@@ -83,7 +83,23 @@ async function resolveState() {
     "currentProgress",
     "detectionFailed",
     "lastDetectionUrl",
+    "tokenExpired",
   ]);
+
+  if (session.tokenExpired) {
+    renderState({ type: "error", message: t("tokenExpired") });
+    // Show reconnect button
+    const btn = document.createElement("button");
+    btn.className = "btn btn-primary";
+    btn.style.margin = "0 16px 16px";
+    btn.textContent = t("btnLogin");
+    btn.addEventListener("click", async () => {
+      await chrome.storage.session.remove("tokenExpired");
+      btnLogin.click();
+    });
+    stateContainer.appendChild(btn);
+    return;
+  }
 
   const lastUrl = session.lastDetectionUrl as string | null;
   const isCurrentPage = lastUrl && new URL(lastUrl).hostname === hostname && lastUrl === url;

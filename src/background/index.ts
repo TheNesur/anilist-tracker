@@ -51,32 +51,41 @@ async function handleDetection(detection: MangaDetection) {
     return;
   }
 
-  const mappedId = await getTitleMapping(detection.title);
-  let mediaId = mappedId;
+  try {
+    const mappedId = await getTitleMapping(detection.title);
+    let mediaId = mappedId;
 
-  if (!mediaId) {
-    const results = await searchManga(detection.title);
-    if (results.length === 0) {
-      console.log("[AniList Tracker] No AniList results for:", detection.title);
-      notifyUser(detection, null);
+    if (!mediaId) {
+      const results = await searchManga(detection.title);
+      if (results.length === 0) {
+        console.log("[AniList Tracker] No AniList results for:", detection.title);
+        notifyUser(detection, null);
+        return;
+      }
+      mediaId = results[0].id;
+      notifyUser(detection, results);
       return;
     }
-    mediaId = results[0].id;
-    notifyUser(detection, results);
-    return;
-  }
 
-  const storage = await getStorage();
-  let currentProgress: number | null = null;
-  if (storage.userId) {
-    const entry = await getProgress(mediaId, storage.userId, token!);
-    currentProgress = entry?.progress ?? null;
-  }
+    const storage = await getStorage();
+    let currentProgress: number | null = null;
+    if (storage.userId) {
+      const entry = await getProgress(mediaId, storage.userId, token);
+      currentProgress = entry?.progress ?? null;
+    }
 
-  if (storage.autoUpdate && (currentProgress === null || detection.chapter > currentProgress)) {
-    await handleUpdate(mediaId, detection.chapter);
-  } else {
-    notifyUser(detection, null, mediaId, currentProgress);
+    if (storage.autoUpdate && (currentProgress === null || detection.chapter > currentProgress)) {
+      await handleUpdate(mediaId, detection.chapter);
+    } else {
+      notifyUser(detection, null, mediaId, currentProgress);
+    }
+  } catch (err) {
+    if (String(err).includes("TOKEN_EXPIRED")) {
+      await setStorage({ accessToken: null });
+      chrome.action.setBadgeText({ text: "!" });
+      chrome.action.setBadgeBackgroundColor({ color: "#e74c3c" });
+      chrome.storage.session.set({ tokenExpired: true });
+    }
   }
 }
 
