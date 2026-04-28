@@ -28,19 +28,25 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   
   if (message.type === "GET_PROGRESS") {
-  const { mediaId } = message.payload as { mediaId: number };
-  (async () => {
-    const token = await getToken();
-    const storage = await getStorage();
-    if (token && storage.userId) {
-      const entry = await getProgress(mediaId, storage.userId, token);
-      sendResponse({ progress: entry?.progress ?? null });
-    } else {
-      sendResponse({ progress: null });
-    }
-  })();
-  return true;
-}
+    const { mediaId } = message.payload as { mediaId: number };
+    (async () => {
+      const token = await getToken();
+      const storage = await getStorage();
+      if (token && storage.userId) {
+        const entry = await getProgress(mediaId, storage.userId, token);
+        sendResponse({ progress: entry?.progress ?? null });
+      } else {
+        sendResponse({ progress: null });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "SEARCH_ANILIST") {
+    const { title } = message.payload as { title: string };
+    searchManga(title).then(results => sendResponse({ results }));
+    return true;
+  }
 });
 
 async function handleDetection(detection: MangaDetection) {

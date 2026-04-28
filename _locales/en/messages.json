@@ -155,5 +155,20 @@
   },
   "errorTitle": { 
     "message": "Error" 
+  },
+  "changeMapping": { 
+    "message": "Change selection" 
+  },
+  "sectionMappings": { 
+    "message": "Title mappings" 
+  },
+  "noMappings": { 
+    "message": "No saved mappings yet." 
+  },
+  "noMappingsSearch": { 
+    "message": "No results for this search." 
+  },
+  "searchMappings": { 
+    "message": "Search titles…" 
   }
 }

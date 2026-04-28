@@ -155,5 +155,21 @@
   },
   "errorTitle": { 
     "message": "Erreur" 
+  },
+  "changeMapping": { 
+    "message": "Change selection" 
+  },
+  "sectionMappings": { 
+    "message": "Associations de titres" 
+  },
+  "noMappings": { 
+    "message": "Aucune association sauvegardée." 
+  },
+  "noMappingsSearch": { 
+    "message": "Aucun résultat pour cette recherche." 
+  },
+  "searchMappings": { 
+    "message": "Rechercher un titre…" 
   }
+
 }

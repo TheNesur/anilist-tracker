@@ -247,6 +247,9 @@ function showResults(results: AniListMedia[]) {
 function showConfirm(detection: MangaDetection, progress: number | null) {
   const section = document.getElementById("confirm-section")!;
   const btn = document.getElementById("btn-update") as HTMLButtonElement;
+
+  section.querySelectorAll(".btn-change").forEach(el => el.remove());
+  
   section.style.display = "block";
 
   if (progress !== null && detection.chapter <= progress) {
@@ -260,6 +263,38 @@ function showConfirm(detection: MangaDetection, progress: number | null) {
     btn.textContent = t("updateBtn");
   }
 
+  const changeBtn = document.createElement("button");
+  changeBtn.className = "btn btn-ghost btn-change";
+  changeBtn.style.marginTop = "6px";
+  changeBtn.textContent = t("changeMapping");
+  changeBtn.addEventListener("click", async () => {
+    const { removeTitleMapping } = await import("../utils/storage");
+    await removeTitleMapping(detection.title);
+    selectedMediaId = null;
+
+    section.style.display = "none";
+    const resultsSection = document.getElementById("results-section")!;
+    const resultsList = document.getElementById("results-list")!;
+    resultsSection.style.display = "block";
+
+    // If no cached results, re-search AniList
+    const session = await chrome.storage.session.get(["searchResults"]);
+    if (!session.searchResults || (session.searchResults as AniListMedia[]).length === 0) {
+      resultsList.innerHTML = `<li style="padding:8px;color:var(--text-muted)">Searching...</li>`;
+      const response = await chrome.runtime.sendMessage({
+        type: "SEARCH_ANILIST",
+        payload: { title: detection.title },
+      });
+      if (response?.results) {
+        await chrome.storage.session.set({ searchResults: response.results });
+        showResults(response.results);
+      }
+    } else {
+      showResults(session.searchResults as AniListMedia[]);
+    }
+  });
+
+  section.appendChild(changeBtn);
   btn.addEventListener("click", handleUpdate);
 }
 

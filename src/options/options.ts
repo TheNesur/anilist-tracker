@@ -1,4 +1,4 @@
-import { getStorage, setStorage, getTheme, setTheme } from "../utils/storage";
+import { getStorage, setStorage, getTheme, setTheme, removeTitleMapping } from "../utils/storage";
 import { t } from "../utils/i18n";
 
 async function init() {
@@ -44,7 +44,7 @@ async function init() {
   document.getElementById("link-anilist")!.textContent = t("linkAniList");
   document.getElementById("theme-dark-label")!.textContent = t("themeDark");
   document.getElementById("theme-light-label")!.textContent = t("themeLight");
-
+  
   document.getElementById("btn-logout")!.addEventListener("click", async () => {
     if (!confirm(t("logoutConfirm"))) return;
     await chrome.storage.local.clear();
@@ -52,9 +52,20 @@ async function init() {
     window.close();
   });
 
+  document.getElementById("section-mappings")!.textContent = t("sectionMappings");
+  await renderMappings();
+
+  const mappingsSearch = document.getElementById("mappings-search") as HTMLInputElement;
+  mappingsSearch.placeholder = t("searchMappings");
+  mappingsSearch.addEventListener("input", () => {
+    renderMappings(mappingsSearch.value);
+  });
+
   const manifest = chrome.runtime.getManifest();
   document.getElementById("version")!.textContent = `v${manifest.version}`;
 }
+
+
 
 function applyTheme(theme: "dark" | "light") {
   document.documentElement.setAttribute("data-theme", theme);
@@ -71,5 +82,44 @@ async function switchTheme(theme: "dark" | "light") {
   updateThemeButtons(theme);
   chrome.runtime.sendMessage({ type: "THEME_CHANGED", payload: { theme } }).catch(() => {});
 }
+async function renderMappings(filter = "") {
+  const storage = await getStorage();
+  const mappings = storage.titleMappings;
+  const container = document.getElementById("mappings-list")!;
+  container.innerHTML = "";
+
+  const entries = Object.entries(mappings).filter(([title]) =>
+    title.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  if (Object.keys(mappings).length === 0) {
+    container.innerHTML = `<p class="empty-hint">${t("noMappings")}</p>`;
+    return;
+  }
+
+  if (entries.length === 0) {
+    container.innerHTML = `<p class="empty-hint">${t("noMappingsSearch")}</p>`;
+    return;
+  }
+
+  for (const [siteTitle, mediaId] of entries) {
+    const row = document.createElement("div");
+    row.className = "mapping-row";
+    row.innerHTML = `
+      <div class="mapping-info">
+        <div class="mapping-title">${siteTitle}</div>
+        <div class="mapping-id">AniList ID : ${mediaId}</div>
+      </div>
+      <button class="btn-remove" data-title="${siteTitle}">✕</button>
+    `;
+    row.querySelector(".btn-remove")!.addEventListener("click", async () => {
+      await removeTitleMapping(siteTitle);
+      await renderMappings(filter);
+    });
+    container.appendChild(row);
+  }
+}
+
+
 
 init();
