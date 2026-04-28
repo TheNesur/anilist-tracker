@@ -143,5 +143,8 @@
   },
   "youAreOn": {
     "message": "You are on"
+  },
+  "tokenExpired": {
+    "message": "Your session has expired. Please reconnect."
   }
 }
