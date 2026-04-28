@@ -6,6 +6,8 @@ import { MangaPlusParser } from "./manga/mangaplus";
 import { AsuraParser } from "./manga/asura";
 import { FlameParser } from "./manga/flame";
 import { ReaperParser } from "./manga/reaper";
+import { CrunchyrollParser } from "./anime/crunchyroll";
+import { VoirAnimeParser } from "./anime/voiranime";
 
 export interface SiteParser {
   site: SupportedSite;
@@ -23,6 +25,10 @@ export function getParser(): SiteParser | null {
   if (host.includes("webtoons")) return new WebtoonParser();
   if (host.includes("mangadex")) return new MangaDexParser();
   if (host.includes("mangaplus")) return new MangaPlusParser();
+
+
+  if (host.includes("crunchyroll")) return new CrunchyrollParser();
+  if (host.includes("voir-anime")) return new VoirAnimeParser();
 
   return null;
 }
