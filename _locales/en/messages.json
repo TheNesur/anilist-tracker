@@ -152,5 +152,8 @@
     "placeholders": {
       "chapter": { "content": "$1" }
     }
+  },
+  "errorTitle": { 
+    "message": "Error" 
   }
 }

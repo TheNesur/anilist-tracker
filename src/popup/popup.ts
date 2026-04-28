@@ -36,6 +36,10 @@ async function init() {
   const theme = await getTheme();
   applyTheme(theme);
 
+
+  document.getElementById("login-description")!.textContent = t("loginDescription");
+  document.getElementById("btn-login")!.textContent = t("btnLogin");
+
   if (!storage.accessToken) {
     showView("login");
     return;
@@ -178,7 +182,7 @@ function renderState(state: PopupState) {
       stateContainer.innerHTML = `
         <div class="state-box">
           <div class="state-icon">❌</div>
-          <p class="state-title">Erreur</p>
+          <p class="state-title">t("errorTitle")</p>
           <p class="state-text">${state.message}</p>
         </div>`;
       break;
@@ -278,7 +282,7 @@ async function handleUpdate() {
   if (!selectedMediaId || !currentDetection) return;
 
   const btn = document.getElementById("btn-update") as HTMLButtonElement;
-  btn.textContent = "Mise à jour…";
+  btn.textContent = t("stateLoading");
   btn.disabled = true;
 
   const response = await chrome.runtime.sendMessage({
