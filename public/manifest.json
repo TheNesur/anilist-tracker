@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnTSu2pooV+WtphkLfuB5hKHx1Zh6y+HjpBs2vnnO/cbOVDCql/ClzF2y7flgRo7srtYO43Wo7mZD+vY1h3HhCCxLSERSLsHEAepuibLFzud66UEeBoeVPz0AK7RGOAr1PKt9hXSeiUIx0VZHKnDUvAoBKpGNIly/ao3SK2+5+0WbDXPGk/VxGzZwotiiRJIibEEOSrwjVmcy8dI8/aYCUn7VjH+A08tJwGDcGrdsuiZ53ay+qKN3b1yFG1deRPitqWADq50cCTr0tU0h7o8FS5gWj2eQ3fXw4oe/ppMiFr1DOfYHLi5yVCNWLzPDLg559Wy3EYlAKH8U3YVPGFtyewIDAQAB",
   "name": "__MSG_extensionName__",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "permissions": [
@@ -24,19 +24,35 @@
       "matches": [
         "https://asuracomic.net/*",
         "https://www.asuracomic.net/*",
+
         "https://flamecomics.xyz/*",
         "https://www.flamecomics.xyz/*",
+
         "https://reaperscans.com/*",
         "https://www.reaperscans.com/*",
+
         "https://luminousscans.gg/*",
         "https://www.luminousscans.gg/*",
+
         "https://raijin-scans.fr/*",
         "https://www.raijin-scans.fr/*",
+
         "https://www.webtoons.com/*",
         "https://webtoons.com/*",
+
         "https://mangadex.org/*",
         "https://www.mangadex.org/*",
-        "https://mangaplus.shueisha.co.jp/*"
+
+        "https://mangaplus.shueisha.co.jp/*",
+        
+
+
+        
+        "https://www.crunchyroll.com/*",
+        "https://crunchyroll.com/*",
+
+        "https://voir-anime.to/*",
+        "https://www.voir-anime.to/*"
       ],
       "js": ["src/content/index.ts"],
       "run_at": "document_idle"

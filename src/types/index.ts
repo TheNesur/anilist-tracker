@@ -20,7 +20,8 @@ export type SupportedSite =
   | "webtoon"
   | "mangadex"
   | "mangaplus"
-  | "crunchyroll";
+  | "crunchyroll"
+  | "voiranime";
 
 export interface AniListMedia {
   id: number;

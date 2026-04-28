@@ -5,17 +5,32 @@ import { t } from "../utils/i18n";
 const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
   "asuracomic.net": "asura",
   "www.asuracomic.net": "asura",
+
   "flamecomics.xyz": "flame",
   "www.flamecomics.xyz": "flame",
+
   "reaperscans.com": "reaper",
   "www.reaperscans.com": "reaper",
+
   "raijin-scans.fr": "raijin",
   "www.raijin-scans.fr": "raijin",
+
   "webtoons.com": "webtoon",
   "www.webtoons.com": "webtoon",
+
   "mangadex.org": "mangadex",
   "www.mangadex.org": "mangadex",
+
   "mangaplus.shueisha.co.jp": "mangaplus",
+
+
+
+
+  "crunchyroll.com": "crunchyroll",
+  "www.crunchyroll.com": "crunchyroll",
+
+  "voir-anime.to": "voiranime",
+  "www.voir-anime.to": "voiranime",
 };
 
 const SITE_NAMES: Record<SupportedSite, string> = {
@@ -27,7 +42,11 @@ const SITE_NAMES: Record<SupportedSite, string> = {
   webtoon: "Webtoon",
   mangadex: "MangaDex",
   mangaplus: "MangaPlus",
+  crunchyroll: "Crunchyroll",
+  voiranime: "Voir Anime",
 };
+
+const ANIME_SITES = new Set<SupportedSite>(["crunchyroll", "voiranime"]);
 
 const loginView = document.getElementById("login-view")!;
 const mainView = document.getElementById("main-view")!;
@@ -44,7 +63,6 @@ async function init() {
   const theme = await getTheme();
   applyTheme(theme);
 
-
   document.getElementById("login-description")!.textContent = t("loginDescription");
   document.getElementById("btn-login")!.textContent = t("btnLogin");
 
@@ -56,7 +74,6 @@ async function init() {
   showView("main");
   usernameEl.textContent = storage.username ?? (storage.userId ? `#${storage.userId}` : "—");
   await resolveState();
-
 
   chrome.storage.session.onChanged.addListener((changes) => {
     if (changes.lastDetection || changes.lastDetectionUrl || changes.detectionFailed) {
@@ -74,11 +91,11 @@ function applyTheme(theme: "dark" | "light") {
 async function resolveState() {
   renderState({ type: "loading" });
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });  
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const url = tab?.url;
 
   if (!url || url.startsWith("chrome://") || url.startsWith("edge://") || url.startsWith("about:")) {
-    renderState({ type: "unsupported_site", hostname: "cette page système" });
+    renderState({ type: "unsupported_site", hostname: "system page" });
     return;
   }
 
@@ -102,7 +119,6 @@ async function resolveState() {
 
   if (session.tokenExpired) {
     renderState({ type: "error", message: t("tokenExpired") });
-    // Show reconnect button
     const btn = document.createElement("button");
     btn.className = "btn btn-primary";
     btn.style.margin = "0 16px 16px";
@@ -128,7 +144,7 @@ async function resolveState() {
     return;
   }
 
-  currentDetection = session.lastDetection as MangaDetection;
+  currentDetection = session.lastDetection as MediaDetection;
   selectedMediaId = (session.confirmedMediaId as number | null) ?? null;
 
   renderState({
@@ -162,15 +178,17 @@ function renderState(state: PopupState) {
         </div>`;
       break;
 
-    case "unsupported_page":
+    case "unsupported_page": {
+      const isAnimeSite = ANIME_SITES.has(state.site);
       stateContainer.innerHTML = `
         <div class="state-box">
-          <div class="state-icon">📖</div>
-          <p class="state-title">${t("stateNoChapter")}</p>
+          <div class="state-icon">${isAnimeSite ? "📺" : "📖"}</div>
+          <p class="state-title">${isAnimeSite ? t("stateNoEpisode") : t("stateNoChapter")}</p>
           <p class="state-text">${t("youAreOn")} <strong>${SITE_NAMES[state.site]}</strong>.</p>
-          <p class="state-hint">${t("stateNoChapterText")}</p>
+          <p class="state-hint">${isAnimeSite ? t("stateNoEpisodeText") : t("stateNoChapterText")}</p>
         </div>`;
       break;
+    }
 
     case "detection_failed":
       stateContainer.innerHTML = `
@@ -190,7 +208,7 @@ function renderState(state: PopupState) {
       stateContainer.innerHTML = `
         <div class="state-box">
           <div class="state-icon">❌</div>
-          <p class="state-title">t("errorTitle")</p>
+          <p class="state-title">${t("errorTitle")}</p>
           <p class="state-text">${state.message}</p>
         </div>`;
       break;
@@ -201,20 +219,22 @@ function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
   const { detection, progress, mediaId, searchResults } = state;
 
   const isAnime = detection.mediaType === "ANIME";
-  const progressLabel = isAnime ? t("episodeLabel", String(detection.progress)) : t("chapterLabel", String(detection.progress));
+  const progressLabel = isAnime
+    ? t("episodeLabel", String(detection.progress))
+    : t("chapterLabel", String(detection.progress));
 
-  const chapterText = progress !== null
+  const progressText = progress !== null
     ? `${progressLabel} <span class="progress-hint">(${t("youAreOn")} ${progress})</span>`
     : progressLabel;
 
   stateContainer.innerHTML = `
     <div class="detection-card">
-      <div class="manga-title">${detection.title}</div>
-      <div class="manga-chapter">${chapterText}</div>
-      <div class="manga-source">${t("sourceLabel")} : ${detection.source} · ${new URL(detection.url).hostname}</div>
+      <div class="media-title">${detection.title}</div>
+      <div class="media-progress">${progressText}</div>
+      <div class="media-source">${t("sourceLabel")} : ${detection.source} · ${new URL(detection.url).hostname}</div>
     </div>
     <div id="results-section" style="display:none">
-      <p class="results-label">${t("selectManga")}</p>
+      <p class="results-label">${isAnime ? t("selectAnime") : t("selectManga")}</p>
       <ul class="results-list" id="results-list"></ul>
     </div>
     <div id="confirm-section" style="display:none">
@@ -328,8 +348,8 @@ async function handleUpdate() {
 
   const response = await chrome.runtime.sendMessage({
     type: "UPDATE_PROGRESS",
-    payload: { 
-      mediaId: selectedMediaId, 
+    payload: {
+      mediaId: selectedMediaId,
       progress: currentDetection.progress,
       mediaType: currentDetection.mediaType,
     },
@@ -348,7 +368,6 @@ async function handleUpdate() {
   }
 }
 
-// Login
 btnLogin.addEventListener("click", async () => {
   btnLogin.textContent = t("stateLoading");
   const response = await chrome.runtime.sendMessage({ type: "GET_AUTH_TOKEN" });
@@ -363,7 +382,6 @@ btnLogin.addEventListener("click", async () => {
   }
 });
 
-// Settings
 btnSettings.addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
 });
