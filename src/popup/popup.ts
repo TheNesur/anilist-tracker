@@ -1,5 +1,5 @@
 import { getStorage, setTheme, getTheme } from "../utils/storage";
-import type { AniListMedia, MangaDetection, PopupState, SupportedSite } from "../types";
+import type { AniListMedia, MediaDetection, PopupState, SupportedSite } from "../types";
 import { t } from "../utils/i18n";
 
 const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
@@ -36,7 +36,7 @@ const usernameEl = document.getElementById("username")!;
 const stateContainer = document.getElementById("state-container")!;
 const btnSettings = document.getElementById("btn-settings")!;
 
-let currentDetection: MangaDetection | null = null;
+let currentDetection: MediaDetection | null = null;
 let selectedMediaId: number | null = null;
 
 async function init() {
@@ -200,9 +200,12 @@ function renderState(state: PopupState) {
 function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
   const { detection, progress, mediaId, searchResults } = state;
 
+  const isAnime = detection.mediaType === "ANIME";
+  const progressLabel = isAnime ? t("episodeLabel", String(detection.progress)) : t("chapterLabel", String(detection.progress));
+
   const chapterText = progress !== null
-    ? `${t("chapterLabel", String(detection.chapter))} <span class="progress-hint">(${t("youAreOn")} ${progress})</span>`
-    : t("chapterLabel", String(detection.chapter));
+    ? `${progressLabel} <span class="progress-hint">(${t("youAreOn")} ${progress})</span>`
+    : progressLabel;
 
   stateContainer.innerHTML = `
     <div class="detection-card">
@@ -244,21 +247,20 @@ function showResults(results: AniListMedia[]) {
   }
 }
 
-function showConfirm(detection: MangaDetection, progress: number | null) {
+function showConfirm(detection: MediaDetection, progress: number | null) {
   const section = document.getElementById("confirm-section")!;
   const btn = document.getElementById("btn-update") as HTMLButtonElement;
 
   section.querySelectorAll(".btn-change").forEach(el => el.remove());
-  
   section.style.display = "block";
 
-  if (progress !== null && detection.chapter <= progress) {
+  if (progress !== null && detection.progress <= progress) {
     btn.textContent = t("alreadyUpToDate", String(progress));
     btn.classList.remove("btn-success");
     btn.classList.add("btn-ghost");
     btn.disabled = true;
   } else if (progress !== null) {
-    btn.textContent = t("updateBtnProgress", String(progress), String(detection.chapter));
+    btn.textContent = t("updateBtnProgress", String(progress), String(detection.progress));
   } else {
     btn.textContent = t("updateBtn");
   }
@@ -268,22 +270,18 @@ function showConfirm(detection: MangaDetection, progress: number | null) {
   changeBtn.style.marginTop = "6px";
   changeBtn.textContent = t("changeMapping");
   changeBtn.addEventListener("click", async () => {
-    //const { removeTitleMapping } = await import("../utils/storage");
-    //await removeTitleMapping(detection.title);
     selectedMediaId = null;
-
     section.style.display = "none";
     const resultsSection = document.getElementById("results-section")!;
     const resultsList = document.getElementById("results-list")!;
     resultsSection.style.display = "block";
 
-    // If no cached results, re-search AniList
     const session = await chrome.storage.session.get(["searchResults"]);
     if (!session.searchResults || (session.searchResults as AniListMedia[]).length === 0) {
-      resultsList.innerHTML = `<li style="padding:8px;color:var(--text-muted)">Searching...</li>`;
+      resultsList.innerHTML = `<li style="padding:8px;color:var(--text-muted)">${t("stateLoading")}</li>`;
       const response = await chrome.runtime.sendMessage({
         type: "SEARCH_ANILIST",
-        payload: { title: detection.title },
+        payload: { title: detection.title, mediaType: detection.mediaType },
       });
       if (response?.results) {
         await chrome.storage.session.set({ searchResults: response.results });
@@ -330,7 +328,11 @@ async function handleUpdate() {
 
   const response = await chrome.runtime.sendMessage({
     type: "UPDATE_PROGRESS",
-    payload: { mediaId: selectedMediaId, chapter: currentDetection.chapter },
+    payload: { 
+      mediaId: selectedMediaId, 
+      progress: currentDetection.progress,
+      mediaType: currentDetection.mediaType,
+    },
   });
 
   if (response?.success) {

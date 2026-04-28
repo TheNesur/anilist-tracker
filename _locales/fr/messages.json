@@ -170,6 +170,10 @@
   },
   "searchMappings": { 
     "message": "Rechercher un titre…" 
+  },
+  "episodeLabel": {
+    "message": "Épisode $episode$",
+    "placeholders": { "episode": { "content": "$1" } }
   }
 
 }

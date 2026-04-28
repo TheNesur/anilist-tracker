@@ -1,9 +1,15 @@
-export interface MangaDetection {
+export type MediaType = "MANGA" | "ANIME";
+
+export interface MediaDetection {
   title: string;
-  chapter: number;
+  progress: number;    // chapter for manga, episode for anime
+  mediaType: MediaType;
   source: SupportedSite;
   url: string;
 }
+
+// Keep for backward compatibility during migration
+export type MangaDetection = MediaDetection;
 
 export type SupportedSite =
   | "asura"
@@ -13,7 +19,8 @@ export type SupportedSite =
   | "raijin"
   | "webtoon"
   | "mangadex"
-  | "mangaplus";
+  | "mangaplus"
+  | "crunchyroll";
 
 export interface AniListMedia {
   id: number;
@@ -37,6 +44,7 @@ export interface AniListMediaList {
 
 export type MessageType =
   | "MANGA_DETECTED"
+  | "MEDIA_DETECTED"
   | "UPDATE_PROGRESS"
   | "SEARCH_ANILIST"
   | "GET_AUTH_TOKEN"
@@ -48,16 +56,23 @@ export interface ExtensionMessage {
   payload?: unknown;
 }
 
+export interface MediaDetectedMessage extends ExtensionMessage {
+  type: "MEDIA_DETECTED";
+  payload: MediaDetection;
+}
+
+// Keep for backward compatibility
 export interface MangaDetectedMessage extends ExtensionMessage {
   type: "MANGA_DETECTED";
-  payload: MangaDetection;
+  payload: MediaDetection;
 }
 
 export interface UpdateProgressMessage extends ExtensionMessage {
   type: "UPDATE_PROGRESS";
   payload: {
     mediaId: number;
-    chapter: number;
+    progress: number;
+    mediaType: MediaType;
   };
 }
 
@@ -87,5 +102,5 @@ export type PopupState =
   | { type: "unsupported_site"; hostname: string }
   | { type: "unsupported_page"; site: SupportedSite }
   | { type: "detection_failed"; site: SupportedSite }
-  | { type: "detected"; detection: MangaDetection; progress: number | null; mediaId: number | null; searchResults: AniListMedia[] | null }
+  | { type: "detected"; detection: MediaDetection; progress: number | null; mediaId: number | null; searchResults: AniListMedia[] | null }
   | { type: "error"; message: string };

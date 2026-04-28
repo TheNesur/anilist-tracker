@@ -9,7 +9,7 @@ function main() {
 
   const detection = parser.detect();
   if (!detection) {
-    console.log("[AniList Tracker] Could not detect manga info on this page.");
+    console.log("[AniList Tracker] Could not detect media info on this page.");
     chrome.storage.session.set({ detectionFailed: true, lastDetectionUrl: window.location.href });
     return;
   }
