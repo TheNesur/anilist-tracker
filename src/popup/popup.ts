@@ -15,6 +15,7 @@ const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
   "www.webtoons.com": "webtoon",
   "mangadex.org": "mangadex",
   "www.mangadex.org": "mangadex",
+  "mangaplus.shueisha.co.jp": "mangaplus",
 };
 
 const SITE_NAMES: Record<SupportedSite, string> = {
@@ -25,6 +26,7 @@ const SITE_NAMES: Record<SupportedSite, string> = {
   raijin: "Raijin Scans",
   webtoon: "Webtoon",
   mangadex: "MangaDex",
+  mangaplus: "MangaPlus",
 };
 
 const loginView = document.getElementById("login-view")!;
