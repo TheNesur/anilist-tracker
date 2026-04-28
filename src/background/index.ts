@@ -44,6 +44,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 async function handleDetection(detection: MangaDetection) {
+  chrome.storage.session.set({ 
+    lastDetectionUrl: detection.url,
+    lastDetection: null, // Clear previous detection while loading
+  });
   const token = await getToken();
   if (!token) {
     chrome.action.setBadgeText({ text: "!" });
