@@ -227,21 +227,34 @@ export class WebtoonParser implements SiteParser {
   }
 }
 
+// ── MangaPlus parser ──
+export class MangaPlusParser implements SiteParser {
+  site: SupportedSite = "mangaplus";
 
+  isChapterPage(): boolean {
+    return /^\/viewer\/\d+/.test(window.location.pathname);
+  }
 
+  detect(): MangaDetection | null {
+    if (!this.isChapterPage()) return null;
 
+    // document.title format: "[#003] One Piece | MANGA Plus"
+    const titleMatch = document.title.match(/^\[#(\d+)\]\s+(.+?)\s+\|\s+MANGA Plus$/i);
+    if (!titleMatch) return null;
 
+    const chapter = parseInt(titleMatch[1], 10);
+    const title = titleMatch[2].trim();
 
+    if (!title || isNaN(chapter)) return null;
 
-
-
-
-
-
-
-
-
-
+    return {
+      title: cleanTitle(title),
+      chapter,
+      source: this.site,
+      url: window.location.href,
+    };
+  }
+}
 
 
 
@@ -262,6 +275,7 @@ export function getParser(): SiteParser | null {
   if (host.includes("raijin-scans") || host.includes("raijinscan"))  return new RaijinParser();
   if (host.includes("webtoons")) return new WebtoonParser();
   if (host.includes("mangadex")) return new MangaDexParser();
+  if (host.includes("mangaplus")) return new MangaPlusParser();
   
   return null;
 }

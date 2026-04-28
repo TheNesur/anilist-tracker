@@ -12,7 +12,8 @@ export type SupportedSite =
   | "luminous"
   | "raijin"
   | "webtoon"
-  | "mangadex";
+  | "mangadex"
+  | "mangaplus";
 
 export interface AniListMedia {
   id: number;
