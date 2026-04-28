@@ -12,7 +12,7 @@ async function init() {
   const idEl = document.getElementById("account-id")!;
 
   if (storage.userId) {
-    nameEl.textContent = t("accountName");
+    nameEl.textContent = storage.username ?? t("accountName");
     idEl.textContent = t("accountId", String(storage.userId));
   } else {
     nameEl.textContent = t("notConnected");

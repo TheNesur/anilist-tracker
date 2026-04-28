@@ -42,7 +42,7 @@ async function init() {
   }
 
   showView("main");
-  usernameEl.textContent = storage.userId ? `#${storage.userId}` : "—";
+  usernameEl.textContent = storage.username ?? (storage.userId ? `#${storage.userId}` : "—");
   await resolveState();
 
 

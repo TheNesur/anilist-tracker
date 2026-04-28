@@ -22,6 +22,11 @@ async function gqlRequest<T>(
     body: JSON.stringify({ query, variables }),
   });
 
+  // Token expired or invalid
+  if (res.status === 401) {
+    throw new Error("TOKEN_EXPIRED");
+  }
+
   const json = await res.json();
 
   if (json.errors) {
