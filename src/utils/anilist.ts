@@ -143,3 +143,31 @@ export async function getViewer(
 
   return data.Viewer;
 }
+
+const SEARCH_ANIME = `
+query ($search: String) {
+  Page(perPage: 5) {
+    media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+      id
+      title {
+        romaji
+        english
+        native
+      }
+      coverImage {
+        medium
+      }
+      siteUrl
+    }
+  }
+}`;
+
+export async function searchAnime(
+  title: string
+): Promise<AniListMedia[]> {
+  const data = await gqlRequest<{
+    Page: { media: AniListMedia[] };
+  }>(SEARCH_ANIME, { search: title });
+
+  return data.Page.media;
+}

@@ -1,6 +1,6 @@
-import { searchManga, getProgress, updateProgress, getViewer } from "../utils/anilist";
+import { searchManga, searchAnime, getProgress, updateProgress, getViewer } from "../utils/anilist";
 import { getStorage, setStorage, getToken, getTitleMapping, saveTitleMapping } from "../utils/storage";
-import type { MangaDetection, AniListMedia } from "../types";
+import type { MediaDetection, AniListMedia } from "../types";
 
 const CLIENT_ID = import.meta.env.VITE_ANILIST_CLIENT_ID;
 //const CLIENT_SECRET = import.meta.env.VITE_ANILIST_CLIENT_SECRET;
@@ -9,16 +9,17 @@ const REDIRECT_URL = import.meta.env.VITE_ANILIST_REDIRECT_URL;
 const OAUTH_URL = `https://anilist.co/api/v2/oauth/authorize?client_id=${CLIENT_ID}&response_type=token`;
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.type === "MANGA_DETECTED") {
-    handleDetection(message.payload as MangaDetection);
+  if (message.type === "MANGA_DETECTED" || message.type === "MEDIA_DETECTED") {
+    handleDetection(message.payload as MediaDetection);
   }
 
   if (message.type === "UPDATE_PROGRESS") {
-    const { mediaId, chapter } = message.payload as {
+    const { mediaId, progress, mediaType } = message.payload as {
       mediaId: number;
-      chapter: number;
+      progress: number;
+      mediaType: MediaDetection["mediaType"];
     };
-    handleUpdate(mediaId, chapter).then(sendResponse);
+    handleUpdate(mediaId, progress, mediaType).then(sendResponse);
     return true;
   }
 
@@ -43,17 +44,19 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === "SEARCH_ANILIST") {
-    const { title } = message.payload as { title: string };
-    searchManga(title).then(results => sendResponse({ results }));
+    const { title, mediaType } = message.payload as { title: string; mediaType: MediaDetection["mediaType"] };
+    const search = mediaType === "ANIME" ? searchAnime(title) : searchManga(title);
+    search.then((results: AniListMedia[]) => sendResponse({ results }));
     return true;
   }
 });
 
-async function handleDetection(detection: MangaDetection) {
+async function handleDetection(detection: MediaDetection) {
   chrome.storage.session.set({ 
     lastDetectionUrl: detection.url,
-    lastDetection: null, // Clear previous detection while loading
+    lastDetection: null,
   });
+
   const token = await getToken();
   if (!token) {
     chrome.action.setBadgeText({ text: "!" });
@@ -66,7 +69,10 @@ async function handleDetection(detection: MangaDetection) {
     let mediaId = mappedId;
 
     if (!mediaId) {
-      const results = await searchManga(detection.title);
+      const results = detection.mediaType === "ANIME"
+        ? await searchAnime(detection.title)
+        : await searchManga(detection.title);
+
       if (results.length === 0) {
         console.log("[AniList Tracker] No AniList results for:", detection.title);
         notifyUser(detection, null);
@@ -84,8 +90,8 @@ async function handleDetection(detection: MangaDetection) {
       currentProgress = entry?.progress ?? null;
     }
 
-    if (storage.autoUpdate && (currentProgress === null || detection.chapter > currentProgress)) {
-      await handleUpdate(mediaId, detection.chapter);
+    if (storage.autoUpdate && (currentProgress === null || detection.progress > currentProgress)) {
+      await handleUpdate(mediaId, detection.progress, detection.mediaType);
     } else {
       notifyUser(detection, null, mediaId, currentProgress);
     }
@@ -99,7 +105,7 @@ async function handleDetection(detection: MangaDetection) {
   }
 }
 
-async function handleUpdate(mediaId: number, chapter: number) {
+async function handleUpdate(mediaId: number, progress: number, mediaType: MediaDetection["mediaType"] = "MANGA") {
   const token = await getToken();
   if (!token) return { success: false, error: "Not authenticated" };
 
@@ -109,11 +115,11 @@ async function handleUpdate(mediaId: number, chapter: number) {
   try {
     const current = await getProgress(mediaId, storage.userId, token);
 
-    if (current && current.progress >= chapter) {
+    if (current && current.progress >= progress) {
       return { success: true, skipped: true, current: current.progress };
     }
 
-    const result = await updateProgress(mediaId, chapter, token);
+    const result = await updateProgress(mediaId, progress, token);
     console.log("[AniList Tracker] Updated:", result);
 
     chrome.action.setBadgeText({ text: "✓" });
@@ -128,7 +134,7 @@ async function handleUpdate(mediaId: number, chapter: number) {
 }
 
 function notifyUser(
-  detection: MangaDetection,
+  detection: MediaDetection,
   searchResults: AniListMedia[] | null,
   confirmedMediaId?: number,
   currentProgress?: number | null
