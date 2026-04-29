@@ -201,6 +201,17 @@ async function startOAuth() {
 
     return { success: true, username: viewer.name };
   } catch (err) {
+    const errMsg = String(err);
+    if (
+      errMsg.includes("canceled") ||
+      errMsg.includes("cancelled") ||
+      errMsg.includes("user did not approve") ||
+      errMsg.includes("Authorization page could not be loaded")
+    ) {
+      console.log("[AniList Tracker] OAuth cancelled by user.");
+      return { success: false, cancelled: true };
+    }
+
     console.error("[AniList Tracker] OAuth error:", err);
     return { success: false, error: String(err) };
   }

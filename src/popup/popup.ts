@@ -376,6 +376,8 @@ btnLogin.addEventListener("click", async () => {
     usernameEl.textContent = response.username;
     showView("main");
     await resolveState();
+  } else if (response?.cancelled) {
+    btnLogin.textContent = t("btnLogin");
   } else {
     btnLogin.textContent = t("btnLogin");
     alert(t("connectionFailed"));
