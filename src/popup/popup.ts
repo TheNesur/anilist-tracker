@@ -174,7 +174,7 @@ function renderState(state: PopupState) {
           <div class="state-icon">🌐</div>
           <p class="state-title">${t("stateUnsupportedSite")}</p>
           <p class="state-text"><strong>${state.hostname}</strong> ${t("stateUnsupportedSiteText")}</p>
-          <p class="state-hint">${t("stateSupportedSites")}</p>
+          <p class="state-hint"><a href="https://github.com/TheNesur/anilist-tracker#supported-sites" target="_blank">${t("stateSupportedSites")}</a></p>
         </div>`;
       break;
 
