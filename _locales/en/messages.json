@@ -21,7 +21,7 @@
     "message": "is not compatible with AniList Tracker."
   },
   "stateSupportedSites": {
-    "message": "Supported sites: Raijin Scans, Webtoon"
+    "message": "See the list of supported sites on GitHub."
   },
   "stateNoChapter": {
     "message": "No chapter detected"
