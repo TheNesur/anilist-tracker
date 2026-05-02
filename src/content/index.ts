@@ -1,6 +1,10 @@
 import { getParser } from "../parsers";
 import type { MangaDetectedMessage } from "../types";
 
+if (window.self !== window.top) {
+  throw new Error("AniList Tracker: skipping iframe context");
+}
+
 function main() {
   const parser = getParser();
   if (!parser) return;
@@ -59,3 +63,11 @@ const observer = new MutationObserver(() => {
 });
 
 observer.observe(document.body, { childList: true, subtree: true });
+
+window.addEventListener("pageshow", (event) => {
+  console.log("[AniList Tracker] pageshow — persisted:", event.persisted);
+  if (event.persisted) {
+    const previousTitle = document.title;
+    waitForTitleAndRun(false, previousTitle);
+  }
+});

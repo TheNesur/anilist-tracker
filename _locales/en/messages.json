@@ -174,5 +174,8 @@
   "episodeLabel": {
     "message": "Episode $episode$",
     "placeholders": { "episode": { "content": "$1" } }
-  }
+  },
+  "stateNoEpisode": { "message": "No episode detected" },
+  "stateNoEpisodeText": { "message": "Navigate to an episode page to sync your progress." },
+  "selectAnime": { "message": "Select the correct anime on AniList:" }
 }

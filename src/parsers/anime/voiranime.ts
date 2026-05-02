@@ -15,7 +15,7 @@ export class VoirAnimeParser {
     const titleEl = document.querySelector<HTMLAnchorElement>("a[href*='/anime/']");
     const title = titleEl?.textContent?.trim() ?? this.extractTitleFromUrl() ?? null;
 
-    const episodeMatch = window.location.pathname.match(/-(\d+)-vostfr\/?$/i)
+    const episodeMatch = window.location.pathname.match(/-(\d+)-(?:vostfr|vf(?:-\d+)?)(?:\/)?$/i)
       ?? window.location.pathname.match(/-(\d+)\/?$/i);
     const episode = episodeMatch ? parseInt(episodeMatch[1], 10) : null;
 
