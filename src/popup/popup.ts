@@ -356,6 +356,10 @@ async function handleUpdate() {
   });
 
   if (response?.success) {
+    if (!response.skipped) {
+      await chrome.storage.session.set({ currentProgress: response.progress });
+    }
+    
     btn.textContent = response.skipped
       ? t("alreadyUpToDate", String(response.current))
       : t("updatedSuccess", String(response.progress));
