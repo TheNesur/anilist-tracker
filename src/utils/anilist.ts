@@ -1,11 +1,22 @@
-import type { AniListMedia, AniListMediaList } from "../types";
+import { TokenExpiredError, type AniListMedia, type AniListMediaList } from "../types";
 
 const ANILIST_API = "https://graphql.anilist.co";
+const SEARCH_PER_PAGE = 10;
+const MAX_RETRIES_429 = 3;
+const DEFAULT_RETRY_AFTER_MS = 60_000;
+
+const MANGA_FORMATS = ["MANGA", "ONE_SHOT"];
+const ANIME_FORMATS = ["TV", "TV_SHORT", "MOVIE", "SPECIAL", "OVA", "ONA"];
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
 
 async function gqlRequest<T>(
   query: string,
   variables: Record<string, unknown>,
-  token?: string | null
+  token?: string | null,
+  retryCount = 0
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -22,9 +33,20 @@ async function gqlRequest<T>(
     body: JSON.stringify({ query, variables }),
   });
 
-  // Token expired or invalid
   if (res.status === 401) {
-    throw new Error("TOKEN_EXPIRED");
+    throw new TokenExpiredError();
+  }
+
+  if (res.status === 429) {
+    if (retryCount >= MAX_RETRIES_429) {
+      throw new Error("AniList rate limit: max retries exceeded");
+    }
+    const retryAfter = Number(res.headers.get("Retry-After"));
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? retryAfter * 1000
+      : DEFAULT_RETRY_AFTER_MS;
+    await sleep(waitMs);
+    return gqlRequest<T>(query, variables, token, retryCount + 1);
   }
 
   const json = await res.json();
@@ -37,30 +59,47 @@ async function gqlRequest<T>(
 }
 
 const SEARCH_MANGA = `
-query ($search: String) {
-  Page(perPage: 5) {
-    media(search: $search, type: MANGA, sort: SEARCH_MATCH) {
+query ($search: String, $perPage: Int, $formats: [MediaFormat]) {
+  Page(perPage: $perPage) {
+    media(search: $search, type: MANGA, format_in: $formats, sort: SEARCH_MATCH) {
       id
-      title {
-        romaji
-        english
-        native
-      }
-      coverImage {
-        medium
-      }
+      format
+      countryOfOrigin
+      title { romaji english native }
+      synonyms
+      coverImage { medium }
       siteUrl
     }
   }
 }`;
 
-export async function searchManga(
-  title: string
-): Promise<AniListMedia[]> {
-  const data = await gqlRequest<{
-    Page: { media: AniListMedia[] };
-  }>(SEARCH_MANGA, { search: title });
+export async function searchManga(title: string): Promise<AniListMedia[]> {
+  const data = await gqlRequest<{ Page: { media: AniListMedia[] } }>(
+    SEARCH_MANGA,
+    { search: title, perPage: SEARCH_PER_PAGE, formats: MANGA_FORMATS }
+  );
+  return data.Page.media;
+}
 
+const SEARCH_ANIME = `
+query ($search: String, $perPage: Int, $formats: [MediaFormat]) {
+  Page(perPage: $perPage) {
+    media(search: $search, type: ANIME, format_in: $formats, sort: SEARCH_MATCH) {
+      id
+      format
+      title { romaji english native }
+      synonyms
+      coverImage { medium }
+      siteUrl
+    }
+  }
+}`;
+
+export async function searchAnime(title: string): Promise<AniListMedia[]> {
+  const data = await gqlRequest<{ Page: { media: AniListMedia[] } }>(
+    SEARCH_ANIME,
+    { search: title, perPage: SEARCH_PER_PAGE, formats: ANIME_FORMATS }
+  );
   return data.Page.media;
 }
 
@@ -72,14 +111,8 @@ query ($mediaId: Int, $userId: Int) {
     status
     media {
       id
-      title {
-        romaji
-        english
-        native
-      }
-      coverImage {
-        medium
-      }
+      title { romaji english native }
+      coverImage { medium }
       siteUrl
     }
   }
@@ -91,12 +124,14 @@ export async function getProgress(
   token: string
 ): Promise<AniListMediaList | null> {
   try {
-    const data = await gqlRequest<{
-      MediaList: AniListMediaList;
-    }>(GET_PROGRESS, { mediaId, userId }, token);
-
+    const data = await gqlRequest<{ MediaList: AniListMediaList }>(
+      GET_PROGRESS,
+      { mediaId, userId },
+      token
+    );
     return data.MediaList;
-  } catch {
+  } catch (err) {
+    if (err instanceof TokenExpiredError) throw err;
     return null;
   }
 }
@@ -117,57 +152,23 @@ export async function updateProgress(
 ): Promise<{ id: number; progress: number; status: string }> {
   const data = await gqlRequest<{
     SaveMediaListEntry: { id: number; progress: number; status: string };
-  }>(SAVE_PROGRESS, {
-    mediaId,
-    progress: chapter,
-    status: "CURRENT",
-  }, token);
+  }>(SAVE_PROGRESS, { mediaId, progress: chapter, status: "CURRENT" }, token);
 
   return data.SaveMediaListEntry;
 }
 
 const GET_VIEWER = `
 query {
-  Viewer {
-    id
-    name
-  }
+  Viewer { id name }
 }`;
 
 export async function getViewer(
   token: string
 ): Promise<{ id: number; name: string }> {
-  const data = await gqlRequest<{
-    Viewer: { id: number; name: string };
-  }>(GET_VIEWER, {}, token);
-
+  const data = await gqlRequest<{ Viewer: { id: number; name: string } }>(
+    GET_VIEWER,
+    {},
+    token
+  );
   return data.Viewer;
-}
-
-const SEARCH_ANIME = `
-query ($search: String) {
-  Page(perPage: 5) {
-    media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
-      id
-      title {
-        romaji
-        english
-        native
-      }
-      coverImage {
-        medium
-      }
-      siteUrl
-    }
-  }
-}`;
-
-export async function searchAnime(
-  title: string
-): Promise<AniListMedia[]> {
-  const data = await gqlRequest<{
-    Page: { media: AniListMedia[] };
-  }>(SEARCH_ANIME, { search: title });
-
-  return data.Page.media;
 }

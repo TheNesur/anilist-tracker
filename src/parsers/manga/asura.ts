@@ -1,5 +1,5 @@
 import type { MediaDetection, SupportedSite } from "../../types";
-import { cleanTitle, extractChapterNumber } from "../utils";
+import { cleanTitle, extractChapterNumber, stripScanlationSuffix } from "../utils";
 
 export class AsuraParser {
   site: SupportedSite = "asura";
@@ -11,7 +11,7 @@ export class AsuraParser {
   detect(): MediaDetection | null {
     if (!this.isChapterPage()) return null;
 
-    const title =
+    const rawTitle =
       document.querySelector<HTMLElement>("h1.entry-title")?.textContent?.trim() ??
       document.querySelector<HTMLElement>("[class*='series-title']")?.textContent?.trim() ??
       document.querySelector<HTMLAnchorElement>("ol.breadcrumb li:nth-child(2) a")?.textContent?.trim() ??
@@ -27,10 +27,10 @@ export class AsuraParser {
       chapter = extractChapterNumber(chapterText);
     }
 
-    if (!title || !chapter) return null;
+    if (!rawTitle || !chapter) return null;
 
     return {
-      title: cleanTitle(title),
+      title: cleanTitle(stripScanlationSuffix(rawTitle)),
       progress: Math.floor(chapter),
       mediaType: "MANGA",
       source: this.site,

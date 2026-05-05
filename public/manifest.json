@@ -6,15 +6,18 @@
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "permissions": [
-  "storage",
-  "identity",
-  "activeTab"
+    "storage",
+    "identity",
+    "tabs",
+    "alarms"
   ],
   "host_permissions": [
     "https://graphql.anilist.co/*",
-    "https://anilist.co/*",
     "https://auth.mraitchkovitch.fr/*"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; base-uri 'self'"
+  },
   "background": {
     "service_worker": "src/background/index.ts",
     "type": "module"
@@ -31,9 +34,6 @@
         "https://reaperscans.com/*",
         "https://www.reaperscans.com/*",
 
-        "https://luminousscans.gg/*",
-        "https://www.luminousscans.gg/*",
-
         "https://raijin-scans.fr/*",
         "https://www.raijin-scans.fr/*",
 
@@ -44,10 +44,7 @@
         "https://www.mangadex.org/*",
 
         "https://mangaplus.shueisha.co.jp/*",
-        
 
-
-        
         "https://www.crunchyroll.com/*",
         "https://crunchyroll.com/*",
 

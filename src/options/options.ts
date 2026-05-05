@@ -18,10 +18,16 @@ async function init() {
     nameEl.textContent = t("notConnected");
   }
 
-  const toggle = document.getElementById("toggle-autoupdate") as HTMLInputElement;
-  toggle.checked = storage.autoUpdate;
-  toggle.addEventListener("change", async () => {
-    await setStorage({ autoUpdate: toggle.checked });
+  const autoUpdateToggle = document.getElementById("toggle-autoupdate") as HTMLInputElement;
+  autoUpdateToggle.checked = storage.autoUpdate;
+  autoUpdateToggle.addEventListener("change", async () => {
+    await setStorage({ autoUpdate: autoUpdateToggle.checked });
+  });
+
+  const autoMapToggle = document.getElementById("toggle-automap") as HTMLInputElement;
+  autoMapToggle.checked = storage.autoMap;
+  autoMapToggle.addEventListener("change", async () => {
+    await setStorage({ autoMap: autoMapToggle.checked });
   });
 
   document.getElementById("theme-dark")!.addEventListener("click", () => switchTheme("dark"));
@@ -35,6 +41,8 @@ async function init() {
   document.getElementById("section-danger")!.textContent = t("dangerZone");
   document.getElementById("label-autoupdate")!.textContent = t("autoUpdate");
   document.getElementById("hint-autoupdate")!.textContent = t("autoUpdateHint");
+  document.getElementById("label-automap")!.textContent = t("autoMap");
+  document.getElementById("hint-automap")!.textContent = t("autoMapHint");
   document.getElementById("label-logout")!.textContent = t("logout");
   document.getElementById("hint-logout")!.textContent = t("logoutHint");
   document.getElementById("btn-logout")!.textContent = t("logout");
@@ -44,7 +52,7 @@ async function init() {
   document.getElementById("link-anilist")!.textContent = t("linkAniList");
   document.getElementById("theme-dark-label")!.textContent = t("themeDark");
   document.getElementById("theme-light-label")!.textContent = t("themeLight");
-  
+
   document.getElementById("btn-logout")!.addEventListener("click", async () => {
     if (!confirm(t("logoutConfirm"))) return;
     await chrome.storage.local.clear();
@@ -65,8 +73,6 @@ async function init() {
   document.getElementById("version")!.textContent = `v${manifest.version}`;
 }
 
-
-
 function applyTheme(theme: "dark" | "light") {
   document.documentElement.setAttribute("data-theme", theme);
 }
@@ -82,6 +88,7 @@ async function switchTheme(theme: "dark" | "light") {
   updateThemeButtons(theme);
   chrome.runtime.sendMessage({ type: "THEME_CHANGED", payload: { theme } }).catch(() => {});
 }
+
 async function renderMappings(filter = "") {
   const storage = await getStorage();
   const mappings = storage.titleMappings;
@@ -119,7 +126,5 @@ async function renderMappings(filter = "") {
     container.appendChild(row);
   }
 }
-
-
 
 init();
