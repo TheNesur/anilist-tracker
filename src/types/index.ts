@@ -8,14 +8,10 @@ export interface MediaDetection {
   url: string;
 }
 
-// Keep for backward compatibility during migration
-export type MangaDetection = MediaDetection;
-
 export type SupportedSite =
   | "asura"
   | "flame"
   | "reaper"
-  | "luminous"
   | "raijin"
   | "webtoon"
   | "mangadex"
@@ -25,14 +21,9 @@ export type SupportedSite =
 
 export interface AniListMedia {
   id: number;
-  title: {
-    romaji: string;
-    english: string | null;
-    native: string | null;
-  };
-  coverImage: {
-    medium: string;
-  };
+  title: { romaji: string; english: string | null; native: string | null; };
+  synonyms?: string[];
+  coverImage: { medium: string };
   siteUrl: string;
 }
 
@@ -44,7 +35,6 @@ export interface AniListMediaList {
 }
 
 export type MessageType =
-  | "MANGA_DETECTED"
   | "MEDIA_DETECTED"
   | "UPDATE_PROGRESS"
   | "SEARCH_ANILIST"
@@ -59,12 +49,6 @@ export interface ExtensionMessage {
 
 export interface MediaDetectedMessage extends ExtensionMessage {
   type: "MEDIA_DETECTED";
-  payload: MediaDetection;
-}
-
-// Keep for backward compatibility
-export interface MangaDetectedMessage extends ExtensionMessage {
-  type: "MANGA_DETECTED";
   payload: MediaDetection;
 }
 
@@ -83,6 +67,7 @@ export interface StorageData {
   username: string | null;
   titleMappings: Record<string, number>;
   autoUpdate: boolean;
+  autoMap: boolean;
   theme: Theme;
 }
 
@@ -92,6 +77,7 @@ export const DEFAULT_STORAGE: StorageData = {
   username: null,
   titleMappings: {},
   autoUpdate: false,
+  autoMap: false,
   theme: "dark",
 };
 
@@ -105,3 +91,14 @@ export type PopupState =
   | { type: "detection_failed"; site: SupportedSite }
   | { type: "detected"; detection: MediaDetection; progress: number | null; mediaId: number | null; searchResults: AniListMedia[] | null }
   | { type: "error"; message: string };
+
+export class TokenExpiredError extends Error {
+  readonly name = "TokenExpiredError" as const;
+  constructor(message = "AniList access token expired or invalid") {
+    super(message);
+  }
+}
+
+export function isTokenExpiredError(err: unknown): err is TokenExpiredError {
+  return err instanceof TokenExpiredError;
+}

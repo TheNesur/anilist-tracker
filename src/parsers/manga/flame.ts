@@ -1,5 +1,5 @@
 import type { MediaDetection, SupportedSite } from "../../types";
-import { cleanTitle, extractChapterNumber } from "../utils";
+import { cleanTitle, extractChapterNumber, stripScanlationSuffix } from "../utils";
 
 export class FlameParser {
   site: SupportedSite = "flame";
@@ -12,7 +12,7 @@ export class FlameParser {
   detect(): MediaDetection | null {
     if (!this.isChapterPage()) return null;
 
-    const title =
+    const rawTitle =
       document.querySelector<HTMLElement>("div.allc a")?.textContent?.trim() ??
       document.querySelector<HTMLAnchorElement>("ol.breadcrumb li:nth-child(2) a")?.textContent?.trim() ??
       null;
@@ -22,10 +22,10 @@ export class FlameParser {
       document.title;
     const chapter = extractChapterNumber(chapterText);
 
-    if (!title || !chapter) return null;
+    if (!rawTitle || !chapter) return null;
 
     return {
-      title: cleanTitle(title),
+      title: cleanTitle(stripScanlationSuffix(rawTitle)),
       progress: Math.floor(chapter),
       mediaType: "MANGA",
       source: this.site,

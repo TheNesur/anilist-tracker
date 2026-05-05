@@ -1,5 +1,5 @@
 import type { MediaDetection, SupportedSite } from "../../types";
-import { cleanTitle, extractChapterNumber } from "../utils";
+import { cleanTitle, stripScanlationSuffix } from "../utils";
 
 export class RaijinParser {
   site: SupportedSite = "raijin";
@@ -17,15 +17,15 @@ export class RaijinParser {
     if (!chapterMatch) return null;
     const chapter = parseInt(chapterMatch[1], 10);
 
-    const title =
+    const rawTitle =
       document.querySelector<HTMLAnchorElement>("a.manga-title")?.textContent?.trim() ??
       this.extractTitleFromPageTitle() ??
       null;
 
-    if (!title || isNaN(chapter)) return null;
+    if (!rawTitle || isNaN(chapter)) return null;
 
     return {
-      title: cleanTitle(title),
+      title: cleanTitle(stripScanlationSuffix(rawTitle)),
       progress: chapter,
       mediaType: "MANGA",
       source: this.site,
@@ -38,7 +38,6 @@ export class RaijinParser {
     const cleaned = pageTitle
       .replace(/\s*\|.*$/, "")
       .replace(/\s*(chapter|chapitre)\s*\d+.*/i, "")
-      .replace(/\s*scan\s*vf.*/i, "")
       .trim();
     return cleaned || null;
   }

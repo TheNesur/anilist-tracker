@@ -37,7 +37,6 @@ const SITE_NAMES: Record<SupportedSite, string> = {
   asura: "Asura Comics",
   flame: "Flame Comics",
   reaper: "Reaper Scans",
-  luminous: "Luminous Scans",
   raijin: "Raijin Scans",
   webtoon: "Webtoon",
   mangadex: "MangaDex",
@@ -46,7 +45,13 @@ const SITE_NAMES: Record<SupportedSite, string> = {
   voiranime: "Voir Anime",
 };
 
-const ANIME_SITES = new Set<SupportedSite>(["crunchyroll", "voiranime"]);
+const ANIME_SITES = new Set<SupportedSite>(
+  [
+    "crunchyroll", 
+    "voiranime"
+
+  ]
+);
 
 const loginView = document.getElementById("login-view")!;
 const mainView = document.getElementById("main-view")!;

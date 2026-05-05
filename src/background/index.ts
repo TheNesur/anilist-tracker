@@ -1,15 +1,33 @@
 import { searchManga, searchAnime, getProgress, updateProgress, getViewer } from "../utils/anilist";
 import { getStorage, setStorage, getToken, getTitleMapping, saveTitleMapping } from "../utils/storage";
-import type { MediaDetection, AniListMedia } from "../types";
+import { findExactMatch } from "../utils/matching";
+import { isTokenExpiredError, type MediaDetection, type AniListMedia } from "../types";
 
 const CLIENT_ID = import.meta.env.VITE_ANILIST_CLIENT_ID;
-//const CLIENT_SECRET = import.meta.env.VITE_ANILIST_CLIENT_SECRET;
 const REDIRECT_URL = import.meta.env.VITE_ANILIST_REDIRECT_URL;
+const TOKEN_ENDPOINT = "https://auth.mraitchkovitch.fr/callback";
 
-const OAUTH_URL = `https://anilist.co/api/v2/oauth/authorize?client_id=${CLIENT_ID}&response_type=token`;
+const STATE_STORAGE_KEY = "oauthState";
+const BADGE_CLEAR_ALARM = "anilist-tracker:clear-badge";
+const BADGE_CLEAR_DELAY_MIN = 0.05;
+const VIEWER_RETRY_DELAYS_MS = [500, 1000, 2000];
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === BADGE_CLEAR_ALARM) {
+    chrome.action.setBadgeText({ text: "" });
+  }
+});
+
+function scheduleBadgeClear() {
+  chrome.alarms.create(BADGE_CLEAR_ALARM, { delayInMinutes: BADGE_CLEAR_DELAY_MIN });
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((r) => setTimeout(r, ms));
+}
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.type === "MANGA_DETECTED" || message.type === "MEDIA_DETECTED") {
+  if (message.type === "MEDIA_DETECTED") {
     handleDetection(message.payload as MediaDetection);
   }
 
@@ -27,15 +45,22 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     startOAuth().then(sendResponse);
     return true;
   }
-  
+
   if (message.type === "GET_PROGRESS") {
     const { mediaId } = message.payload as { mediaId: number };
     (async () => {
       const token = await getToken();
       const storage = await getStorage();
       if (token && storage.userId) {
-        const entry = await getProgress(mediaId, storage.userId, token);
-        sendResponse({ progress: entry?.progress ?? null });
+        try {
+          const entry = await getProgress(mediaId, storage.userId, token);
+          sendResponse({ progress: entry?.progress ?? null });
+        } catch (err) {
+          if (isTokenExpiredError(err)) {
+            await handleTokenExpired();
+          }
+          sendResponse({ progress: null });
+        }
       } else {
         sendResponse({ progress: null });
       }
@@ -51,8 +76,137 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 });
 
+function generateState(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+async function getViewerWithRetry(token: string) {
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt <= VIEWER_RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      return await getViewer(token);
+    } catch (err) {
+      lastErr = err;
+      if (isTokenExpiredError(err)) throw err;
+      if (attempt < VIEWER_RETRY_DELAYS_MS.length) {
+        await sleep(VIEWER_RETRY_DELAYS_MS[attempt]);
+      }
+    }
+  }
+  throw lastErr;
+}
+
+async function startOAuth() {
+  const state = generateState();
+  await chrome.storage.session.set({ [STATE_STORAGE_KEY]: state });
+
+  const authUrl =
+    `https://anilist.co/api/v2/oauth/authorize` +
+    `?client_id=${encodeURIComponent(CLIENT_ID)}` +
+    `&redirect_uri=${encodeURIComponent(REDIRECT_URL)}` +
+    `&response_type=code` +
+    `&state=${encodeURIComponent(state)}`;
+
+  try {
+    const responseUrl = await chrome.identity.launchWebAuthFlow({
+      url: authUrl,
+      interactive: true,
+    });
+
+    if (!responseUrl) {
+      await chrome.storage.session.remove(STATE_STORAGE_KEY);
+      return { success: false };
+    }
+
+    const url = new URL(responseUrl);
+    const code = url.searchParams.get("code");
+    const returnedState = url.searchParams.get("state");
+
+    const stored = await chrome.storage.session.get(STATE_STORAGE_KEY);
+    const expectedState = stored[STATE_STORAGE_KEY] as string | undefined;
+    await chrome.storage.session.remove(STATE_STORAGE_KEY);
+
+    if (!expectedState || !returnedState || returnedState !== expectedState) {
+      console.error("[AniList Tracker] OAuth state mismatch — possible CSRF");
+      return { success: false, error: "State mismatch" };
+    }
+
+    if (!code) {
+      return { success: false, error: "No code received" };
+    }
+
+    const tokenRes = await fetch(TOKEN_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+
+    const tokenData = await tokenRes.json().catch(() => null);
+
+    if (!tokenData || tokenData.ok === false || !tokenData.access_token) {
+      console.error("[AniList Tracker] Token exchange failed");
+      return { success: false, error: "Token exchange failed" };
+    }
+
+    const accessToken = tokenData.access_token as string;
+
+    await setStorage({ accessToken });
+
+    try {
+      const viewer = await getViewerWithRetry(accessToken);
+      await setStorage({ userId: viewer.id, username: viewer.name });
+      return { success: true, username: viewer.name };
+    } catch (err) {
+      console.error("[AniList Tracker] getViewer failed after retries:", err);
+      await chrome.storage.session.set({ viewerFetchFailed: true });
+      return { success: true, username: null, partial: true };
+    }
+  } catch (err) {
+    await chrome.storage.session.remove(STATE_STORAGE_KEY).catch(() => {});
+
+    const errMsg = String(err);
+    if (
+      errMsg.includes("canceled") ||
+      errMsg.includes("cancelled") ||
+      errMsg.includes("user did not approve") ||
+      errMsg.includes("Authorization page could not be loaded")
+    ) {
+      return { success: false, cancelled: true };
+    }
+
+    console.error("[AniList Tracker] OAuth error:", err);
+    return { success: false, error: String(err) };
+  }
+}
+
+async function handleTokenExpired() {
+  await setStorage({ accessToken: null });
+  chrome.action.setBadgeText({ text: "!" });
+  chrome.action.setBadgeBackgroundColor({ color: "#e74c3c" });
+  await chrome.storage.session.set({ tokenExpired: true });
+}
+
+async function ensureViewerLoaded(token: string): Promise<number | null> {
+  const storage = await getStorage();
+  if (storage.userId) return storage.userId;
+
+  try {
+    const viewer = await getViewerWithRetry(token);
+    await setStorage({ userId: viewer.id, username: viewer.name });
+    await chrome.storage.session.remove("viewerFetchFailed");
+    return viewer.id;
+  } catch {
+    return null;
+  }
+}
+
 async function handleDetection(detection: MediaDetection) {
-  chrome.storage.session.set({ 
+  chrome.storage.session.set({
     lastDetectionUrl: detection.url,
     lastDetection: null,
   });
@@ -65,8 +219,7 @@ async function handleDetection(detection: MediaDetection) {
   }
 
   try {
-    const mappedId = await getTitleMapping(detection.title);
-    let mediaId = mappedId;
+    let mediaId = await getTitleMapping(detection.title);
 
     if (!mediaId) {
       const results = detection.mediaType === "ANIME"
@@ -74,33 +227,43 @@ async function handleDetection(detection: MediaDetection) {
         : await searchManga(detection.title);
 
       if (results.length === 0) {
-        console.log("[AniList Tracker] No AniList results for:", detection.title);
         notifyUser(detection, null);
         return;
       }
-      mediaId = results[0].id;
-      notifyUser(detection, results);
-      return;
+
+      const settings = await getStorage();
+      if (settings.autoMap) {
+        const exactMatch = findExactMatch(detection.title, results);
+        if (exactMatch) {
+          await saveTitleMapping(detection.title, exactMatch.id);
+          mediaId = exactMatch.id;
+        }
+      }
+
+      if (!mediaId) {
+        notifyUser(detection, results);
+        return;
+      }
     }
 
-    const storage = await getStorage();
+    const userId = await ensureViewerLoaded(token);
     let currentProgress: number | null = null;
-    if (storage.userId) {
-      const entry = await getProgress(mediaId, storage.userId, token);
+    if (userId) {
+      const entry = await getProgress(mediaId, userId, token);
       currentProgress = entry?.progress ?? null;
     }
 
+    const storage = await getStorage();
     if (storage.autoUpdate && (currentProgress === null || detection.progress > currentProgress)) {
       await handleUpdate(mediaId, detection.progress, detection.mediaType);
     } else {
       notifyUser(detection, null, mediaId, currentProgress);
     }
   } catch (err) {
-    if (String(err).includes("TOKEN_EXPIRED")) {
-      await setStorage({ accessToken: null });
-      chrome.action.setBadgeText({ text: "!" });
-      chrome.action.setBadgeBackgroundColor({ color: "#e74c3c" });
-      chrome.storage.session.set({ tokenExpired: true });
+    if (isTokenExpiredError(err)) {
+      await handleTokenExpired();
+    } else {
+      console.error("[AniList Tracker] Detection handling failed:", err);
     }
   }
 }
@@ -109,25 +272,29 @@ async function handleUpdate(mediaId: number, progress: number, mediaType: MediaD
   const token = await getToken();
   if (!token) return { success: false, error: "Not authenticated" };
 
-  const storage = await getStorage();
-  if (!storage.userId) return { success: false, error: "No user ID" };
+  const userId = await ensureViewerLoaded(token);
+  if (!userId) return { success: false, error: "No user ID" };
 
   try {
-    const current = await getProgress(mediaId, storage.userId, token);
+    const current = await getProgress(mediaId, userId, token);
 
     if (current && current.progress >= progress) {
       return { success: true, skipped: true, current: current.progress };
     }
 
     const result = await updateProgress(mediaId, progress, token);
-    console.log("[AniList Tracker] Updated:", result);
 
     chrome.action.setBadgeText({ text: "✓" });
     chrome.action.setBadgeBackgroundColor({ color: "#2ecc71" });
-    setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
+    scheduleBadgeClear();
 
+    void mediaType;
     return { success: true, progress: result.progress };
   } catch (err) {
+    if (isTokenExpiredError(err)) {
+      await handleTokenExpired();
+      return { success: false, error: "Token expired" };
+    }
     console.error("[AniList Tracker] Update failed:", err);
     return { success: false, error: String(err) };
   }
@@ -149,70 +316,4 @@ function notifyUser(
 
   chrome.action.setBadgeText({ text: "?" });
   chrome.action.setBadgeBackgroundColor({ color: "#3498db" });
-}
-
-async function startOAuth() {
-  const authUrl = `https://anilist.co/api/v2/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URL)}&response_type=code`;
-
-  console.log("[AniList Tracker] Opening auth URL:", authUrl);
-
-  try {
-    const responseUrl = await chrome.identity.launchWebAuthFlow({
-      url: authUrl,
-      interactive: true,
-    });
-
-    console.log("[AniList Tracker] Response URL:", responseUrl);
-
-    if (!responseUrl) return { success: false };
-
-    const url = new URL(responseUrl);
-    const code = url.searchParams.get("code");
-
-    if (!code) return { success: false, error: "No code received" };
-
-    console.log("[AniList Tracker] Got auth code, exchanging for token...");
-
-    const tokenRes = await fetch("https://auth.mraitchkovitch.fr/callback", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ code }),
-    });
-
-    const tokenData = await tokenRes.json();
-
-    console.log("[AniList Tracker] Token response:", tokenData);
-
-    if (!tokenData.access_token) {
-      return { success: false, error: "No token in response" };
-    }
-
-    const accessToken = tokenData.access_token;
-
-    const viewer = await getViewer(accessToken);
-
-    await setStorage({
-      accessToken,
-      userId: viewer.id,
-      username: viewer.name,
-    });
-
-    return { success: true, username: viewer.name };
-  } catch (err) {
-    const errMsg = String(err);
-    if (
-      errMsg.includes("canceled") ||
-      errMsg.includes("cancelled") ||
-      errMsg.includes("user did not approve") ||
-      errMsg.includes("Authorization page could not be loaded")
-    ) {
-      console.log("[AniList Tracker] OAuth cancelled by user.");
-      return { success: false, cancelled: true };
-    }
-
-    console.error("[AniList Tracker] OAuth error:", err);
-    return { success: false, error: String(err) };
-  }
 }

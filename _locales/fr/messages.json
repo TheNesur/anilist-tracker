@@ -175,8 +175,20 @@
     "message": "Épisode $episode$",
     "placeholders": { "episode": { "content": "$1" } }
   },
-  "stateNoEpisode": { "message": "Aucun épisode détecté" },
-  "stateNoEpisodeText": { "message": "Navigue vers une page d'épisode pour synchroniser ta progression." },
-  "selectAnime": { "message": "Sélectionne le bon anime sur AniList :" }
+  "stateNoEpisode": { 
+    "message": "Aucun épisode détecté" 
+  },
+  "stateNoEpisodeText": { 
+    "message": "Navigue vers une page d'épisode pour synchroniser ta progression." 
+  },
+  "selectAnime": { 
+    "message": "Sélectionne le bon anime sur AniList :" 
+  },
+  "autoMap": {
+    "message": "Mapping automatique des titres exacts"
+  },
+  "autoMapHint": {
+    "message": "Évite l'étape de confirmation quand le titre détecté correspond exactement à un résultat AniList. Désactivé par défaut par sécurité."
+  }
 
 }

@@ -1,73 +1,101 @@
 import { getParser } from "../parsers";
-import type { MangaDetectedMessage } from "../types";
+import type { MediaDetectedMessage } from "../types";
 
 if (window.self !== window.top) {
   throw new Error("AniList Tracker: skipping iframe context");
 }
 
-function main() {
+const NAV_EVENT = "anilist-tracker:navigation";
+const POLL_INTERVAL_MS = 200;
+const POLL_MAX_ATTEMPTS = 50;
+
+function detectAndNotify() {
   const parser = getParser();
   if (!parser) return;
 
-  if (!parser.isChapterPage()) return;
-
   const detection = parser.detect();
   if (!detection) {
-    console.log("[AniList Tracker] Could not detect media info on this page.");
-    chrome.storage.session.set({ detectionFailed: true, lastDetectionUrl: window.location.href });
+    chrome.storage.session.set({
+      detectionFailed: true,
+      lastDetectionUrl: window.location.href,
+    });
     return;
   }
 
-  console.log("[AniList Tracker] Detected:", detection);
   chrome.storage.session.set({ detectionFailed: false });
 
-  const message: MangaDetectedMessage = {
-    type: "MANGA_DETECTED",
+  const message: MediaDetectedMessage = {
+    type: "MEDIA_DETECTED",
     payload: detection,
   };
 
-  chrome.runtime.sendMessage(message);
+  chrome.runtime.sendMessage(message).catch(() => {});
 }
 
-function waitForTitleAndRun(expectedUrlChange: boolean, previousTitle: string) {
-  const maxAttempts = 20;
+function waitForParserReady() {
+  const parser = getParser();
+  if (!parser) return;
+
   let attempts = 0;
-
-  const interval = setInterval(() => {
+  const interval = window.setInterval(() => {
     attempts++;
-    const titleChanged = document.title !== previousTitle;
-    const titleReady = document.title.length > 0 && document.title !== "MANGA Plus";
-
-    if ((expectedUrlChange && titleChanged) || (!expectedUrlChange) || attempts >= maxAttempts) {
-      clearInterval(interval);
-      main();
-    } else if (titleReady && !expectedUrlChange) {
-      clearInterval(interval);
-      main();
+    if (parser.isChapterPage()) {
+      window.clearInterval(interval);
+      detectAndNotify();
+    } else if (attempts >= POLL_MAX_ATTEMPTS) {
+      window.clearInterval(interval);
+      chrome.storage.session.set({
+        detectionFailed: true,
+        lastDetectionUrl: window.location.href,
+      });
     }
-
-    if (attempts >= maxAttempts) clearInterval(interval);
-  }, 150);
+  }, POLL_INTERVAL_MS);
 }
 
-// Initial load
-setTimeout(main, 1500);
+function runInitial() {
+  if (document.readyState === "complete") {
+    waitForParserReady();
+  } else {
+    window.addEventListener("load", waitForParserReady, { once: true });
+  }
+}
+
+function hookHistoryNavigation() {
+  const origPush = history.pushState;
+  const origReplace = history.replaceState;
+
+  history.pushState = function (...args) {
+    const result = origPush.apply(this, args);
+    window.dispatchEvent(new Event(NAV_EVENT));
+    return result;
+  };
+
+  history.replaceState = function (...args) {
+    const result = origReplace.apply(this, args);
+    window.dispatchEvent(new Event(NAV_EVENT));
+    return result;
+  };
+
+  window.addEventListener("popstate", () => {
+    window.dispatchEvent(new Event(NAV_EVENT));
+  });
+}
 
 let lastUrl = window.location.href;
-const observer = new MutationObserver(() => {
-  if (window.location.href !== lastUrl) {
-    const previousTitle = document.title;
-    lastUrl = window.location.href;
-    waitForTitleAndRun(true, previousTitle);
-  }
-});
 
-observer.observe(document.body, { childList: true, subtree: true });
+function onNavigation() {
+  if (window.location.href === lastUrl) return;
+  lastUrl = window.location.href;
+  waitForParserReady();
+}
+
+hookHistoryNavigation();
+window.addEventListener(NAV_EVENT, onNavigation);
 
 window.addEventListener("pageshow", (event) => {
-  console.log("[AniList Tracker] pageshow — persisted:", event.persisted);
   if (event.persisted) {
-    const previousTitle = document.title;
-    waitForTitleAndRun(false, previousTitle);
+    waitForParserReady();
   }
 });
+
+runInitial();
