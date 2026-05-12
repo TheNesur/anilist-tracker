@@ -227,7 +227,7 @@ async function handleDetection(detection: MediaDetection) {
         : await searchManga(detection.title);
 
       if (results.length === 0) {
-        notifyUser(detection, null);
+        notifyUser(detection, []);
         return;
       }
 
@@ -312,6 +312,9 @@ function notifyUser(
     confirmedMediaId: confirmedMediaId ?? null,
     currentProgress: currentProgress ?? null,
     lastDetectionUrl: detection.url,
+    confirmedSiteUrl: confirmedMediaId
+      ? `https://anilist.co/${detection.mediaType === "ANIME" ? "anime" : "manga"}/${confirmedMediaId}`
+      : null,
   });
 
   chrome.action.setBadgeText({ text: "?" });

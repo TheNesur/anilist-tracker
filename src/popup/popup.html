@@ -188,8 +188,14 @@
       padding: 12px;
       margin-bottom: 10px;
       border: 1px solid var(--border);
+      transition: background 0.15s, border-color 0.15s;
     }
 
+    .detection-card:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--accent);
+    }
+    
     .manga-title {
       font-weight: 600;
       color: var(--text-primary);

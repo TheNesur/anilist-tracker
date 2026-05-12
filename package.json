@@ -1,13 +1,14 @@
 {
   "name": "anilist-tracker",
-  "version": "0.1.0",
-  "description": "A lightweight Chrome extension that automatically detects the manga/manhwa you're reading and syncs your progress to AniList via its GraphQL API.",
+  "version": "0.3.2",
+  "description": "A Chrome/Edge extension that automatically detects manga, manhwa, and anime progress and syncs it to your AniList account.",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.0.0-beta.28",

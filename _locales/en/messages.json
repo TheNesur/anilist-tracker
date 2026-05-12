@@ -3,7 +3,7 @@
     "message": "AniList Tracker"
   },
   "extensionDescription": {
-    "message": "Automatically sync your manga/manhwa reading progress to AniList."
+    "message": "Automatically sync your manga, manhwa, and anime progress to AniList."
   },
   "btnLogin": {
     "message": "Connect to AniList"
@@ -153,41 +153,53 @@
       "chapter": { "content": "$1" }
     }
   },
-  "errorTitle": { 
-    "message": "Error" 
+  "errorTitle": {
+    "message": "Error"
   },
-  "changeMapping": { 
-    "message": "Change selection" 
+  "changeMapping": {
+    "message": "Change selection"
   },
-  "sectionMappings": { 
-    "message": "Title mappings" 
+  "sectionMappings": {
+    "message": "Title mappings"
   },
-  "noMappings": { 
-    "message": "No saved mappings yet." 
+  "noMappings": {
+    "message": "No saved mappings yet."
   },
-  "noMappingsSearch": { 
-    "message": "No results for this search." 
+  "noMappingsSearch": {
+    "message": "No results for this search."
   },
-  "searchMappings": { 
-    "message": "Search titles…" 
+  "searchMappings": {
+    "message": "Search titles…"
   },
   "episodeLabel": {
     "message": "Episode $episode$",
     "placeholders": { "episode": { "content": "$1" } }
   },
-  "stateNoEpisode": { 
-    "message": "No episode detected" 
+  "stateNoEpisode": {
+    "message": "No episode detected"
   },
-  "stateNoEpisodeText": { 
-    "message": "Navigate to an episode page to sync your progress." 
+  "stateNoEpisodeText": {
+    "message": "Navigate to an episode page to sync your progress."
   },
-  "selectAnime": { 
-    "message": "Select the correct anime on AniList:" 
+  "selectAnime": {
+    "message": "Select the correct anime on AniList:"
   },
   "autoMap": {
     "message": "Auto-map exact title matches"
   },
   "autoMapHint": {
     "message": "Skip the confirmation step when the detected title exactly matches an AniList result. Disabled by default for safety."
+  },
+  "noResultsFound": {
+    "message": "No results found on AniList"
+  },
+  "noResultsHint": {
+    "message": "The detected title didn't match any entry. Try rephrasing it:"
+  },
+  "noResultsRetry": {
+    "message": "Still no results. Try a different title."
+  },
+  "searchOtherTitle": {
+    "message": "Search a different title"
   }
 }

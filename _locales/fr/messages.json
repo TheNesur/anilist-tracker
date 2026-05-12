@@ -3,7 +3,7 @@
     "message": "AniList Tracker"
   },
   "extensionDescription": {
-    "message": "Synchronise automatiquement ta progression manga/manhwa vers AniList."
+    "message": "Synchronise automatiquement ta progression manga, manhwa et anime vers AniList."
   },
   "btnLogin": {
     "message": "Se connecter à AniList"
@@ -153,42 +153,53 @@
       "chapter": { "content": "$1" }
     }
   },
-  "errorTitle": { 
-    "message": "Erreur" 
+  "errorTitle": {
+    "message": "Erreur"
   },
-  "changeMapping": { 
-    "message": "Change selection" 
+  "changeMapping": {
+    "message": "Changer la sélection"
   },
-  "sectionMappings": { 
-    "message": "Associations de titres" 
+  "sectionMappings": {
+    "message": "Associations de titres"
   },
-  "noMappings": { 
-    "message": "Aucune association sauvegardée." 
+  "noMappings": {
+    "message": "Aucune association sauvegardée."
   },
-  "noMappingsSearch": { 
-    "message": "Aucun résultat pour cette recherche." 
+  "noMappingsSearch": {
+    "message": "Aucun résultat pour cette recherche."
   },
-  "searchMappings": { 
-    "message": "Rechercher un titre…" 
+  "searchMappings": {
+    "message": "Rechercher un titre…"
   },
   "episodeLabel": {
     "message": "Épisode $episode$",
     "placeholders": { "episode": { "content": "$1" } }
   },
-  "stateNoEpisode": { 
-    "message": "Aucun épisode détecté" 
+  "stateNoEpisode": {
+    "message": "Aucun épisode détecté"
   },
-  "stateNoEpisodeText": { 
-    "message": "Navigue vers une page d'épisode pour synchroniser ta progression." 
+  "stateNoEpisodeText": {
+    "message": "Navigue vers une page d'épisode pour synchroniser ta progression."
   },
-  "selectAnime": { 
-    "message": "Sélectionne le bon anime sur AniList :" 
+  "selectAnime": {
+    "message": "Sélectionne le bon anime sur AniList :"
   },
   "autoMap": {
     "message": "Mapping automatique des titres exacts"
   },
   "autoMapHint": {
     "message": "Évite l'étape de confirmation quand le titre détecté correspond exactement à un résultat AniList. Désactivé par défaut par sécurité."
+  },
+  "noResultsFound": {
+    "message": "Aucun résultat trouvé sur AniList"
+  },
+  "noResultsHint": {
+    "message": "Le titre détecté ne correspond à aucune entrée. Essaie de le reformuler :"
+  },
+  "noResultsRetry": {
+    "message": "Toujours aucun résultat. Essaie un autre titre."
+  },
+  "searchOtherTitle": {
+    "message": "Chercher un autre titre"
   }
-
 }
