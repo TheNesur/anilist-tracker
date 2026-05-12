@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["chrome"],
+    "types": ["chrome", "vite/client"],
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
