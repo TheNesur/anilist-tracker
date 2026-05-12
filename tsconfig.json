@@ -12,7 +12,7 @@
     "rootDir": "src",
     "declaration": true,
     "sourceMap": true,
-    "lib": ["ES2020", "DOM"]
+    "lib": ["ES2020", "DOM", "DOM.Iterable"]
   },
   "include": ["src/**/*", "types/**/*"],
   "exclude": ["node_modules", "dist"]
