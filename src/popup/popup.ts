@@ -23,9 +23,6 @@ const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
 
   "mangaplus.shueisha.co.jp": "mangaplus",
 
-
-
-
   "crunchyroll.com": "crunchyroll",
   "www.crunchyroll.com": "crunchyroll",
 
@@ -45,13 +42,10 @@ const SITE_NAMES: Record<SupportedSite, string> = {
   voiranime: "Voir Anime",
 };
 
-const ANIME_SITES = new Set<SupportedSite>(
-  [
-    "crunchyroll", 
-    "voiranime"
-
-  ]
-);
+const ANIME_SITES = new Set<SupportedSite>([
+  "crunchyroll",
+  "voiranime",
+]);
 
 const loginView = document.getElementById("login-view")!;
 const mainView = document.getElementById("main-view")!;
@@ -239,7 +233,7 @@ function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
       <div class="media-source">${t("sourceLabel")} : ${detection.source} · ${new URL(detection.url).hostname}</div>
     </div>
     <div id="results-section" style="display:none">
-      <p class="results-label">${isAnime ? t("selectAnime") : t("selectManga")}</p>
+      <p class="results-label" id="results-label">${isAnime ? t("selectAnime") : t("selectManga")}</p>
       <ul class="results-list" id="results-list"></ul>
     </div>
     <div id="confirm-section" style="display:none">
@@ -248,12 +242,96 @@ function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
 
   if (mediaId) {
     showConfirm(detection, progress);
+  } else if (searchResults !== null && searchResults.length === 0) {
+    showManualSearch(detection);
   } else if (searchResults && searchResults.length > 0) {
-    showResults(searchResults);
+    showResults(searchResults, detection);
+  }
+
+  if (mediaId) {
+    const card = stateContainer.querySelector(".detection-card") as HTMLElement;
+    const url = `https://anilist.co/${detection.mediaType === "ANIME" ? "anime" : "manga"}/${mediaId}`;
+    card.style.cursor = "pointer";
+    card.title = "Ouvrir sur AniList";
+    card.addEventListener("click", () => chrome.tabs.create({ url }));
   }
 }
 
-function showResults(results: AniListMedia[]) {
+function showManualSearch(detection: MediaDetection) {
+  const section = document.getElementById("results-section")!;
+  const label = document.getElementById("results-label")!;
+  const list = document.getElementById("results-list")!;
+
+  label.textContent = t("noResultsFound");
+  section.style.display = "block";
+
+  list.innerHTML = `
+    <li style="padding:4px 0 10px;display:block">
+      <p class="state-hint" style="margin-bottom:8px">${t("noResultsHint")}</p>
+      <div style="display:flex;gap:6px">
+        <input
+          id="manual-search-input"
+          type="text"
+          value="${detection.title}"
+          style="
+            flex:1;
+            background:var(--bg-tertiary);
+            border:1px solid var(--border);
+            border-radius:6px;
+            padding:7px 10px;
+            font-size:13px;
+            color:var(--text-primary);
+            outline:none;
+          "
+        />
+        <button id="btn-manual-search" class="btn btn-primary" style="width:auto;padding:7px 12px;flex-shrink:0">
+          🔍
+        </button>
+      </div>
+    </li>`;
+
+  const input = document.getElementById("manual-search-input") as HTMLInputElement;
+  const btn = document.getElementById("btn-manual-search") as HTMLButtonElement;
+
+  const doSearch = async () => {
+    const query = input.value.trim();
+    if (!query) return;
+
+    btn.textContent = "…";
+    btn.disabled = true;
+
+    const response = await chrome.runtime.sendMessage({
+      type: "SEARCH_ANILIST",
+      payload: { title: query, mediaType: detection.mediaType },
+    });
+
+    btn.textContent = "🔍";
+    btn.disabled = false;
+
+    if (response?.results && response.results.length > 0) {
+      await chrome.storage.session.set({ searchResults: response.results });
+      // Remplace la li de recherche par les résultats
+      list.innerHTML = "";
+      showResults(response.results, detection);
+      document.getElementById("results-label")!.textContent =
+        detection.mediaType === "ANIME" ? t("selectAnime") : t("selectManga");
+    } else {
+      list.innerHTML = `
+        <li style="padding:8px 0;display:block">
+          <p class="state-hint">${t("noResultsRetry")}</p>
+        </li>`;
+      // Remet le champ de recherche
+      showManualSearch(detection);
+    }
+  };
+
+  btn.addEventListener("click", doSearch);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") doSearch();
+  });
+}
+
+function showResults(results: AniListMedia[], detection?: MediaDetection) {
   const section = document.getElementById("results-section")!;
   const list = document.getElementById("results-list")!;
   section.style.display = "block";
@@ -268,6 +346,22 @@ function showResults(results: AniListMedia[]) {
         <div class="subtitle">${media.title.romaji}</div>
       </div>`;
     li.addEventListener("click", () => selectMedia(media));
+    list.appendChild(li);
+  }
+
+  // Ajoute un lien "chercher un autre titre" en bas de liste
+  if (detection) {
+    const li = document.createElement("li");
+    li.style.cssText = "display:block;padding:6px 0 2px";
+    li.innerHTML = `
+      <button id="btn-retry-search" class="btn btn-ghost" style="width:100%;font-size:12px;padding:6px">
+        ${t("searchOtherTitle")}
+      </button>`;
+    li.querySelector("#btn-retry-search")!.addEventListener("click", () => {
+      list.innerHTML = "";
+      document.getElementById("results-label")!.textContent = t("noResultsFound");
+      showManualSearch(detection);
+    });
     list.appendChild(li);
   }
 }
@@ -308,12 +402,14 @@ function showConfirm(detection: MediaDetection, progress: number | null) {
         type: "SEARCH_ANILIST",
         payload: { title: detection.title, mediaType: detection.mediaType },
       });
-      if (response?.results) {
+      if (response?.results && response.results.length > 0) {
         await chrome.storage.session.set({ searchResults: response.results });
-        showResults(response.results);
+        showResults(response.results, detection);
+      } else {
+        showManualSearch(detection);
       }
     } else {
-      showResults(session.searchResults as AniListMedia[]);
+      showResults(session.searchResults as AniListMedia[], detection);
     }
   });
 
@@ -364,7 +460,7 @@ async function handleUpdate() {
     if (!response.skipped) {
       await chrome.storage.session.set({ currentProgress: response.progress });
     }
-    
+
     btn.textContent = response.skipped
       ? t("alreadyUpToDate", String(response.current))
       : t("updatedSuccess", String(response.progress));
