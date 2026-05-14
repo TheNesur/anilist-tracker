@@ -28,6 +28,8 @@ const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
 
   "voir-anime.to": "voiranime",
   "www.voir-anime.to": "voiranime",
+
+  "anime-sama.to": "anime-sama"
 };
 
 const SITE_NAMES: Record<SupportedSite, string> = {
@@ -40,11 +42,13 @@ const SITE_NAMES: Record<SupportedSite, string> = {
   mangaplus: "MangaPlus",
   crunchyroll: "Crunchyroll",
   voiranime: "Voir Anime",
+  "anime-sama": "Anime Sama"
 };
 
 const ANIME_SITES = new Set<SupportedSite>([
   "crunchyroll",
   "voiranime",
+  "anime-sama"
 ]);
 
 const loginView = document.getElementById("login-view")!;
@@ -437,7 +441,9 @@ async function selectMedia(media: AniListMedia) {
   if (progress !== null) {
     await chrome.storage.session.set({ currentProgress: progress, confirmedMedia: media });
     document.getElementById("media-title")!.innerText = media.title.english ?? media.title.romaji
-    document.getElementById("progress-hint")!.innerText = `(${progress})`
+    const progressHint = document.getElementById("progress-hint");
+    if(progressHint)
+      progressHint.innerText = `(${progress})`
   }
 
   if (currentDetection) showConfirm(currentDetection, progress);
