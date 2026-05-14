@@ -41,7 +41,8 @@ export type MessageType =
   | "SEARCH_ANILIST"
   | "GET_AUTH_TOKEN"
   | "GET_PROGRESS"
-  | "AUTH_SUCCESS";
+  | "AUTH_SUCCESS"
+  | "LOCAL_UPDATE_PROGRESS";
 
 export interface ExtensionMessage {
   type: MessageType;

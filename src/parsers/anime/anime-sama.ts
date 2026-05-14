@@ -1,4 +1,4 @@
-import type { MediaDetection, SupportedSite } from "../../types";
+import type { AniListMedia, MediaDetection, SupportedSite } from "../../types";
 import { cleanTitle } from "../utils";
 
 export class AnimeSamaParser {
@@ -16,7 +16,29 @@ export class AnimeSamaParser {
     const title = titleEl?.textContent?.trim() ?? this.extractTitleFromUrl() ?? null;
 
     const episodeEl: HTMLSelectElement | null = document.getElementById("selectEpisodes") as HTMLSelectElement;
-    const episodeOption: HTMLOptionElement | null = episodeEl?.children[episodeEl.selectedIndex] as HTMLOptionElement;
+    const nextEpisodeEl = document.getElementById('nextEpisode') as HTMLButtonElement;
+    const lastEpisodeEl = document.getElementById('lastEpisode') as HTMLButtonElement;
+    const prevEpisodeEl = document.getElementById('prevEpisode') as HTMLButtonElement;
+
+    function updateProgress() {
+        const episodeSelect = document.getElementById("selectEpisodes") as HTMLSelectElement
+        const episodeOption = episodeSelect.children[episodeSelect.selectedIndex] as HTMLOptionElement;
+        const episode = Number(episodeOption.innerText.split(" ")[1]);
+
+        chrome.runtime.sendMessage({
+            type: "LOCAL_UPDATE_PROGRESS",
+            payload: {
+                progress: episode
+            },
+        });
+    }
+    
+    episodeEl.addEventListener('change', updateProgress);
+    nextEpisodeEl.addEventListener('click', updateProgress);
+    lastEpisodeEl.addEventListener('click', updateProgress);
+    prevEpisodeEl.addEventListener('click', updateProgress);
+
+    const episodeOption = episodeEl?.children[episodeEl.selectedIndex] as HTMLOptionElement;
     const episode = Number(episodeOption.innerText.split(" ")[1]);
 
     if (!title || !episode) return null;

@@ -41,6 +41,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if(message.type === "LOCAL_UPDATE_PROGRESS") {
+    (async () => {
+      const { progress } = message.payload as { progress: number };
+      const { lastDetection } = await chrome.storage.session.get('lastDetection');
+
+      lastDetection.progress = progress;
+      
+      chrome.storage.session.set({ lastDetection });
+    })();
+  }
+
   if (message.type === "GET_AUTH_TOKEN") {
     startOAuth().then(sendResponse);
     return true;
