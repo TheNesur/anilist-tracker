@@ -8,6 +8,7 @@ import { FlameParser } from "./manga/flame";
 import { ReaperParser } from "./manga/reaper";
 import { CrunchyrollParser } from "./anime/crunchyroll";
 import { VoirAnimeParser } from "./anime/voiranime";
+import { AnimeSamaParser } from "./anime/anime-sama";
 
 export interface SiteParser {
   site: SupportedSite;
@@ -29,6 +30,7 @@ export function getParser(): SiteParser | null {
 
   if (host.includes("crunchyroll")) return new CrunchyrollParser();
   if (host.includes("voir-anime")) return new VoirAnimeParser();
+  if (host.includes("anime-sama")) return new AnimeSamaParser();
 
   return null;
 }

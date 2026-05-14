@@ -17,7 +17,8 @@ export type SupportedSite =
   | "mangadex"
   | "mangaplus"
   | "crunchyroll"
-  | "voiranime";
+  | "voiranime"
+  | "anime-sama";
 
 export interface AniListMedia {
   id: number;
