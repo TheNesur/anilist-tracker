@@ -1,10 +1,10 @@
-import { searchManga, searchAnime, getProgress, updateProgress, getViewer } from "../utils/anilist";
+import { searchManga, searchAnime, getProgress, updateProgress, getViewer, getMediaById } from "../utils/anilist";
 import { getStorage, setStorage, getToken, getTitleMapping, saveTitleMapping } from "../utils/storage";
 import { findExactMatch } from "../utils/matching";
 import { isTokenExpiredError, type MediaDetection, type AniListMedia } from "../types";
 
 const CLIENT_ID = import.meta.env.VITE_ANILIST_CLIENT_ID;
-const REDIRECT_URL = import.meta.env.VITE_ANILIST_REDIRECT_URL;
+const REDIRECT_URL = import.meta.env.VITE_ANILIST_REDIRECT_URI;
 const TOKEN_ENDPOINT = "https://auth.mraitchkovitch.fr/callback";
 
 const STATE_STORAGE_KEY = "oauthState";
@@ -54,7 +54,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (token && storage.userId) {
         try {
           const entry = await getProgress(mediaId, storage.userId, token);
-          sendResponse({ progress: entry?.progress ?? null });
+          sendResponse({ progress: entry?.progress ?? 0 });
         } catch (err) {
           if (isTokenExpiredError(err)) {
             await handleTokenExpired();
@@ -257,7 +257,11 @@ async function handleDetection(detection: MediaDetection) {
     if (storage.autoUpdate && (currentProgress === null || detection.progress > currentProgress)) {
       await handleUpdate(mediaId, detection.progress, detection.mediaType);
     } else {
-      notifyUser(detection, null, mediaId, currentProgress);
+      const media = await getMediaById(mediaId);
+      if(media)
+        notifyUser(detection, null, media, currentProgress);
+      else
+        console.error("[AniList Tracker] Media not found by id", mediaId)
     }
   } catch (err) {
     if (isTokenExpiredError(err)) {
@@ -303,17 +307,19 @@ async function handleUpdate(mediaId: number, progress: number, mediaType: MediaD
 function notifyUser(
   detection: MediaDetection,
   searchResults: AniListMedia[] | null,
-  confirmedMediaId?: number,
+  confirmedMedia?: AniListMedia,
   currentProgress?: number | null
 ) {
+  if(currentProgress === null) currentProgress = 0;
+
   chrome.storage.session.set({
     lastDetection: detection,
     searchResults,
-    confirmedMediaId: confirmedMediaId ?? null,
+    confirmedMedia: confirmedMedia ?? null,
     currentProgress: currentProgress ?? null,
     lastDetectionUrl: detection.url,
-    confirmedSiteUrl: confirmedMediaId
-      ? `https://anilist.co/${detection.mediaType === "ANIME" ? "anime" : "manga"}/${confirmedMediaId}`
+    confirmedSiteUrl: confirmedMedia?.id
+      ? `https://anilist.co/${detection.mediaType === "ANIME" ? "anime" : "manga"}/${confirmedMedia.id}`
       : null,
   });
 
