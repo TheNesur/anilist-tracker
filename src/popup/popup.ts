@@ -55,7 +55,7 @@ const stateContainer = document.getElementById("state-container")!;
 const btnSettings = document.getElementById("btn-settings")!;
 
 let currentDetection: MediaDetection | null = null;
-let selectedMediaId: number | null = null;
+let selectedMedia: AniListMedia | null = null;
 
 async function init() {
   const storage = await getStorage();
@@ -109,7 +109,7 @@ async function resolveState() {
   const session = await chrome.storage.session.get([
     "lastDetection",
     "searchResults",
-    "confirmedMediaId",
+    "confirmedMedia",
     "currentProgress",
     "detectionFailed",
     "lastDetectionUrl",
@@ -144,14 +144,14 @@ async function resolveState() {
   }
 
   currentDetection = session.lastDetection as MediaDetection;
-  selectedMediaId = (session.confirmedMediaId as number | null) ?? null;
+  selectedMedia = (session.confirmedMedia as AniListMedia | null) ?? null;
 
   renderState({
     type: "detected",
     detection: currentDetection,
     progress: (session.currentProgress as number | null) ?? null,
-    mediaId: selectedMediaId,
-    searchResults: selectedMediaId ? null : (session.searchResults as AniListMedia[] | null),
+    media: selectedMedia,
+    searchResults: selectedMedia ? null : (session.searchResults as AniListMedia[] | null),
   });
 }
 
@@ -215,7 +215,7 @@ function renderState(state: PopupState) {
 }
 
 function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
-  const { detection, progress, mediaId, searchResults } = state;
+  const { detection, progress, media, searchResults } = state;
 
   const isAnime = detection.mediaType === "ANIME";
   const progressLabel = isAnime
@@ -223,12 +223,12 @@ function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
     : t("chapterLabel", String(detection.progress));
 
   const progressText = progress !== null
-    ? `${progressLabel} <span class="progress-hint">(${t("youAreOn")} ${progress})</span>`
+    ? `${progressLabel} <span class="progress-hint" id="progress-hint">(${progress})</span>`
     : progressLabel;
 
   stateContainer.innerHTML = `
     <div class="detection-card">
-      <div class="media-title">${detection.title}</div>
+      <div class="media-title" id="media-title">${media?.title.english ?? media?.title.romaji ?? detection.title}</div>
       <div class="media-progress">${progressText}</div>
       <div class="media-source">${t("sourceLabel")} : ${detection.source} · ${new URL(detection.url).hostname}</div>
     </div>
@@ -240,7 +240,7 @@ function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
       <button class="btn btn-success" id="btn-update" style="width:100%">${t("updateBtn")}</button>
     </div>`;
 
-  if (mediaId) {
+  if (media) {
     showConfirm(detection, progress);
   } else if (searchResults !== null && searchResults.length === 0) {
     showManualSearch(detection);
@@ -248,9 +248,9 @@ function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
     showResults(searchResults, detection);
   }
 
-  if (mediaId) {
+  if (media) {
     const card = stateContainer.querySelector(".detection-card") as HTMLElement;
-    const url = `https://anilist.co/${detection.mediaType === "ANIME" ? "anime" : "manga"}/${mediaId}`;
+    const url = `https://anilist.co/${detection.mediaType === "ANIME" ? "anime" : "manga"}/${media.id}`;
     card.style.cursor = "pointer";
     card.title = "Ouvrir sur AniList";
     card.addEventListener("click", () => chrome.tabs.create({ url }));
@@ -379,6 +379,9 @@ function showConfirm(detection: MediaDetection, progress: number | null) {
     btn.classList.add("btn-ghost");
     btn.disabled = true;
   } else if (progress !== null) {
+    btn.classList.remove("btn-ghost");
+    btn.classList.add("btn-success");
+    btn.disabled = false;
     btn.textContent = t("updateBtnProgress", String(progress), String(detection.progress));
   } else {
     btn.textContent = t("updateBtn");
@@ -389,7 +392,7 @@ function showConfirm(detection: MediaDetection, progress: number | null) {
   changeBtn.style.marginTop = "6px";
   changeBtn.textContent = t("changeMapping");
   changeBtn.addEventListener("click", async () => {
-    selectedMediaId = null;
+    selectedMedia = null;
     section.style.display = "none";
     const resultsSection = document.getElementById("results-section")!;
     const resultsList = document.getElementById("results-list")!;
@@ -418,7 +421,7 @@ function showConfirm(detection: MediaDetection, progress: number | null) {
 }
 
 async function selectMedia(media: AniListMedia) {
-  selectedMediaId = media.id;
+  selectedMedia = media;
 
   if (currentDetection) {
     const { saveTitleMapping } = await import("../utils/storage");
@@ -432,7 +435,9 @@ async function selectMedia(media: AniListMedia) {
 
   const progress = response?.progress ?? null;
   if (progress !== null) {
-    await chrome.storage.session.set({ currentProgress: progress, confirmedMediaId: media.id });
+    await chrome.storage.session.set({ currentProgress: progress, confirmedMedia: media });
+    document.getElementById("media-title")!.innerText = media.title.english ?? media.title.romaji
+    document.getElementById("progress-hint")!.innerText = `(${progress})`
   }
 
   if (currentDetection) showConfirm(currentDetection, progress);
@@ -441,7 +446,7 @@ async function selectMedia(media: AniListMedia) {
 }
 
 async function handleUpdate() {
-  if (!selectedMediaId || !currentDetection) return;
+  if (!selectedMedia || !currentDetection) return;
 
   const btn = document.getElementById("btn-update") as HTMLButtonElement;
   btn.textContent = t("stateLoading");
@@ -450,7 +455,7 @@ async function handleUpdate() {
   const response = await chrome.runtime.sendMessage({
     type: "UPDATE_PROGRESS",
     payload: {
-      mediaId: selectedMediaId,
+      mediaId: selectedMedia.id,
       progress: currentDetection.progress,
       mediaType: currentDetection.mediaType,
     },
