@@ -89,7 +89,7 @@ export type PopupState =
   | { type: "unsupported_site"; hostname: string }
   | { type: "unsupported_page"; site: SupportedSite }
   | { type: "detection_failed"; site: SupportedSite }
-  | { type: "detected"; detection: MediaDetection; progress: number | null; mediaId: number | null; searchResults: AniListMedia[] | null }
+  | { type: "detected"; detection: MediaDetection; progress: number | null; media: AniListMedia | null; searchResults: AniListMedia[] | null }
   | { type: "error"; message: string };
 
 export class TokenExpiredError extends Error {
