@@ -103,6 +103,31 @@ export async function searchAnime(title: string): Promise<AniListMedia[]> {
   return data.Page.media;
 }
 
+const GET_MEDIA_BY_ID = `
+query ($id: Int) {
+  Media(id: $id) {
+    id
+    format
+    countryOfOrigin
+    title { romaji english native }
+    synonyms
+    coverImage { medium }
+    siteUrl
+  }
+}`;
+
+export async function getMediaById(id: number): Promise<AniListMedia | null> {
+  try {
+    const data = await gqlRequest<{ Media: AniListMedia }>(
+      GET_MEDIA_BY_ID,
+      { id }
+    );
+    return data.Media;
+  } catch {
+    return null;
+  }
+}
+
 const GET_PROGRESS = `
 query ($mediaId: Int, $userId: Int) {
   MediaList(mediaId: $mediaId, userId: $userId) {
