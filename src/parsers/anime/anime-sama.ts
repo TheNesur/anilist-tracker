@@ -1,4 +1,4 @@
-import type { AniListMedia, MediaDetection, SupportedSite } from "../../types";
+import type { MediaDetection, SupportedSite } from "../../types";
 import { cleanTitle } from "../utils";
 
 export class AnimeSamaParser {
