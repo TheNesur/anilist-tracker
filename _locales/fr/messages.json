@@ -201,5 +201,11 @@
   },
   "searchOtherTitle": {
     "message": "Chercher un autre titre"
+  },
+  "apiError": {
+    "message": "AniList est temporairement indisponible"
+  },
+  "apiErrorHint": {
+    "message": "Consulte le Discord officiel d'AniList pour plus d'informations."
   }
 }

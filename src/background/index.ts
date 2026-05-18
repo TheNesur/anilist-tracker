@@ -229,6 +229,8 @@ async function handleDetection(detection: MediaDetection) {
     return;
   }
 
+  await chrome.storage.session.remove("apiError");
+  
   try {
     let mediaId = await getTitleMapping(detection.title);
 
@@ -279,6 +281,10 @@ async function handleDetection(detection: MediaDetection) {
       await handleTokenExpired();
     } else {
       console.error("[AniList Tracker] Detection handling failed:", err);
+      await chrome.storage.session.set({
+        apiError: err instanceof Error ? err.message : String(err),
+        lastDetectionUrl: detection.url,
+      });
     }
   }
 }

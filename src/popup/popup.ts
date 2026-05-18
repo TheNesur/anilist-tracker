@@ -118,7 +118,9 @@ async function resolveState() {
     "detectionFailed",
     "lastDetectionUrl",
     "tokenExpired",
+    "apiError",
   ]);
+
 
   if (session.tokenExpired) {
     renderState({ type: "error", message: t("tokenExpired") });
@@ -136,6 +138,12 @@ async function resolveState() {
 
   const lastUrl = session.lastDetectionUrl as string | null;
   const isCurrentPage = lastUrl && new URL(lastUrl).hostname === hostname && lastUrl === url;
+
+
+  if (session.apiError && isCurrentPage) {
+    renderState({ type: "error", message: session.apiError as string });
+    return;
+  }
 
   if (session.detectionFailed && isCurrentPage) {
     renderState({ type: "detection_failed", site });
@@ -212,7 +220,8 @@ function renderState(state: PopupState) {
         <div class="state-box">
           <div class="state-icon">❌</div>
           <p class="state-title">${t("errorTitle")}</p>
-          <p class="state-text">${state.message}</p>
+          <p class="state-text">${t("apiError")}</p>
+          <p class="state-hint"><a href="https://discord.gg/TF428cr" target="_blank">${t("apiErrorHint")}</a></p>
         </div>`;
       break;
   }
