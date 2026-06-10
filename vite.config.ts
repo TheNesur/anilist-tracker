@@ -7,9 +7,10 @@ const manifestWithVersion = { ...manifest, version: pkg.version };
 
 export default defineConfig({
   plugins: [crx({ manifest: manifestWithVersion })],
-  build: {
+    build: {
     outDir: "dist",
     emptyOutDir: true,
+    sourcemap: false,
   },
   server: {
     cors: true,

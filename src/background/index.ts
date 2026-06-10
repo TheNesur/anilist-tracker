@@ -2,6 +2,8 @@ import { searchManga, searchAnime, getProgress, updateProgress, getViewer, getMe
 import { getStorage, setStorage, getToken, getTitleMapping, saveTitleMapping } from "../utils/storage";
 import { findExactMatch } from "../utils/matching";
 import { isTokenExpiredError, type MediaDetection, type AniListMedia } from "../types";
+import { normalizeSearchTitle } from "../parsers/utils";
+
 
 const CLIENT_ID = import.meta.env.VITE_ANILIST_CLIENT_ID;
 const REDIRECT_URL = import.meta.env.VITE_ANILIST_REDIRECT_URI;
@@ -81,7 +83,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.type === "SEARCH_ANILIST") {
     const { title, mediaType } = message.payload as { title: string; mediaType: MediaDetection["mediaType"] };
-    const search = mediaType === "ANIME" ? searchAnime(title) : searchManga(title);
+    const searchTitle = normalizeSearchTitle(title);
+    const search = mediaType === "ANIME" ? searchAnime(searchTitle) : searchManga(searchTitle);
     search.then((results: AniListMedia[]) => sendResponse({ results }));
     return true;
   }
@@ -235,9 +238,10 @@ async function handleDetection(detection: MediaDetection) {
     let mediaId = await getTitleMapping(detection.title);
 
     if (!mediaId) {
+      const searchTitle = normalizeSearchTitle(detection.title);
       const results = detection.mediaType === "ANIME"
-        ? await searchAnime(detection.title)
-        : await searchManga(detection.title);
+        ? await searchAnime(searchTitle)
+        : await searchManga(searchTitle);
 
       if (results.length === 0) {
         notifyUser(detection, []);

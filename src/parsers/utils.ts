@@ -27,3 +27,13 @@ export function stripScanlationSuffix(raw: string): string {
     .replace(/\s+scan\s*(vf|vostfr|vostf|vo|fr)\s*.*$/i, "")
     .trim();
 }
+
+export function normalizeSearchTitle(title: string): string {
+  return title
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[''`]/g, " ")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
