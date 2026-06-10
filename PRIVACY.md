@@ -1,29 +1,25 @@
 # Privacy Policy — AniList Tracker
 
-**Last updated:** April 27, 2026
+**Last updated:** June 10, 2026
 
 ## Overview
 
-AniList Tracker is a browser extension that detects manga/manhwa chapters on supported reading sites and syncs your reading progress to your AniList account. This policy explains what data the extension accesses and how it is handled.
+AniList Tracker is a browser extension that detects manga, manhwa, and anime titles on supported reading and streaming sites, and syncs your progress to your AniList account. This policy explains what data the extension accesses and how it is handled.
 
 ## Data collected
 
 The extension stores the following data **locally on your device** using the browser's built-in storage API:
 
 - **AniList OAuth access token** — used to authenticate API requests to AniList on your behalf
-- **AniList user ID** — used to fetch and update your reading progress
-- **Title mappings** — associations between manga titles on reading sites and their corresponding AniList entries
-
-No data is collected, stored, or transmitted to any server other than the official AniList API (`https://graphql.anilist.co`).
+- **AniList user ID** — used to fetch and update your progress
+- **Title mappings** — associations between titles on reading/streaming sites and their corresponding AniList entries
 
 ## Third-party services
 
-The extension communicates exclusively with the **AniList API** to:
+The extension communicates with the following services:
 
-- Authenticate your account (OAuth 2.0)
-- Search for manga entries
-- Read your current reading progress
-- Update your reading progress
+- **AniList API** (`https://graphql.anilist.co`) — to authenticate your account, search for media entries, read your current progress, and update it
+- **Authentication endpoint** (`https://auth.mraitchkovitch.fr`) — solely to exchange the OAuth authorization code for an access token. No user data is retained by this endpoint.
 
 No analytics, tracking, or advertising services are used.
 
@@ -35,7 +31,9 @@ Your data is **never shared, sold, or transmitted** to any third party. All data
 
 - **Storage**: to save your authentication token, user ID, and title mappings locally
 - **Identity**: to handle the AniList OAuth login flow
-- **Host permissions** (`graphql.anilist.co`, `anilist.co`): to communicate with the AniList API
+- **Tabs**: to detect the URL of the active tab and determine whether the current page is on a supported site
+- **Alarms**: to schedule badge clearing on the extension icon after a progress update
+- **Host permissions** (`graphql.anilist.co`, `auth.mraitchkovitch.fr`, supported reading/streaming sites): to communicate with the AniList API, the authentication endpoint, and to inject the content script on supported pages
 
 ## Data deletion
 
