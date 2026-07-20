@@ -1,5 +1,5 @@
 import { getStorage, setTheme, getTheme } from "../utils/storage";
-import type { AniListMedia, MediaDetection, PopupState, SupportedSite } from "../types";
+import type { AniListMedia, MediaDetection, PopupState, SupportedSite, GenericDetectionResult, MediaType } from "../types";
 import { t } from "../utils/i18n";
 
 const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
@@ -42,7 +42,8 @@ const SITE_NAMES: Record<SupportedSite, string> = {
   mangaplus: "MangaPlus",
   crunchyroll: "Crunchyroll",
   voiranime: "Voir Anime",
-  "anime-sama": "Anime Sama"
+  "anime-sama": "Anime Sama",
+  generic: "Generic Site"
 };
 
 const ANIME_SITES = new Set<SupportedSite>([
@@ -91,6 +92,30 @@ function applyTheme(theme: "dark" | "light") {
   document.documentElement.setAttribute("data-theme", theme);
 }
 
+async function tryGenericDetection(tabId: number): Promise<GenericDetectionResult | null> {
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["src/generic/index.ts"],
+    });
+    return (result?.result as GenericDetectionResult | null) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function proceedWithGenericDetection(candidate: GenericDetectionResult, mediaType: MediaType) {
+  const detection: MediaDetection = {
+    title: candidate.title,
+    progress: candidate.progress,
+    mediaType,
+    source: "generic",
+    url: candidate.url,
+  };
+  renderState({ type: "loading" });
+  chrome.runtime.sendMessage({ type: "MEDIA_DETECTED", payload: detection }).catch(() => {});
+}
+
 async function resolveState() {
   renderState({ type: "loading" });
 
@@ -106,6 +131,17 @@ async function resolveState() {
   const site = SUPPORTED_HOSTNAMES[hostname];
 
   if (!site) {
+    const candidate = tab?.id ? await tryGenericDetection(tab.id) : null;
+
+    if (candidate) {
+      if (candidate.possibleTypes.length === 1) {
+        await proceedWithGenericDetection(candidate, candidate.possibleTypes[0]);
+        return;
+      }
+      renderState({ type: "generic_type_pick", candidate, hostname });
+      return;
+    }
+
     renderState({ type: "unsupported_site", hostname });
     return;
   }
@@ -185,8 +221,29 @@ function renderState(state: PopupState) {
           <div class="state-icon">🌐</div>
           <p class="state-title">${t("stateUnsupportedSite")}</p>
           <p class="state-text"><strong>${state.hostname}</strong> ${t("stateUnsupportedSiteText")}</p>
-          <p class="state-hint"><a href="https://github.com/TheNesur/anilist-tracker#supported-sites" target="_blank">${t("stateSupportedSites")}</a></p>
+          <button class="btn btn-ghost" id="btn-retry-generic" style="margin-top:10px">${t("retryDetection")}</button>
         </div>`;
+      document.getElementById("btn-retry-generic")!.addEventListener("click", resolveState);
+      break;
+
+    case "generic_type_pick":
+      stateContainer.innerHTML = `
+        <div class="state-box">
+          <div class="state-icon">🤔</div>
+          <p class="state-title">${state.candidate.title}</p>
+          <p class="state-text">${t("chapterLabel", String(state.candidate.progress))}</p>
+          <p class="state-hint" style="margin-bottom:10px">${t("askMediaType")}</p>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" id="pick-manga">📖 ${t("typeManga")}</button>
+            <button class="btn btn-primary" id="pick-anime">📺 ${t("typeAnime")}</button>
+          </div>
+        </div>`;
+      document.getElementById("pick-manga")!.addEventListener("click", () =>
+        proceedWithGenericDetection(state.candidate, "MANGA")
+      );
+      document.getElementById("pick-anime")!.addEventListener("click", () =>
+        proceedWithGenericDetection(state.candidate, "ANIME")
+      );
       break;
 
     case "unsupported_page": {
@@ -323,7 +380,6 @@ function showManualSearch(detection: MediaDetection) {
 
     if (response?.results && response.results.length > 0) {
       await chrome.storage.session.set({ searchResults: response.results });
-      // Remplace la li de recherche par les résultats
       list.innerHTML = "";
       showResults(response.results, detection);
       document.getElementById("results-label")!.textContent =
@@ -333,7 +389,6 @@ function showManualSearch(detection: MediaDetection) {
         <li style="padding:8px 0;display:block">
           <p class="state-hint">${t("noResultsRetry")}</p>
         </li>`;
-      // Remet le champ de recherche
       showManualSearch(detection);
     }
   };
@@ -362,7 +417,6 @@ function showResults(results: AniListMedia[], detection?: MediaDetection) {
     list.appendChild(li);
   }
 
-  // Ajoute un lien "chercher un autre titre" en bas de liste
   if (detection) {
     const li = document.createElement("li");
     li.style.cssText = "display:block;padding:6px 0 2px";
@@ -449,10 +503,10 @@ async function selectMedia(media: AniListMedia) {
   const progress = response?.progress ?? null;
   if (progress !== null) {
     await chrome.storage.session.set({ currentProgress: progress, confirmedMedia: media });
-    document.getElementById("media-title")!.innerText = media.title.english ?? media.title.romaji
+    document.getElementById("media-title")!.innerText = media.title.english ?? media.title.romaji;
     const progressHint = document.getElementById("progress-hint");
     if(progressHint)
-      progressHint.innerText = `(${progress})`
+      progressHint.innerText = `(${progress})`;
   }
 
   if (currentDetection) showConfirm(currentDetection, progress);

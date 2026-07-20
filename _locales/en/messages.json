@@ -20,6 +20,18 @@
   "stateUnsupportedSiteText": {
     "message": "is not compatible with AniList Tracker."
   },
+  "retryDetection": {
+    "message": "Retry detection"
+  },
+  "askMediaType": {
+    "message": "What type of media is this?"
+  },
+  "typeManga": {
+    "message": "Manga"
+  },
+  "typeAnime": {
+    "message": "Anime"
+  },
   "stateSupportedSites": {
     "message": "See the list of supported sites on GitHub."
   },

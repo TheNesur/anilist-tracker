@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "0.3.2",
+  "version": "0.3.4",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "permissions": [
@@ -49,11 +49,17 @@
 
         "https://voir-anime.to/*",
         "https://www.voir-anime.to/*",
-
+        
         "https://anime-sama.to/*"
       ],
       "js": ["src/content/index.ts"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/generic/index.ts"],
+      "matches": ["<all_urls>"]
     }
   ],
   "action": {
