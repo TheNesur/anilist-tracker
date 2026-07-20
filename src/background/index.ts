@@ -157,7 +157,7 @@ async function startOAuth() {
     const tokenRes = await fetch(TOKEN_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code, redirect_uri: REDIRECT_URL }),
     });
 
     const tokenData = await tokenRes.json().catch(() => null);

@@ -18,7 +18,15 @@ export type SupportedSite =
   | "mangaplus"
   | "crunchyroll"
   | "voiranime"
-  | "anime-sama";
+  | "anime-sama"
+  | "generic";
+
+export interface GenericDetectionResult {
+  title: string;
+  progress: number;
+  url: string;
+  possibleTypes: MediaType[];
+}
 
 export interface AniListMedia {
   id: number;
