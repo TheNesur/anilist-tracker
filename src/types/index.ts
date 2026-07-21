@@ -99,6 +99,7 @@ export type PopupState =
   | { type: "unsupported_site"; hostname: string }
   | { type: "unsupported_page"; site: SupportedSite }
   | { type: "detection_failed"; site: SupportedSite }
+  | { type: "generic_type_pick"; candidate: GenericDetectionResult; hostname: string }
   | { type: "detected"; detection: MediaDetection; progress: number | null; media: AniListMedia | null; searchResults: AniListMedia[] | null }
   | { type: "error"; message: string };
 
