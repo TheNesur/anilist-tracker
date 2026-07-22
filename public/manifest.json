@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "permissions": [
     "storage",
     "identity",
     "tabs",
-    "alarms"
+    "alarms",
+    "scripting"
   ],
   "host_permissions": [
     "https://graphql.anilist.co/*",
@@ -54,12 +55,6 @@
       ],
       "js": ["src/content/index.ts"],
       "run_at": "document_idle"
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["src/generic/index.ts"],
-      "matches": ["<all_urls>"]
     }
   ],
   "action": {

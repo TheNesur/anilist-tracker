@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["chrome", "vite/client"],
+    "types": ["chrome", "vite/client", "node"],
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -14,6 +14,6 @@
     "sourceMap": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"]
   },
-  "include": ["src/**/*", "types/**/*"],
+  "include": ["src/**/*", "types/**/*", "vite.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

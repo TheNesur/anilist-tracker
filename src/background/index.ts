@@ -7,7 +7,7 @@ import { normalizeSearchTitle } from "../parsers/utils";
 
 const CLIENT_ID = import.meta.env.VITE_ANILIST_CLIENT_ID;
 const REDIRECT_URL = import.meta.env.VITE_ANILIST_REDIRECT_URI;
-const TOKEN_ENDPOINT = "https://auth.mraitchkovitch.fr/callback";
+const TOKEN_ENDPOINT = import.meta.env.VITE_TOKEN_ENDPOINT || "https://auth.mraitchkovitch.fr/callback";
 
 const STATE_STORAGE_KEY = "oauthState";
 const BADGE_CLEAR_ALARM = "anilist-tracker:clear-badge";
