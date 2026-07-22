@@ -25,6 +25,8 @@ export function stripScanlationSuffix(raw: string): string {
     .replace(/\s*\((vf|vostfr|vostf|vo|raw|fr|en|es|de|jp|kr|cn)\)\s*$/i, "")
     .replace(/\s*[-–—:|]\s*(scan\s*)?(vf|vostfr|vostf|vo|raw|fr)\b.*$/i, "")
     .replace(/\s+scan\s*(vf|vostfr|vostf|vo|fr)\s*.*$/i, "")
+    .replace(/\s+(vf|vostfr|vostf)\s*$/i, "")
+    .replace(/\s*\([^()]*\)\s*$/, "")
     .trim();
 }
 

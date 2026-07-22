@@ -1,7 +1,6 @@
 import { getStorage, setTheme, getTheme } from "../utils/storage";
 import type { AniListMedia, MediaDetection, PopupState, SupportedSite, GenericDetectionResult, MediaType } from "../types";
 import { t } from "../utils/i18n";
-import { stripScanlationSuffix } from "../parsers/utils";
 
 const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
   "asuracomic.net": "asura",
@@ -141,6 +140,16 @@ async function tryGenericDetection(tabId: number): Promise<GenericDetectionResul
         function stripSiteSuffix(title: string): string {
           const [first] = title.split(/\s+[-|·–—]\s+/);
           return first?.trim() || title;
+        }
+
+        function stripScanlationSuffix(raw: string): string {
+          return raw
+            .replace(/\s*\((vf|vostfr|vostf|vo|raw|fr|en|es|de|jp|kr|cn)\)\s*$/i, "")
+            .replace(/\s*[-–—:|]\s*(scan\s*)?(vf|vostfr|vostf|vo|raw|fr)\b.*$/i, "")
+            .replace(/\s+scan\s*(vf|vostfr|vostf|vo|fr)\s*.*$/i, "")
+            .replace(/\s+(vf|vostfr|vostf)\s*$/i, "")
+            .replace(/\s*\([^()]*\)\s*$/, "")
+            .trim();
         }
 
         function extractTitle(): string | null {
