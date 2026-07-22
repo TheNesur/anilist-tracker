@@ -219,5 +219,6 @@
   },
   "apiErrorHint": {
     "message": "Check the AniList Discord for status updates."
-  }
+  },
+  "stateSearching": { "message": "Searching on AniList…" }
 }

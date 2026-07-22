@@ -37,3 +37,5 @@ export function normalizeSearchTitle(title: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+

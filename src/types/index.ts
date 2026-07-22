@@ -101,6 +101,7 @@ export type PopupState =
   | { type: "detection_failed"; site: SupportedSite }
   | { type: "generic_type_pick"; candidate: GenericDetectionResult; hostname: string }
   | { type: "detected"; detection: MediaDetection; progress: number | null; media: AniListMedia | null; searchResults: AniListMedia[] | null }
+  | { type: "searching"; preview: { title: string; progress: number; mediaType: MediaType } | null }
   | { type: "error"; message: string };
 
 export class TokenExpiredError extends Error {

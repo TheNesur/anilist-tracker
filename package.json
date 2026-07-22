@@ -1,6 +1,6 @@
 {
   "name": "anilist-tracker",
-  "version": "0.3.5",
+  "version": "0.3.4",
   "description": "A Chrome/Edge extension that automatically detects manga, manhwa, and anime progress and syncs it to your AniList account.",
   "private": true,
   "type": "module",

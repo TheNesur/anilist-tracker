@@ -6,8 +6,8 @@ if (window.self !== window.top) {
 }
 
 const NAV_EVENT = "anilist-tracker:navigation";
-const POLL_INTERVAL_MS = 200;
-const POLL_MAX_ATTEMPTS = 50;
+const POLL_INTERVAL_MS = 100;
+const POLL_MAX_ATTEMPTS = 100;
 
 function detectAndNotify() {
   const parser = getParser();
@@ -53,10 +53,12 @@ function waitForParserReady() {
 }
 
 function runInitial() {
-  if (document.readyState === "complete") {
+  if (document.readyState === "interactive" || document.readyState === "complete") {
     waitForParserReady();
   } else {
-    window.addEventListener("load", waitForParserReady, { once: true });
+    document.addEventListener("readystatechange", () => {
+      if (document.readyState === "interactive") waitForParserReady();
+    }, { once: true });
   }
 }
 

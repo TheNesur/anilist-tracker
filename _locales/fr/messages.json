@@ -219,5 +219,6 @@
   },
   "apiErrorHint": {
     "message": "Consulte le Discord officiel d'AniList pour plus d'informations."
-  }
+  },
+  "stateSearching": { "message": "Recherche sur AniList…" }
 }

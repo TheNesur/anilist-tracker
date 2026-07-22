@@ -1,6 +1,7 @@
 import { getStorage, setTheme, getTheme } from "../utils/storage";
 import type { AniListMedia, MediaDetection, PopupState, SupportedSite, GenericDetectionResult, MediaType } from "../types";
 import { t } from "../utils/i18n";
+import { stripScanlationSuffix } from "../parsers/utils";
 
 const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
   "asuracomic.net": "asura",
@@ -80,7 +81,7 @@ async function init() {
   await resolveState();
 
   chrome.storage.session.onChanged.addListener((changes) => {
-    if (changes.lastDetection || changes.lastDetectionUrl || changes.detectionFailed) {
+    if (changes.lastDetection || changes.lastDetectionUrl || changes.detectionFailed || changes.detectionSearching) {
       resolveState();
     }
   });
@@ -133,9 +134,13 @@ async function tryGenericDetection(tabId: number): Promise<GenericDetectionResul
         }
 
         function extractFromDocTitle(): string | null {
-          const parts = document.title.split(/\s*[-|·–]\s*/).filter(Boolean);
-          if (parts.length === 0) return null;
-          return parts.reduce((longest, part) => (part.length > longest.length ? part : longest), parts[0]);
+          const title = document.title.trim();
+          return title.length > 0 ? title : null;
+        }
+
+        function stripSiteSuffix(title: string): string {
+          const [first] = title.split(/\s+[-|·–—]\s+/);
+          return first?.trim() || title;
         }
 
         function extractTitle(): string | null {
@@ -143,7 +148,7 @@ async function tryGenericDetection(tabId: number): Promise<GenericDetectionResul
           const twitterTitle = document.querySelector<HTMLMetaElement>("meta[name='twitter:title']")?.content?.trim();
           const h1 = document.querySelector("h1")?.textContent?.trim();
           const candidate = ogTitle || twitterTitle || h1 || extractFromDocTitle();
-          return candidate ? cleanTitle(candidate) : null;
+          return candidate ? cleanTitle(stripScanlationSuffix(stripSiteSuffix(candidate))) : null;
         }
 
         function extractProgress(title: string): number | null {
@@ -210,22 +215,6 @@ async function resolveState() {
   const hostname = new URL(url).hostname;
   const site = SUPPORTED_HOSTNAMES[hostname];
 
-  if (!site) {
-    const candidate = tab?.id ? await tryGenericDetection(tab.id) : null;
-
-    if (candidate) {
-      if (candidate.possibleTypes.length === 1) {
-        await proceedWithGenericDetection(candidate, candidate.possibleTypes[0]);
-        return;
-      }
-      renderState({ type: "generic_type_pick", candidate, hostname });
-      return;
-    }
-
-    renderState({ type: "unsupported_site", hostname });
-    return;
-  }
-
   const session = await chrome.storage.session.get([
     "lastDetection",
     "searchResults",
@@ -235,8 +224,9 @@ async function resolveState() {
     "lastDetectionUrl",
     "tokenExpired",
     "apiError",
+    "detectionSearching",
+    "detectionSearchingPreview",
   ]);
-
 
   if (session.tokenExpired) {
     renderState({ type: "error", message: t("tokenExpired") });
@@ -255,9 +245,45 @@ async function resolveState() {
   const lastUrl = session.lastDetectionUrl as string | null;
   const isCurrentPage = lastUrl && new URL(lastUrl).hostname === hostname && lastUrl === url;
 
-
   if (session.apiError && isCurrentPage) {
     renderState({ type: "error", message: session.apiError as string });
+    return;
+  }
+
+  if (session.detectionSearching && isCurrentPage) {
+    renderState({
+      type: "searching",
+      preview: (session.detectionSearchingPreview as { title: string; progress: number; mediaType: MediaType } | null) ?? null,
+    });
+    return;
+  }
+
+  if (!site) {
+    if (session.lastDetection && isCurrentPage) {
+      currentDetection = session.lastDetection as MediaDetection;
+      selectedMedia = (session.confirmedMedia as AniListMedia | null) ?? null;
+      renderState({
+        type: "detected",
+        detection: currentDetection,
+        progress: (session.currentProgress as number | null) ?? null,
+        media: selectedMedia,
+        searchResults: selectedMedia ? null : (session.searchResults as AniListMedia[] | null),
+      });
+      return;
+    }
+
+    const candidate = tab?.id ? await tryGenericDetection(tab.id) : null;
+
+    if (candidate) {
+      if (candidate.possibleTypes.length === 1) {
+        await proceedWithGenericDetection(candidate, candidate.possibleTypes[0]);
+        return;
+      }
+      renderState({ type: "generic_type_pick", candidate, hostname });
+      return;
+    }
+
+    renderState({ type: "unsupported_site", hostname });
     return;
   }
 
@@ -294,6 +320,20 @@ function renderState(state: PopupState) {
           <p class="state-text">${t("stateLoading")}</p>
         </div>`;
       break;
+
+    case "searching": {
+      const preview = state.preview;
+      const label = preview
+        ? (preview.mediaType === "ANIME" ? t("episodeLabel", String(preview.progress)) : t("chapterLabel", String(preview.progress)))
+        : "";
+      stateContainer.innerHTML = `
+        <div class="state-box">
+          <div class="spinner"></div>
+          ${preview ? `<p class="state-title">${preview.title}</p><p class="state-text">${label}</p>` : ""}
+          <p class="state-hint" style="margin-top:8px">${t("stateSearching")}</p>
+        </div>`;
+      break;
+    }
 
     case "unsupported_site":
       stateContainer.innerHTML = `

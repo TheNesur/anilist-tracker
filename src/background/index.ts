@@ -223,17 +223,24 @@ async function handleDetection(detection: MediaDetection) {
   chrome.storage.session.set({
     lastDetectionUrl: detection.url,
     lastDetection: null,
+    detectionSearching: true,
+    detectionSearchingPreview: {
+      title: detection.title,
+      progress: detection.progress,
+      mediaType: detection.mediaType,
+    },
   });
 
   const token = await getToken();
   if (!token) {
     chrome.action.setBadgeText({ text: "!" });
     chrome.action.setBadgeBackgroundColor({ color: "#e74c3c" });
+    await chrome.storage.session.set({ detectionSearching: false });
     return;
   }
 
   await chrome.storage.session.remove("apiError");
-  
+
   try {
     let mediaId = await getTitleMapping(detection.title);
 
@@ -275,10 +282,10 @@ async function handleDetection(detection: MediaDetection) {
       await handleUpdate(mediaId, detection.progress, detection.mediaType);
     } else {
       const media = await getMediaById(mediaId);
-      if(media)
+      if (media)
         notifyUser(detection, null, media, currentProgress);
       else
-        console.error("[AniList Tracker] Media not found by id", mediaId)
+        console.error("[AniList Tracker] Media not found by id", mediaId);
     }
   } catch (err) {
     if (isTokenExpiredError(err)) {
@@ -290,6 +297,8 @@ async function handleDetection(detection: MediaDetection) {
         lastDetectionUrl: detection.url,
       });
     }
+  } finally {
+    await chrome.storage.session.set({ detectionSearching: false });
   }
 }
 
