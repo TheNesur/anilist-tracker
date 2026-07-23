@@ -220,5 +220,7 @@
   "apiErrorHint": {
     "message": "Check the AniList Discord for status updates."
   },
-  "stateSearching": { "message": "Searching on AniList…" }
+  "stateSearching": { "message": "Searching on AniList…" },
+  "contributeAliases": { "message": "Contribute title matches" },
+  "contributeAliasesHint": { "message": "Anonymously share manual title corrections to help other users on unsupported sites" }
 }

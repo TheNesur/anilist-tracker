@@ -30,6 +30,12 @@ async function init() {
     await setStorage({ autoMap: autoMapToggle.checked });
   });
 
+  const contributeAliasesToggle = document.getElementById("toggle-contribute-aliases") as HTMLInputElement;
+  contributeAliasesToggle.checked = storage.contributeAliases;
+  contributeAliasesToggle.addEventListener("change", async () => {
+    await setStorage({ contributeAliases: contributeAliasesToggle.checked });
+  });
+
   document.getElementById("theme-dark")!.addEventListener("click", () => switchTheme("dark"));
   document.getElementById("theme-light")!.addEventListener("click", () => switchTheme("light"));
 
@@ -43,6 +49,8 @@ async function init() {
   document.getElementById("hint-autoupdate")!.textContent = t("autoUpdateHint");
   document.getElementById("label-automap")!.textContent = t("autoMap");
   document.getElementById("hint-automap")!.textContent = t("autoMapHint");
+  document.getElementById("label-contribute-aliases")!.textContent = t("contributeAliases");
+  document.getElementById("hint-contribute-aliases")!.textContent = t("contributeAliasesHint");
   document.getElementById("label-logout")!.textContent = t("logout");
   document.getElementById("hint-logout")!.textContent = t("logoutHint");
   document.getElementById("btn-logout")!.textContent = t("logout");

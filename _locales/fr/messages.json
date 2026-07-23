@@ -220,5 +220,8 @@
   "apiErrorHint": {
     "message": "Consulte le Discord officiel d'AniList pour plus d'informations."
   },
-  "stateSearching": { "message": "Recherche sur AniList…" }
+  "stateSearching": { "message": "Recherche sur AniList…" },
+  "contributeAliases": { "message": "Contribuer aux correspondances de titres" },
+  "contributeAliasesHint": { "message": "Partage anonymement tes corrections manuelles de titres pour aider les autres utilisateurs sur les sites non supportés" }
+
 }
