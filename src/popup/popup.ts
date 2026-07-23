@@ -622,6 +622,19 @@ async function selectMedia(media: AniListMedia) {
   if (currentDetection) {
     const { saveTitleMapping } = await import("../utils/storage");
     await saveTitleMapping(currentDetection.title, media.id);
+
+    chrome.runtime.sendMessage({
+      type: "ALIAS_SUBMIT",
+      payload: {
+        alias: currentDetection.title,
+        mediaType: currentDetection.mediaType,
+        mediaId: media.id,
+        mediaTitle: media.title.english ?? media.title.romaji,
+        sourceHostname: (() => {
+          try { return new URL(currentDetection.url).hostname; } catch { return null; }
+        })(),
+      },
+    }).catch(() => {});
   }
 
   const response = await chrome.runtime.sendMessage({

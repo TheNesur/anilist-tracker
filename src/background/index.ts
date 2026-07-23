@@ -9,6 +9,9 @@ const CLIENT_ID = import.meta.env.VITE_ANILIST_CLIENT_ID;
 const REDIRECT_URL = import.meta.env.VITE_ANILIST_REDIRECT_URI;
 const TOKEN_ENDPOINT = import.meta.env.VITE_TOKEN_ENDPOINT || "https://auth.mraitchkovitch.fr/callback";
 
+const ALIAS_LOOKUP_ENDPOINT = TOKEN_ENDPOINT.replace(/\/callback\/?$/, "/alias/lookup");
+const ALIAS_SUBMIT_ENDPOINT = TOKEN_ENDPOINT.replace(/\/callback\/?$/, "/alias/submit");
+
 const STATE_STORAGE_KEY = "oauthState";
 const BADGE_CLEAR_ALARM = "anilist-tracker:clear-badge";
 const BADGE_CLEAR_DELAY_MIN = 0.05;
@@ -219,6 +222,49 @@ async function ensureViewerLoaded(token: string): Promise<number | null> {
   }
 }
 
+
+async function lookupAlias(alias: string, mediaType: MediaDetection["mediaType"]): Promise<{ mediaId: number; title: string } | null> {
+  try {
+    const response = await fetch(ALIAS_LOOKUP_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alias, mediaType }),
+    });
+    const data = await response.json().catch(() => null);
+    if (data?.found) return { mediaId: data.mediaId, title: data.title };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function submitAlias(params: {
+  alias: string;
+  mediaType: MediaDetection["mediaType"];
+  mediaId: number;
+  mediaTitle: string;
+  sourceHostname: string | null;
+}) {
+  const settings = await getStorage();
+  if (!settings.contributeAliases) return;
+
+  const token = await getToken();
+  if (!token) return;
+
+  try {
+    await fetch(ALIAS_SUBMIT_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(params),
+    });
+  } catch {}
+}
+
+
+
 async function handleDetection(detection: MediaDetection) {
   chrome.storage.session.set({
     lastDetectionUrl: detection.url,
@@ -251,22 +297,33 @@ async function handleDetection(detection: MediaDetection) {
         : await searchManga(searchTitle);
 
       if (results.length === 0) {
-        notifyUser(detection, []);
-        return;
-      }
-
-      const settings = await getStorage();
-      if (settings.autoMap) {
-        const exactMatch = findExactMatch(detection.title, results);
-        if (exactMatch) {
-          await saveTitleMapping(detection.title, exactMatch.id);
-          mediaId = exactMatch.id;
+        const alias = await lookupAlias(detection.title, detection.mediaType);
+        if (alias) {
+          const media = await getMediaById(alias.mediaId).catch(() => null);
+          if (media) {
+            await saveTitleMapping(detection.title, media.id);
+            mediaId = media.id;
+          }
         }
-      }
 
-      if (!mediaId) {
-        notifyUser(detection, results);
-        return;
+        if (!mediaId) {
+          notifyUser(detection, []);
+          return;
+        }
+      } else {
+        const settings = await getStorage();
+        if (settings.autoMap) {
+          const exactMatch = findExactMatch(detection.title, results);
+          if (exactMatch) {
+            await saveTitleMapping(detection.title, exactMatch.id);
+            mediaId = exactMatch.id;
+          }
+        }
+
+        if (!mediaId) {
+          notifyUser(detection, results);
+          return;
+        }
       }
     }
 

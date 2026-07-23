@@ -50,7 +50,8 @@ export type MessageType =
   | "GET_AUTH_TOKEN"
   | "GET_PROGRESS"
   | "AUTH_SUCCESS"
-  | "LOCAL_UPDATE_PROGRESS";
+  | "LOCAL_UPDATE_PROGRESS"
+  | "ALIAS_SUBMIT";
 
 export interface ExtensionMessage {
   type: MessageType;
@@ -79,6 +80,7 @@ export interface StorageData {
   autoUpdate: boolean;
   autoMap: boolean;
   theme: Theme;
+  contributeAliases: boolean;
 }
 
 export const DEFAULT_STORAGE: StorageData = {
@@ -89,6 +91,7 @@ export const DEFAULT_STORAGE: StorageData = {
   autoUpdate: false,
   autoMap: false,
   theme: "dark",
+  contributeAliases: false,
 };
 
 export type Theme = "dark" | "light";
@@ -114,3 +117,5 @@ export class TokenExpiredError extends Error {
 export function isTokenExpiredError(err: unknown): err is TokenExpiredError {
   return err instanceof TokenExpiredError;
 }
+
+
