@@ -91,6 +91,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     search.then((results: AniListMedia[]) => sendResponse({ results }));
     return true;
   }
+
+  if (message.type === "ALIAS_SUBMIT") {
+    submitAlias(message.payload as {
+      alias: string;
+      mediaType: MediaDetection["mediaType"];
+      mediaId: number;
+      mediaTitle: string;
+      sourceHostname: string | null;
+    });
+  }
 });
 
 function generateState(): string {

@@ -10,8 +10,14 @@ export default defineConfig(({ mode }) => {
     version: pkg.version,
   };
 
-  if (mode === "development" && existsSync("./dev-key.txt")) {
-    manifestWithVersion.key = readFileSync("./dev-key.txt", "utf-8").trim();
+  if (mode === "development") {
+    if (existsSync("./dev-key.txt")) {
+      manifestWithVersion.key = readFileSync("./dev-key.txt", "utf-8").trim();
+    }
+    manifestWithVersion.host_permissions = [
+      ...manifest.host_permissions,
+      "https://auth-dev.mraitchkovitch.fr/*",
+    ];
   }
 
   return {
