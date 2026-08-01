@@ -4,3 +4,4 @@ dist/
 .vite/
 .env
 dist.pem
+dist.zip

@@ -17,6 +17,12 @@ const BADGE_CLEAR_ALARM = "anilist-tracker:clear-badge";
 const BADGE_CLEAR_DELAY_MIN = 0.05;
 const VIEWER_RETRY_DELAYS_MS = [500, 1000, 2000];
 
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "update") {
+    chrome.tabs.create({ url: chrome.runtime.getURL("update.html") });
+  }
+});
+
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === BADGE_CLEAR_ALARM) {
     chrome.action.setBadgeText({ text: "" });
@@ -143,6 +149,7 @@ async function startOAuth(): Promise<
 
   return new Promise((resolve) => {
     let settled = false;
+    let handled = false;
     let tabId: number | null = null;
 
     const cleanup = () => {
@@ -162,6 +169,8 @@ async function startOAuth(): Promise<
       if (updatedTabId !== tabId) return;
       const url = changeInfo.url ?? tab.url;
       if (!url || !url.startsWith(REDIRECT_URL)) return;
+      if (handled) return;
+      handled = true;
 
       (async () => {
         const parsed = new URL(url);

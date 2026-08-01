@@ -1,0 +1,65 @@
+{
+  "0.1.0": {
+    "label": "0.1.0 → 0.3.2 — Développement initial",
+    "fr": [
+      "Premières versions de l'extension : suivi manga sur des sites de scan, avant l'ajout du suivi anime.",
+      "Sécurisation de la connexion AniList : le secret de l'application, d'abord inclus dans l'extension, a été déplacé vers un serveur dédié.",
+      "Ajout du suivi anime en plus du manga/manhwa, avec prise en charge de nouveaux sites officiels.",
+      "Refonte complète de la page paramètres : thème clair/sombre, correspondance automatique optionnelle, export et import des correspondances de titres.",
+      "Traduction complète de l'extension en français et anglais.",
+      "Nombreuses corrections de fiabilité (recherche AniList, limitation de débit, réduction des permissions demandées)."
+    ],
+    "en": [
+      "Early versions of the extension: manga tracking on scan sites, before anime support was added.",
+      "Secured AniList login: the app secret, initially bundled in the extension, was moved to a dedicated server.",
+      "Added anime tracking alongside manga/manhwa, with support for new official sites.",
+      "Complete settings page overhaul: light/dark theme, optional automatic matching, export and import of title mappings.",
+      "Full French and English translation of the extension.",
+      "Numerous reliability fixes (AniList search, rate limiting, reduced requested permissions)."
+    ]
+  },
+  "0.3.2": {
+    "fr": [
+      "Suivi combiné manga/manhwa et anime, avec détection automatique sur plusieurs sites de lecture et de visionnage.",
+      "Connexion sécurisée à AniList : les identifiants de l'application ne sont jamais stockés dans l'extension, l'échange se fait via un serveur dédié.",
+      "Correspondance automatique optionnelle entre le titre détecté et l'œuvre AniList correspondante.",
+      "Export et import des correspondances de titres, avec gestion complète depuis les paramètres.",
+      "Thème clair et sombre, et bouton pour corriger une correspondance erronée."
+    ],
+    "en": [
+      "Combined manga/manhwa and anime tracking, with automatic detection across several reading and streaming sites.",
+      "Secure AniList login: app credentials are never stored in the extension, the exchange happens through a dedicated server.",
+      "Optional automatic matching between the detected title and the corresponding AniList entry.",
+      "Export and import of title mappings, with full management from the settings page.",
+      "Light and dark theme, and a button to correct a wrong mapping."
+    ]
+  },
+  "0.4.0": {
+    "fr": [
+      "Détection générique : la progression peut désormais être détectée sur n'importe quel site de lecture, même ceux qui ne sont pas officiellement supportés.",
+      "Si le type d'œuvre (manga ou anime) ne peut pas être déterminé automatiquement sur un site non supporté, l'extension vous le demande directement dans le popup.",
+      "Correction de la normalisation des titres avec apostrophe (ex. « Demon's Bloodline ») qui empêchait parfois de trouver le bon titre sur AniList."
+    ],
+    "en": [
+      "Generic detection: progress can now be detected on any reading site, even ones that aren't officially supported.",
+      "If the media type (manga or anime) can't be determined automatically on an unsupported site, the extension now asks you directly in the popup.",
+      "Fixed title normalization for titles with an apostrophe (e.g. \"Demon's Bloodline\") which sometimes prevented finding the right title on AniList."
+    ]
+  },
+  "0.4.1": {
+    "fr": [
+      "Nouveau système de correspondance communautaire : quand un titre affiché sur un site n'est pas reconnu automatiquement, la correspondance validée par d'autres utilisateurs (via vote) est proposée en priorité, réduisant le besoin de recherche manuelle. Désactivé par défaut, activable dans les paramètres.",
+      "Les identifiants de compte sont anonymisés avant tout partage entre utilisateurs — aucune information personnelle n'est communiquée.",
+      "Nouveau flux de connexion à AniList : l'autorisation se fait maintenant dans un onglet normal, qui partage votre session AniList existante — plus besoin de vous reconnecter à chaque fois.",
+      "Corrige les échecs de connexion liés à l'étape de vérification par email d'AniList.",
+      "Vous voyez cette page ? C'est nouveau aussi — un résumé des changements s'affichera désormais après chaque mise à jour."
+    ],
+    "en": [
+      "New community title-matching system: when a title shown on a site isn't automatically recognized, the mapping validated by other users (via voting) is suggested first, reducing the need for manual search. Off by default, can be enabled in settings.",
+      "Account identifiers are anonymized before being shared between users — no personal information is ever communicated.",
+      "New AniList login flow: authorization now happens in a normal browser tab, sharing your existing AniList session — no need to log in again each time.",
+      "Fixes login failures caused by AniList's email verification step.",
+      "Seeing this page? That's new too — a summary of changes will now be shown after every update."
+    ]
+  }
+}
