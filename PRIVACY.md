@@ -54,8 +54,7 @@ Your data is **never shared, sold, or transmitted** to any third party. Communit
 ## Permissions
 
 - **Storage**: to save your authentication token, user ID, and title mappings locally
-- **Identity**: to handle the AniList OAuth login flow
-- **Tabs**: to detect the URL of the active tab and determine whether the current page is on a supported site
+- **Tabs**: to detect the URL of the active tab, determine whether the current page is on a supported site, and open the AniList login page in a normal browser tab during authentication
 - **Alarms**: to schedule badge clearing on the extension icon after a progress update
 - **Scripting** and **activeTab**: to detect the manga/anime title on sites not covered by our supported list, only when you open the extension popup on that tab — no code is injected automatically or in the background
 - **Host permissions** (`graphql.anilist.co`, `auth.mraitchkovitch.fr`, supported reading/streaming sites): to communicate with the AniList API, our authentication endpoint, and to inject the content script on supported pages

@@ -79,11 +79,11 @@ npm install
 
 ```env
 VITE_ANILIST_CLIENT_ID=your_client_id
-VITE_ANILIST_REDIRECT_URI=https://<your-extension-id>.chromiumapp.org/
+VITE_ANILIST_REDIRECT_URI=https://auth.mraitchkovitch.fr/oauth-return
 VITE_TOKEN_ENDPOINT=https://auth.mraitchkovitch.fr/callback
 ```
 
-> To get your extension ID: load the extension once in developer mode, open the service worker DevTools console and run `chrome.identity.getRedirectURL()`.
+> The redirect URI points to the backend, not to the extension itself — the OAuth flow opens in a normal browser tab (sharing your existing AniList session) and the backend serves a landing page that the extension detects and closes automatically. No need to look up your extension ID.
 
 > The `CLIENT_SECRET` is **never bundled** in the extension. Token exchange is handled server-side — see [Security](#security). The backend that powers authentication and community title matching lives in a separate repository: [anilist-tracker-backend](https://github.com/TheNesur/anilist-tracker-backend).
 
@@ -202,7 +202,7 @@ Additional security measures:
 
 - **TypeScript** + **Vite** + **CRXJS** (Manifest V3)
 - **AniList GraphQL API** (OAuth 2.0 Authorization Code flow)
-- **Chrome Extensions API** (`storage`, `identity`, `alarms`, `scripting`, `activeTab`)
+- **Chrome Extensions API** (`storage`, `tabs`, `alarms`, `scripting`, `activeTab`)
 - **i18n** — EN/FR via `_locales`
 - **Express** + **SQLite** backend on a personal VPS for authentication and community title matching
 

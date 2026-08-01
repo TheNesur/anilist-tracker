@@ -128,7 +128,9 @@ async function getViewerWithRetry(token: string) {
   throw lastErr;
 }
 
-async function startOAuth() {
+async function startOAuth(): Promise<
+  { success: true; username: string | null; partial?: boolean } | { success: false; error?: string; cancelled?: boolean }
+> {
   const state = generateState();
   await chrome.storage.session.set({ [STATE_STORAGE_KEY]: state });
 
@@ -139,76 +141,105 @@ async function startOAuth() {
     `&response_type=code` +
     `&state=${encodeURIComponent(state)}`;
 
-  try {
-    const responseUrl = await chrome.identity.launchWebAuthFlow({
-      url: authUrl,
-      interactive: true,
-    });
+  return new Promise((resolve) => {
+    let settled = false;
+    let tabId: number | null = null;
 
-    if (!responseUrl) {
+    const cleanup = () => {
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      chrome.tabs.onRemoved.removeListener(onRemoved);
+    };
+
+    const finish = async (result: Awaited<ReturnType<typeof startOAuth>>) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
       await chrome.storage.session.remove(STATE_STORAGE_KEY);
-      return { success: false };
-    }
+      if (tabId !== null) {
+        chrome.tabs.remove(tabId).catch(() => {});
+      }
+      resolve(result);
+    };
 
-    const url = new URL(responseUrl);
-    const code = url.searchParams.get("code");
-    const returnedState = url.searchParams.get("state");
+    const onUpdated = (updatedTabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+      if (updatedTabId !== tabId) return;
+      const url = changeInfo.url ?? tab.url;
+      if (!url || !url.startsWith(REDIRECT_URL)) return;
 
-    const stored = await chrome.storage.session.get(STATE_STORAGE_KEY);
-    const expectedState = stored[STATE_STORAGE_KEY] as string | undefined;
-    await chrome.storage.session.remove(STATE_STORAGE_KEY);
+      (async () => {
+        const parsed = new URL(url);
+        const code = parsed.searchParams.get("code");
+        const returnedState = parsed.searchParams.get("state");
+        const oauthError = parsed.searchParams.get("error");
 
-    if (!expectedState || !returnedState || returnedState !== expectedState) {
-      console.error("[AniList Tracker] OAuth state mismatch — possible CSRF");
-      return { success: false, error: "State mismatch" };
-    }
+        if (oauthError) {
+          await finish({ success: false, cancelled: oauthError === "access_denied" });
+          return;
+        }
 
-    if (!code) {
-      return { success: false, error: "No code received" };
-    }
+        const stored = await chrome.storage.session.get(STATE_STORAGE_KEY);
+        const expectedState = stored[STATE_STORAGE_KEY] as string | undefined;
 
-    const tokenRes = await fetch(TOKEN_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, redirect_uri: REDIRECT_URL }),
+        if (!expectedState || !returnedState || returnedState !== expectedState) {
+          console.error("[AniList Tracker] OAuth state mismatch — possible CSRF");
+          await finish({ success: false, error: "State mismatch" });
+          return;
+        }
+
+        if (!code) {
+          await finish({ success: false, error: "No code received" });
+          return;
+        }
+
+        try {
+          const tokenRes = await fetch(TOKEN_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code, redirect_uri: REDIRECT_URL }),
+          });
+
+          const tokenData = await tokenRes.json().catch(() => null);
+
+          if (!tokenData || tokenData.ok === false || !tokenData.access_token) {
+            console.error("[AniList Tracker] Token exchange failed");
+            await finish({ success: false, error: "Token exchange failed" });
+            return;
+          }
+
+          const accessToken = tokenData.access_token as string;
+          await setStorage({ accessToken });
+
+          try {
+            const viewer = await getViewerWithRetry(accessToken);
+            await setStorage({ userId: viewer.id, username: viewer.name });
+            await finish({ success: true, username: viewer.name });
+          } catch (err) {
+            console.error("[AniList Tracker] getViewer failed after retries:", err);
+            await chrome.storage.session.set({ viewerFetchFailed: true });
+            await finish({ success: true, username: null, partial: true });
+          }
+        } catch (err) {
+          console.error("[AniList Tracker] OAuth error:", err);
+          await finish({ success: false, error: String(err) });
+        }
+      })();
+    };
+
+    const onRemoved = (removedTabId: number) => {
+      if (removedTabId !== tabId) return;
+      finish({ success: false, cancelled: true });
+    };
+
+    chrome.tabs.create({ url: authUrl }, (tab) => {
+      if (!tab?.id) {
+        finish({ success: false, error: "Could not open tab" });
+        return;
+      }
+      tabId = tab.id;
+      chrome.tabs.onUpdated.addListener(onUpdated);
+      chrome.tabs.onRemoved.addListener(onRemoved);
     });
-
-    const tokenData = await tokenRes.json().catch(() => null);
-
-    if (!tokenData || tokenData.ok === false || !tokenData.access_token) {
-      console.error("[AniList Tracker] Token exchange failed");
-      return { success: false, error: "Token exchange failed" };
-    }
-
-    const accessToken = tokenData.access_token as string;
-
-    await setStorage({ accessToken });
-
-    try {
-      const viewer = await getViewerWithRetry(accessToken);
-      await setStorage({ userId: viewer.id, username: viewer.name });
-      return { success: true, username: viewer.name };
-    } catch (err) {
-      console.error("[AniList Tracker] getViewer failed after retries:", err);
-      await chrome.storage.session.set({ viewerFetchFailed: true });
-      return { success: true, username: null, partial: true };
-    }
-  } catch (err) {
-    await chrome.storage.session.remove(STATE_STORAGE_KEY).catch(() => {});
-
-    const errMsg = String(err);
-    if (
-      errMsg.includes("canceled") ||
-      errMsg.includes("cancelled") ||
-      errMsg.includes("user did not approve") ||
-      errMsg.includes("Authorization page could not be loaded")
-    ) {
-      return { success: false, cancelled: true };
-    }
-
-    console.error("[AniList Tracker] OAuth error:", err);
-    return { success: false, error: String(err) };
-  }
+  });
 }
 
 async function handleTokenExpired() {
