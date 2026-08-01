@@ -155,9 +155,6 @@ async function startOAuth(): Promise<
       settled = true;
       cleanup();
       await chrome.storage.session.remove(STATE_STORAGE_KEY);
-      if (tabId !== null) {
-        chrome.tabs.remove(tabId).catch(() => {});
-      }
       resolve(result);
     };
 
