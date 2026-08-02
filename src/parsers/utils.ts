@@ -34,7 +34,8 @@ export function normalizeSearchTitle(title: string): string {
   return title
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/['\u2018\u2019\u02BC`]/g, "")   
+    .replace(/['\u2018\u2019\u02BC`]s\b/gi, "")
+    .replace(/['\u2018\u2019\u02BC`]/g, "")  
     .replace(/[^\w\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
