@@ -20,7 +20,7 @@ function injectStyles() {
   style.textContent = `
     .${CARD_CLASS} {
       outline: 3px solid transparent;
-      outline-offset: 2px;
+      outline-offset: -3px;
       border-radius: 6px;
       transition: outline-color 0.2s;
     }
