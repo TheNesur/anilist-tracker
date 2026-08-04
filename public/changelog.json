@@ -61,5 +61,22 @@
       "Fixes login failures caused by AniList's email verification step.",
       "Seeing this page? That's new too — a summary of changes will now be shown after every update."
     ]
+  },
+  "0.4.5": {
+    "label": "0.4.2 → 0.4.5",
+    "fr": [
+      "Statut de lecture sur les pages catalogue (nouveau, désactivable) : sur les sites compatibles, les œuvres déjà associées à AniList affichent un contour coloré — vert si à jour, orange si en retard (avec le nombre de chapitres manquants), et un badge neutre cliquable pour les titres pas encore associés. Désactivé par défaut, activable dans les paramètres.",
+      "Prise en charge des mangas sur Anime-Sama (pages /scan/vf/ et /scan/va/), en plus du suivi anime déjà existant sur ce site.",
+      "Anime-Sama est maintenant aussi supporté sur le domaine .fr, en plus du .to.",
+      "Fiabilisation du suivi de progression sur Anime-Sama : correction d'un plantage possible quand certains éléments de la page ne sont pas encore chargés, et prise en charge correcte des boutons de navigation dupliqués (haut et bas de page).",
+      "Optimisation des appels à AniList : la progression de toutes vos œuvres est désormais récupérée en un seul appel plutôt qu'un par titre, avec un cache local pour limiter les requêtes inutiles."
+    ],
+    "en": [
+      "Reading status on catalog pages (new, can be disabled): on supported sites, titles already linked to AniList show a colored border — green if up to date, orange if behind (with the number of missing chapters), and a clickable neutral badge for titles not linked yet. Off by default, can be enabled in settings.",
+      "Manga support for Anime-Sama (/scan/vf/ and /scan/va/ pages), alongside the existing anime tracking on that site.",
+      "Anime-Sama is now also supported on the .fr domain, in addition to .to.",
+      "Reliability fix for Anime-Sama progress tracking: fixed a possible crash when some page elements aren't loaded yet, and correctly handled duplicated navigation buttons (top and bottom of the page).",
+      "Optimized AniList calls: progress for all your titles is now fetched in a single request instead of one per title, with a local cache to reduce unnecessary requests."
+    ]
   }
 }

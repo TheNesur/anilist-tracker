@@ -1,6 +1,6 @@
 # Privacy Policy — AniList Tracker
 
-**Last updated:** July 24, 2026
+**Last updated:** August 4, 2026
 
 ## Overview
 
@@ -13,7 +13,8 @@ The extension stores the following data **locally on your device** using the bro
 - **AniList OAuth access token** — used to authenticate API requests to AniList on your behalf
 - **AniList user ID and username** — used to fetch and update your progress
 - **Title mappings** — associations between titles on reading/streaming sites and their corresponding AniList entries
-- **Preferences** — theme, auto-update, auto-map, and title-matching contribution settings
+- **Cached AniList progress** — a local, periodically refreshed copy of your own manga progress (chapter numbers only), used to power the optional catalog status feature described below without re-fetching it from AniList on every page. It is a cache of data already fetched for your account, never new data, and is never sent anywhere.
+- **Preferences** — theme, auto-update, auto-map, catalog status display, and title-matching contribution settings
 
 ## Data sent to our servers
 
@@ -24,6 +25,16 @@ To sign in, the extension exchanges an OAuth authorization code for an access to
 ### Generic title detection (when a site is not on our supported list)
 
 If you open a page on a site we don't have a dedicated parser for, the extension attempts to detect the title and chapter/episode number directly from the page (title tag, headings, URL) — this processing happens **entirely on your device**, nothing is sent anywhere for this step.
+
+### Catalog progress status (opt-in, disabled by default)
+
+On supported catalog/homepage listings, the extension can optionally highlight titles you've already linked to AniList with a color and status label (up to date, behind, or not started), plus a neutral badge for titles it doesn't recognize yet. This feature is **off by default** and only activates if you enable "Show progress status on catalog pages" in the extension's settings.
+
+When enabled:
+- The extension reads the titles and latest chapter numbers already visible on the page — this happens **entirely on your device**, nothing about the page content or which titles you're browsing is sent anywhere
+- To know whether each title is up to date, it fetches your own manga progress from the AniList API (the same API already used elsewhere in the extension, see [Third-party services](#third-party-services)) in a single batched request rather than one per title, and caches the result locally for a short time to avoid repeated requests
+- No new data is sent to AniList beyond what's already required to authenticate and read your own list — this feature only changes how that existing data is fetched (in bulk) and reused (cached locally)
+- Nothing related to this feature is sent to our own servers (`auth.mraitchkovitch.fr`)
 
 ### Community title matching (opt-in, disabled by default)
 
@@ -42,7 +53,7 @@ This data is used to build a community-verified list of title corrections: a cor
 
 The extension communicates with the following services:
 
-- **AniList API** (`https://graphql.anilist.co`) — to authenticate your account, search for media entries, read your current progress, and update it
+- **AniList API** (`https://graphql.anilist.co`) — to authenticate your account, search for media entries, read your current progress (individually or in bulk for the catalog status feature), and update it
 - **Authentication endpoint** (`https://auth.mraitchkovitch.fr`) — to exchange the OAuth authorization code for an access token, and to handle the community title-matching feature described above
 
 No analytics, tracking, or advertising services are used.
@@ -53,7 +64,7 @@ Your data is **never shared, sold, or transmitted** to any third party. Communit
 
 ## Permissions
 
-- **Storage**: to save your authentication token, user ID, and title mappings locally
+- **Storage**: to save your authentication token, user ID, title mappings, and cached progress locally
 - **Tabs**: to detect the URL of the active tab, determine whether the current page is on a supported site, and open the AniList login page in a normal browser tab during authentication
 - **Alarms**: to schedule badge clearing on the extension icon after a progress update
 - **Scripting** and **activeTab**: to detect the manga/anime title on sites not covered by our supported list, only when you open the extension popup on that tab — no code is injected automatically or in the background

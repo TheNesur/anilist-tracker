@@ -1,5 +1,6 @@
 import { getCatalogParser } from "../parsers/catalog";
 import { getStorage, getTitleMapping } from "../utils/storage";
+import { t } from "../utils/i18n";
 import type { CatalogEntry } from "../types";
 
 if (window.self !== window.top) {
@@ -91,19 +92,19 @@ async function runCatalogOverlay() {
     const mediaId = await getTitleMapping(entry.title);
 
     if (!mediaId) {
-      applyBadge(entry, "unmapped", "Non mappé");
+      applyBadge(entry, "unmapped", t("catalogUnmapped"));
       continue;
     }
 
     const progress = progressCache[mediaId];
 
     if (progress === undefined) {
-      applyBadge(entry, "notstarted", "Pas commencé");
+      applyBadge(entry, "notstarted", t("catalogNotStarted"));
     } else if (progress < entry.latestChapter) {
       const diff = entry.latestChapter - progress;
-      applyBadge(entry, "behind", `En retard de ${diff} ch.`);
+      applyBadge(entry, "behind", t("catalogBehind", String(diff)));
     } else {
-      applyBadge(entry, "uptodate", "À jour");
+      applyBadge(entry, "uptodate", t("catalogUpToDate"));
     }
   }
 }

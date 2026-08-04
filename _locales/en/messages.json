@@ -224,5 +224,12 @@
   "contributeAliases": { "message": "Contribute title matches" },
   "contributeAliasesHint": { "message": "Anonymously share manual title corrections to help other users on unsupported sites" },
   "catalogStatus": { "message": "Show progress status on catalog pages" },
-  "catalogStatusHint": { "message": "Highlight titles you've already mapped with a color and label showing whether you're up to date, on supported catalog pages" }
+  "catalogStatusHint": { "message": "Highlight titles you've already mapped with a color and label showing whether you're up to date, on supported catalog pages" },
+  "catalogUnmapped": { "message": "Not mapped" },
+  "catalogNotStarted": { "message": "Not started" },
+  "catalogUpToDate": { "message": "Up to date" },
+  "catalogBehind": {
+    "message": "$count$ ch. behind",
+    "placeholders": { "count": { "content": "$1" } }
+  }
 }

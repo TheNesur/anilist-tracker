@@ -4,7 +4,7 @@
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)
-![Version](https://img.shields.io/badge/version-0.4.4-green)
+![Version](https://img.shields.io/badge/version-0.4.5-green)
 ![License](https://img.shields.io/badge/License-MIT-green)
 [![Edge Add-ons](https://img.shields.io/badge/Edge%20Add--ons-available-0078D4?logo=microsoftedge)](https://microsoftedge.microsoft.com/addons/detail/anilist-tracker)
 
@@ -19,6 +19,7 @@
 
 - **Auto-detection** — reads title and chapter/episode directly from the page DOM, no manual input
 - **Generic detection fallback** — on sites without a dedicated parser, the extension still attempts to detect the title and chapter/episode on a best-effort basis
+- **Catalog progress status** (opt-in) — on supported catalog/homepage listings, titles already linked to AniList are highlighted with a color (up to date, behind, or not started) and a badge; unlinked titles get a neutral, clickable badge. Disabled by default.
 - **Community title matching** — when AniList's search can't find a title automatically, corrections manually resolved by users can (opt-in) help other users hit the same title instantly, once independently confirmed by several accounts
 - **One-click sync** — update your AniList progress without leaving the page
 - **Progress guard** — never accidentally downgrades your progress
@@ -121,6 +122,8 @@ You open the popup → confirm the update (or it's automatic)
 AniList progress is updated via GraphQL API
 ```
 
+On supported catalog/homepage listings, an optional, separate flow runs alongside the above: the page's title cards are matched against your existing title mappings, your full AniList manga progress is fetched in a single batched request and cached locally, and each already-mapped card is annotated with a status badge — all without leaving the page.
+
 ---
 
 ## Architecture
@@ -128,16 +131,19 @@ AniList progress is updated via GraphQL API
 ```
 src/
 ├── background/         # Service worker — OAuth, AniList API, message routing, alias system
-├── content/             # Content script — injected on supported sites
+├── content/
+│   ├── index.ts        # Content script — chapter/episode detection on supported sites
+│   └── catalog.ts       # Content script — optional catalog/homepage status overlay
 ├── parsers/
-│   ├── manga/          # Site-specific DOM parsers (manga/webtoon)
-│   ├── anime/          # Site-specific DOM parsers (anime)
-│   ├── generic.ts      # Best-effort detection for unsupported sites
-│   └── index.ts        # Parser factory
-├── popup/              # Extension popup UI
-├── options/             # Settings page
-├── types/               # Shared TypeScript types
-└── utils/               # AniList GraphQL client, storage, i18n
+│   ├── manga/           # Site-specific DOM parsers (manga/webtoon)
+│   ├── anime/            # Site-specific DOM parsers (anime)
+│   ├── catalog/           # Site-specific catalog/homepage parsers (progress status overlay)
+│   ├── generic.ts        # Best-effort detection for unsupported sites
+│   └── index.ts          # Parser factory
+├── popup/               # Extension popup UI
+├── options/              # Settings page
+├── types/                # Shared TypeScript types
+└── utils/                # AniList GraphQL client, storage, i18n
 _locales/
 ├── en/messages.json    # English strings
 └── fr/messages.json    # French strings
@@ -180,6 +186,14 @@ export class MySiteParser implements SiteParser {
   }
 }
 ```
+
+### Adding catalog progress status for a site
+
+Optional, and independent from the chapter-page parser above:
+
+1. Create a parser class in `src/parsers/catalog/` implementing `CatalogParser` (`isCatalogPage()` + `detectEntries()`, returning each card's element, title, latest chapter, and URL)
+2. Register it in `src/parsers/catalog/index.ts` → `getCatalogParser()`
+3. Titles should go through the same normalization as the site's chapter-page parser (`cleanTitle` / `stripScanlationSuffix`), so lookups against existing `titleMappings` actually match
 
 ---
 
