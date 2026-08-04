@@ -5,3 +5,6 @@ dist/
 .env
 dist.pem
 dist.zip
+dist.crx
+dev-key.txt
+*.crx
