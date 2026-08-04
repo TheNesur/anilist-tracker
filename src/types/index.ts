@@ -28,6 +28,19 @@ export interface GenericDetectionResult {
   possibleTypes: MediaType[];
 }
 
+export interface CatalogEntry {
+  element: HTMLElement;
+  title: string;
+  latestChapter: number;
+  url: string;
+}
+
+export interface CatalogParser {
+  site: SupportedSite;
+  isCatalogPage(): boolean;
+  detectEntries(): CatalogEntry[];
+}
+
 export interface AniListMedia {
   id: number;
   title: { romaji: string; english: string | null; native: string | null; };
@@ -51,7 +64,8 @@ export type MessageType =
   | "GET_PROGRESS"
   | "AUTH_SUCCESS"
   | "LOCAL_UPDATE_PROGRESS"
-  | "ALIAS_SUBMIT";
+  | "ALIAS_SUBMIT"
+  | "GET_PROGRESS_CACHE";
 
 export interface ExtensionMessage {
   type: MessageType;
@@ -81,6 +95,9 @@ export interface StorageData {
   autoMap: boolean;
   theme: Theme;
   contributeAliases: boolean;
+  showCatalogStatus: boolean;
+  mangaProgressCache: Record<number, number>;
+  mangaProgressCacheUpdatedAt: number | null;
 }
 
 export const DEFAULT_STORAGE: StorageData = {
@@ -92,6 +109,9 @@ export const DEFAULT_STORAGE: StorageData = {
   autoMap: false,
   theme: "dark",
   contributeAliases: false,
+  showCatalogStatus: false,
+  mangaProgressCache: {},
+  mangaProgressCacheUpdatedAt: null,
 };
 
 export type Theme = "dark" | "light";
@@ -117,5 +137,3 @@ export class TokenExpiredError extends Error {
 export function isTokenExpiredError(err: unknown): err is TokenExpiredError {
   return err instanceof TokenExpiredError;
 }
-
-

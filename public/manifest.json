@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "permissions": [
@@ -54,9 +54,8 @@
         "https://anime-sama.to/*",
         "https://anime-sama.fr/*",
         "https://www.anime-sama.fr/*"
-
       ],
-      "js": ["src/content/index.ts"],
+      "js": ["src/content/index.ts", "src/content/catalog.ts"],
       "run_at": "document_idle"
     }
   ],

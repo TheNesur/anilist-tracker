@@ -36,6 +36,12 @@ async function init() {
     await setStorage({ contributeAliases: contributeAliasesToggle.checked });
   });
 
+  const catalogStatusToggle = document.getElementById("toggle-catalog-status") as HTMLInputElement;
+  catalogStatusToggle.checked = storage.showCatalogStatus;
+  catalogStatusToggle.addEventListener("change", async () => {
+    await setStorage({ showCatalogStatus: catalogStatusToggle.checked });
+  });
+
   document.getElementById("theme-dark")!.addEventListener("click", () => switchTheme("dark"));
   document.getElementById("theme-light")!.addEventListener("click", () => switchTheme("light"));
 
@@ -51,6 +57,8 @@ async function init() {
   document.getElementById("hint-automap")!.textContent = t("autoMapHint");
   document.getElementById("label-contribute-aliases")!.textContent = t("contributeAliases");
   document.getElementById("hint-contribute-aliases")!.textContent = t("contributeAliasesHint");
+  document.getElementById("label-catalog-status")!.textContent = t("catalogStatus");
+  document.getElementById("hint-catalog-status")!.textContent = t("catalogStatusHint");
   document.getElementById("label-logout")!.textContent = t("logout");
   document.getElementById("hint-logout")!.textContent = t("logoutHint");
   document.getElementById("btn-logout")!.textContent = t("logout");

@@ -222,6 +222,8 @@
   },
   "stateSearching": { "message": "Recherche sur AniList…" },
   "contributeAliases": { "message": "Contribuer aux correspondances de titres" },
-  "contributeAliasesHint": { "message": "Partage anonymement tes corrections manuelles de titres pour aider les autres utilisateurs sur les sites non supportés" }
+  "contributeAliasesHint": { "message": "Partage anonymement tes corrections manuelles de titres pour aider les autres utilisateurs sur les sites non supportés" },
+  "catalogStatus": { "message": "Afficher le statut de lecture sur les pages catalogue" },
+  "catalogStatusHint": { "message": "Met en évidence les titres déjà mappés avec une couleur et un message indiquant si tu es à jour, sur les pages catalogue supportées" }
 
 }

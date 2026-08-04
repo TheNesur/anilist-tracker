@@ -182,6 +182,36 @@ export async function updateProgress(
   return data.SaveMediaListEntry;
 }
 
+const GET_PROGRESS_COLLECTION = `
+query ($userId: Int, $type: MediaType) {
+  MediaListCollection(userId: $userId, type: $type) {
+    lists {
+      entries {
+        mediaId
+        progress
+      }
+    }
+  }
+}`;
+
+export async function getProgressCollection(
+  userId: number,
+  type: "MANGA" | "ANIME",
+  token: string
+): Promise<Record<number, number>> {
+  const data = await gqlRequest<{
+    MediaListCollection: { lists: { entries: { mediaId: number; progress: number }[] }[] };
+  }>(GET_PROGRESS_COLLECTION, { userId, type }, token);
+
+  const result: Record<number, number> = {};
+  for (const list of data.MediaListCollection.lists) {
+    for (const entry of list.entries) {
+      result[entry.mediaId] = entry.progress;
+    }
+  }
+  return result;
+}
+
 const GET_VIEWER = `
 query {
   Viewer { id name }

@@ -1,4 +1,4 @@
-import { searchManga, searchAnime, getProgress, updateProgress, getViewer, getMediaById } from "../utils/anilist";
+import { searchManga, searchAnime, getProgress, updateProgress, getViewer, getMediaById, getProgressCollection } from "../utils/anilist";
 import { getStorage, setStorage, getToken, getTitleMapping, saveTitleMapping } from "../utils/storage";
 import { findExactMatch } from "../utils/matching";
 import { isTokenExpiredError, type MediaDetection, type AniListMedia } from "../types";
@@ -16,6 +16,7 @@ const STATE_STORAGE_KEY = "oauthState";
 const BADGE_CLEAR_ALARM = "anilist-tracker:clear-badge";
 const BADGE_CLEAR_DELAY_MIN = 0.05;
 const VIEWER_RETRY_DELAYS_MS = [500, 1000, 2000];
+const PROGRESS_CACHE_TTL_MS = 15 * 60 * 1000;
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "update") {
@@ -95,6 +96,44 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const searchTitle = normalizeSearchTitle(title);
     const search = mediaType === "ANIME" ? searchAnime(searchTitle) : searchManga(searchTitle);
     search.then((results: AniListMedia[]) => sendResponse({ results }));
+    return true;
+  }
+
+  if (message.type === "GET_PROGRESS_CACHE") {
+    const { mediaType } = message.payload as { mediaType: MediaDetection["mediaType"] };
+    (async () => {
+      if (mediaType !== "MANGA") {
+        sendResponse({ cache: {} });
+        return;
+      }
+
+      const token = await getToken();
+      const storage = await getStorage();
+      if (!token || !storage.userId) {
+        sendResponse({ cache: {} });
+        return;
+      }
+
+      const isStale =
+        !storage.mangaProgressCacheUpdatedAt ||
+        Date.now() - storage.mangaProgressCacheUpdatedAt > PROGRESS_CACHE_TTL_MS;
+
+      if (!isStale) {
+        sendResponse({ cache: storage.mangaProgressCache });
+        return;
+      }
+
+      try {
+        const cache = await getProgressCollection(storage.userId, "MANGA", token);
+        await setStorage({ mangaProgressCache: cache, mangaProgressCacheUpdatedAt: Date.now() });
+        sendResponse({ cache });
+      } catch (err) {
+        if (isTokenExpiredError(err)) {
+          await handleTokenExpired();
+        }
+        sendResponse({ cache: storage.mangaProgressCache ?? {} });
+      }
+    })();
     return true;
   }
 
