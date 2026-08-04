@@ -17,6 +17,7 @@ const BADGE_CLEAR_ALARM = "anilist-tracker:clear-badge";
 const BADGE_CLEAR_DELAY_MIN = 0.05;
 const VIEWER_RETRY_DELAYS_MS = [500, 1000, 2000];
 const PROGRESS_CACHE_TTL_MS = 15 * 60 * 1000;
+const OAUTH_TIMEOUT_MS = 3 * 60 * 1000;
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "update") {
@@ -174,7 +175,7 @@ async function getViewerWithRetry(token: string) {
 }
 
 async function startOAuth(): Promise<
-  { success: true; username: string | null; partial?: boolean } | { success: false; error?: string; cancelled?: boolean }
+  { success: true; username: string | null; partial?: boolean } | { success: false; error?: string; cancelled?: boolean; timedOut?: boolean }
 > {
   const state = generateState();
   await chrome.storage.session.set({ [STATE_STORAGE_KEY]: state });
@@ -190,10 +191,12 @@ async function startOAuth(): Promise<
     let settled = false;
     let handled = false;
     let tabId: number | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const cleanup = () => {
       chrome.tabs.onUpdated.removeListener(onUpdated);
       chrome.tabs.onRemoved.removeListener(onRemoved);
+      if (timeoutId !== null) clearTimeout(timeoutId);
     };
 
     const finish = async (result: Awaited<ReturnType<typeof startOAuth>>) => {
@@ -203,6 +206,13 @@ async function startOAuth(): Promise<
       await chrome.storage.session.remove(STATE_STORAGE_KEY);
       resolve(result);
     };
+
+    timeoutId = setTimeout(() => {
+      if (tabId !== null) {
+        chrome.tabs.remove(tabId).catch(() => {});
+      }
+      finish({ success: false, error: "Timed out waiting for AniList", timedOut: true });
+    }, OAUTH_TIMEOUT_MS);
 
     const onUpdated = (updatedTabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
       if (updatedTabId !== tabId) return;

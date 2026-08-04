@@ -701,6 +701,9 @@ btnLogin.addEventListener("click", async () => {
     await resolveState();
   } else if (response?.cancelled) {
     btnLogin.textContent = t("btnLogin");
+  } else if (response?.timedOut) {
+    btnLogin.textContent = t("btnLogin");
+    alert(t("connectionTimeout"));
   } else {
     btnLogin.textContent = t("btnLogin");
     alert(t("connectionFailed"));

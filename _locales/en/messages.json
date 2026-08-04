@@ -153,6 +153,9 @@
   "connectionFailed": {
     "message": "Connection failed. Please try again."
   },
+  "connectionTimeout": {
+    "message": "AniList is taking too long to respond (it may be down). Please try again later."
+  },
   "youAreOn": {
     "message": "You are on"
   },

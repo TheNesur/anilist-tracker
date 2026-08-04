@@ -153,6 +153,9 @@
   "connectionFailed": {
     "message": "Connexion échouée. Réessaie."
   },
+  "connectionTimeout": {
+    "message": "AniList met trop de temps à répondre (le service est peut-être indisponible). Réessaie plus tard."
+  },
   "youAreOn": {
     "message": "Tu es sur"
   },
