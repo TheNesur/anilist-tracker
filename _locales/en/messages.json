@@ -81,6 +81,24 @@
       "chapter": { "content": "$1" }
     }
   },
+  "updateQueued": {
+    "message": "Queued — will sync once AniList is back"
+  },
+  "pendingQueueLabel": {
+    "message": "$count$ update(s) pending (AniList unreachable)",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "retryNow": {
+    "message": "Retry now"
+  },
+  "pendingUpdateErrors": {
+    "message": "$count$ update(s) couldn't be synced. Please retry them manually.",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
   "updateError": {
     "message": "Error — Retry?"
   },

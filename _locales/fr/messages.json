@@ -81,6 +81,24 @@
       "chapter": { "content": "$1" }
     }
   },
+  "updateQueued": {
+    "message": "Mis en attente — sera synchronisé quand AniList sera de retour"
+  },
+  "pendingQueueLabel": {
+    "message": "$count$ en attente (AniList indisponible)",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "retryNow": {
+    "message": "Réessayer maintenant"
+  },
+  "pendingUpdateErrors": {
+    "message": "$count$ mise(s) à jour n'ont pas pu être synchronisées. Retente-les manuellement.",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
   "updateError": {
     "message": "Erreur — Réessayer ?"
   },

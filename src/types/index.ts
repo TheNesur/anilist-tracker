@@ -65,7 +65,8 @@ export type MessageType =
   | "AUTH_SUCCESS"
   | "LOCAL_UPDATE_PROGRESS"
   | "ALIAS_SUBMIT"
-  | "GET_PROGRESS_CACHE";
+  | "GET_PROGRESS_CACHE"
+  | "FLUSH_PENDING_UPDATES";
 
 export interface ExtensionMessage {
   type: MessageType;
@@ -86,6 +87,13 @@ export interface UpdateProgressMessage extends ExtensionMessage {
   };
 }
 
+export interface PendingUpdate {
+  mediaId: number;
+  progress: number;
+  mediaType: MediaType;
+  queuedAt: number;
+}
+
 export interface StorageData {
   accessToken: string | null;
   userId: number | null;
@@ -98,6 +106,7 @@ export interface StorageData {
   showCatalogStatus: boolean;
   mangaProgressCache: Record<number, number>;
   mangaProgressCacheUpdatedAt: number | null;
+  pendingUpdates: PendingUpdate[];
 }
 
 export const DEFAULT_STORAGE: StorageData = {
@@ -112,6 +121,7 @@ export const DEFAULT_STORAGE: StorageData = {
   showCatalogStatus: false,
   mangaProgressCache: {},
   mangaProgressCacheUpdatedAt: null,
+  pendingUpdates: [],
 };
 
 export type Theme = "dark" | "light";
@@ -136,4 +146,15 @@ export class TokenExpiredError extends Error {
 
 export function isTokenExpiredError(err: unknown): err is TokenExpiredError {
   return err instanceof TokenExpiredError;
+}
+
+export class AniListUnreachableError extends Error {
+  readonly name = "AniListUnreachableError" as const;
+  constructor(message = "AniList is currently unreachable") {
+    super(message);
+  }
+}
+
+export function isAniListUnreachableError(err: unknown): err is AniListUnreachableError {
+  return err instanceof AniListUnreachableError;
 }

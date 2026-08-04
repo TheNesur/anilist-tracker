@@ -80,6 +80,8 @@ async function init() {
   showView("main");
   usernameEl.textContent = storage.username ?? (storage.userId ? `#${storage.userId}` : "—");
   await resolveState();
+  await renderPendingQueue();
+  await renderPendingErrors();
 
   chrome.storage.session.onChanged.addListener((changes) => {
     if (changes.lastDetection || changes.lastDetectionUrl || changes.detectionFailed || changes.detectionSearching) {
@@ -87,7 +89,50 @@ async function init() {
     }
   });
 
+  chrome.storage.local.onChanged.addListener((changes) => {
+    if (changes.pendingUpdates) {
+      renderPendingQueue();
+    }
+  });
+
   document.getElementById("footer-anilist")!.textContent = t("openAniList");
+}
+
+async function renderPendingQueue() {
+  const storage = await getStorage();
+  const banner = document.getElementById("pending-queue")!;
+  const label = document.getElementById("pending-queue-label")!;
+  const btn = document.getElementById("btn-retry-now") as HTMLButtonElement;
+
+  if (storage.pendingUpdates.length === 0) {
+    banner.style.display = "none";
+    return;
+  }
+
+  banner.style.display = "flex";
+  label.textContent = t("pendingQueueLabel", String(storage.pendingUpdates.length));
+  btn.textContent = t("retryNow");
+  btn.disabled = false;
+
+  btn.onclick = async () => {
+    btn.disabled = true;
+    btn.textContent = t("stateLoading");
+    await chrome.runtime.sendMessage({ type: "FLUSH_PENDING_UPDATES" });
+    await renderPendingQueue();
+  };
+}
+
+async function renderPendingErrors() {
+  const session = await chrome.storage.session.get("pendingUpdateErrorCount");
+  const count = session.pendingUpdateErrorCount as number | undefined;
+  if (!count) return;
+
+  const banner = document.getElementById("pending-errors")!;
+  const label = document.getElementById("pending-errors-label")!;
+  banner.style.display = "flex";
+  label.textContent = t("pendingUpdateErrors", String(count));
+
+  await chrome.storage.session.remove("pendingUpdateErrorCount");
 }
 
 function applyTheme(theme: "dark" | "light") {
@@ -675,16 +720,22 @@ async function handleUpdate() {
   });
 
   if (response?.success) {
-    if (!response.skipped) {
-      await chrome.storage.session.set({ currentProgress: response.progress });
-    }
+    if (response.queued) {
+      btn.textContent = t("updateQueued");
+      btn.classList.remove("btn-success");
+      btn.classList.add("btn-ghost");
+      renderPendingQueue();
+    } else {
+      if (!response.skipped) {
+        await chrome.storage.session.set({ currentProgress: response.progress });
+      }
 
-    btn.textContent = response.skipped
-      ? t("alreadyUpToDate", String(response.current))
-      : t("updatedSuccess", String(response.progress));
-    btn.classList.remove("btn-success");
-    btn.classList.add("btn-ghost");
-    chrome.action.setBadgeText({ text: "" });
+      btn.textContent = response.skipped
+        ? t("alreadyUpToDate", String(response.current))
+        : t("updatedSuccess", String(response.progress));
+      btn.classList.remove("btn-success");
+      btn.classList.add("btn-ghost");
+    }
   } else {
     btn.textContent = t("updateError");
     btn.disabled = false;

@@ -67,6 +67,39 @@
       color: var(--success);
     }
 
+    .pending-queue {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(243, 156, 18, 0.1);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      color: #f39c12;
+    }
+
+    .btn-retry-now {
+      background: none;
+      border: 1px solid #f39c12;
+      color: #f39c12;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: opacity 0.2s;
+    }
+
+    .btn-retry-now:hover { opacity: 0.8; }
+    .btn-retry-now:disabled { opacity: 0.5; cursor: default; }
+
+    .pending-errors {
+      background: rgba(231, 76, 60, 0.1);
+      color: var(--error);
+    }
+
     .btn-icon {
       background: none;
       border: none;
@@ -298,6 +331,15 @@
           </svg>
         </button>
       </div>
+    </div>
+
+    <div id="pending-queue" class="pending-queue" style="display:none">
+      <span id="pending-queue-label"></span>
+      <button class="btn-ghost btn-retry-now" id="btn-retry-now"></button>
+    </div>
+
+    <div id="pending-errors" class="pending-queue pending-errors" style="display:none">
+      <span id="pending-errors-label"></span>
     </div>
 
     <div id="state-container"></div>

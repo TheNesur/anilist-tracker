@@ -1,6 +1,7 @@
-import { TokenExpiredError, type AniListMedia, type AniListMediaList } from "../types";
+import { AniListUnreachableError, TokenExpiredError, type AniListMedia, type AniListMediaList } from "../types";
 
-const ANILIST_API = "https://graphql.anilist.co";
+// const ANILIST_API = "https://graphql.anilist.co";
+const ANILIST_API = "https://httpstat.us/500";
 const SEARCH_PER_PAGE = 10;
 const MAX_RETRIES_429 = 3;
 const DEFAULT_RETRY_AFTER_MS = 60_000;
@@ -12,12 +13,22 @@ function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-async function gqlRequest<T>(
+interface GqlErrorItem {
+  message: string;
+  path?: (string | number)[];
+}
+
+interface RawGqlResult<T> {
+  data: T | null;
+  errors: GqlErrorItem[] | null;
+}
+
+async function rawGqlRequest<T>(
   query: string,
   variables: Record<string, unknown>,
   token?: string | null,
   retryCount = 0
-): Promise<T> {
+): Promise<RawGqlResult<T>> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -27,11 +38,17 @@ async function gqlRequest<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(ANILIST_API, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ query, variables }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(ANILIST_API, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ query, variables }),
+    });
+  } catch (err) {
+    // fetch() itself rejected — no response at all, e.g. DNS/connection failure
+    throw new AniListUnreachableError(err instanceof Error ? err.message : String(err));
+  }
 
   if (res.status === 401) {
     throw new TokenExpiredError();
@@ -39,23 +56,43 @@ async function gqlRequest<T>(
 
   if (res.status === 429) {
     if (retryCount >= MAX_RETRIES_429) {
-      throw new Error("AniList rate limit: max retries exceeded");
+      throw new AniListUnreachableError("AniList rate limit: max retries exceeded");
     }
     const retryAfter = Number(res.headers.get("Retry-After"));
     const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
       ? retryAfter * 1000
       : DEFAULT_RETRY_AFTER_MS;
     await sleep(waitMs);
-    return gqlRequest<T>(query, variables, token, retryCount + 1);
+    return rawGqlRequest<T>(query, variables, token, retryCount + 1);
   }
 
-  const json = await res.json();
-
-  if (json.errors) {
-    throw new Error(json.errors[0]?.message ?? "AniList API error");
+  if (res.status >= 500) {
+    throw new AniListUnreachableError(`AniList server error: ${res.status}`);
   }
 
-  return json.data as T;
+  let json: { data?: T; errors?: GqlErrorItem[] };
+  try {
+    json = await res.json();
+  } catch (err) {
+    throw new AniListUnreachableError("AniList returned an invalid response");
+  }
+
+  return { data: json.data ?? null, errors: json.errors ?? null };
+}
+
+async function gqlRequest<T>(
+  query: string,
+  variables: Record<string, unknown>,
+  token?: string | null,
+  retryCount = 0
+): Promise<T> {
+  const { data, errors } = await rawGqlRequest<T>(query, variables, token, retryCount);
+
+  if (errors) {
+    throw new Error(errors[0]?.message ?? "AniList API error");
+  }
+
+  return data as T;
 }
 
 const SEARCH_MANGA = `
@@ -210,6 +247,75 @@ export async function getProgressCollection(
     }
   }
   return result;
+}
+
+export interface BatchUpdateItem {
+  mediaId: number;
+  progress: number;
+}
+
+export interface BatchUpdateResult {
+  mediaId: number;
+  success: boolean;
+  progress?: number;
+  error?: string;
+}
+
+export async function saveProgressBatch(
+  items: BatchUpdateItem[],
+  token: string
+): Promise<BatchUpdateResult[]> {
+  if (items.length === 0) return [];
+
+  const variableDefs: string[] = [];
+  const fields: string[] = [];
+  const variables: Record<string, unknown> = {};
+
+  items.forEach((item, i) => {
+    variableDefs.push(`$mediaId${i}: Int, $progress${i}: Int`);
+    fields.push(`
+      u${i}: SaveMediaListEntry(mediaId: $mediaId${i}, progress: $progress${i}, status: CURRENT) {
+        id
+        progress
+        status
+      }`);
+    variables[`mediaId${i}`] = item.mediaId;
+    variables[`progress${i}`] = item.progress;
+  });
+
+  const query = `
+    mutation (${variableDefs.join(", ")}) {
+      ${fields.join("\n")}
+    }`;
+
+  const { data, errors } = await rawGqlRequest<Record<string, { id: number; progress: number; status: string } | null>>(
+    query,
+    variables,
+    token
+  );
+
+  const errorsByAlias = new Map<string, string>();
+  if (errors) {
+    for (const err of errors) {
+      const alias = err.path?.[0];
+      if (typeof alias === "string") {
+        errorsByAlias.set(alias, err.message);
+      }
+    }
+  }
+
+  return items.map((item, i) => {
+    const alias = `u${i}`;
+    const result = data?.[alias];
+    if (result) {
+      return { mediaId: item.mediaId, success: true, progress: result.progress };
+    }
+    return {
+      mediaId: item.mediaId,
+      success: false,
+      error: errorsByAlias.get(alias) ?? "Unknown error",
+    };
+  });
 }
 
 const GET_VIEWER = `

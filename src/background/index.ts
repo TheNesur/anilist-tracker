@@ -1,7 +1,7 @@
-import { searchManga, searchAnime, getProgress, updateProgress, getViewer, getMediaById, getProgressCollection } from "../utils/anilist";
+import { searchManga, searchAnime, getProgress, updateProgress, getViewer, getMediaById, getProgressCollection, saveProgressBatch } from "../utils/anilist";
 import { getStorage, setStorage, getToken, getTitleMapping, saveTitleMapping } from "../utils/storage";
 import { findExactMatch } from "../utils/matching";
-import { isTokenExpiredError, type MediaDetection, type AniListMedia } from "../types";
+import { isTokenExpiredError, isAniListUnreachableError, type MediaDetection, type AniListMedia, type PendingUpdate } from "../types";
 import { normalizeSearchTitle } from "../parsers/utils";
 
 
@@ -18,6 +18,9 @@ const BADGE_CLEAR_DELAY_MIN = 0.05;
 const VIEWER_RETRY_DELAYS_MS = [500, 1000, 2000];
 const PROGRESS_CACHE_TTL_MS = 15 * 60 * 1000;
 const OAUTH_TIMEOUT_MS = 3 * 60 * 1000;
+const PENDING_RETRY_ALARM = "anilist-tracker:retry-pending";
+const PENDING_RETRY_INTERVAL_MIN = 5;
+const BATCH_CHUNK_SIZE = 25;
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "update") {
@@ -27,7 +30,14 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === BADGE_CLEAR_ALARM) {
-    chrome.action.setBadgeText({ text: "" });
+    (async () => {
+      const storage = await getStorage();
+      updatePendingBadge(storage.pendingUpdates.length);
+    })();
+  }
+
+  if (alarm.name === PENDING_RETRY_ALARM) {
+    flushPendingUpdates();
   }
 });
 
@@ -135,6 +145,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse({ cache: storage.mangaProgressCache ?? {} });
       }
     })();
+    return true;
+  }
+
+  if (message.type === "FLUSH_PENDING_UPDATES") {
+    flushPendingUpdates().then(() => sendResponse({ done: true }));
     return true;
   }
 
@@ -482,8 +497,111 @@ async function handleUpdate(mediaId: number, progress: number, mediaType: MediaD
       await handleTokenExpired();
       return { success: false, error: "Token expired" };
     }
+    if (isAniListUnreachableError(err)) {
+      await queuePendingUpdate(mediaId, progress, mediaType);
+      return { success: true, queued: true };
+    }
     console.error("[AniList Tracker] Update failed:", err);
     return { success: false, error: String(err) };
+  }
+}
+
+function updatePendingBadge(count: number) {
+  if (count > 0) {
+    chrome.action.setBadgeText({ text: String(count) });
+    chrome.action.setBadgeBackgroundColor({ color: "#f39c12" });
+  } else {
+    chrome.action.setBadgeText({ text: "" });
+  }
+}
+
+async function ensureRetryAlarmScheduled() {
+  const existing = await chrome.alarms.get(PENDING_RETRY_ALARM);
+  if (!existing) {
+    chrome.alarms.create(PENDING_RETRY_ALARM, { periodInMinutes: PENDING_RETRY_INTERVAL_MIN });
+  }
+}
+
+async function queuePendingUpdate(
+  mediaId: number,
+  progress: number,
+  mediaType: MediaDetection["mediaType"]
+) {
+  const storage = await getStorage();
+  const pending = [...storage.pendingUpdates];
+  const existingIndex = pending.findIndex(
+    (p) => p.mediaId === mediaId && p.mediaType === mediaType
+  );
+
+  if (existingIndex !== -1) {
+    if (pending[existingIndex].progress < progress) {
+      pending[existingIndex] = { mediaId, progress, mediaType, queuedAt: Date.now() };
+    }
+  } else {
+    pending.push({ mediaId, progress, mediaType, queuedAt: Date.now() });
+  }
+
+  await setStorage({ pendingUpdates: pending });
+  updatePendingBadge(pending.length);
+  await ensureRetryAlarmScheduled();
+}
+
+async function flushPendingUpdates() {
+  const storage = await getStorage();
+  if (storage.pendingUpdates.length === 0) {
+    chrome.alarms.clear(PENDING_RETRY_ALARM);
+    return;
+  }
+
+  const token = await getToken();
+  if (!token) return;
+
+  const queue = storage.pendingUpdates;
+  const remaining: PendingUpdate[] = [];
+  let droppedCount = 0;
+
+  for (let i = 0; i < queue.length; i += BATCH_CHUNK_SIZE) {
+    const chunk = queue.slice(i, i + BATCH_CHUNK_SIZE);
+
+    try {
+      const results = await saveProgressBatch(
+        chunk.map((p) => ({ mediaId: p.mediaId, progress: p.progress })),
+        token
+      );
+
+      results.forEach((result, idx) => {
+        if (!result.success) {
+          // Real GraphQL error for this specific entry (not an outage) —
+          // retrying it forever would be pointless, so it's dropped.
+          droppedCount++;
+          console.error("[AniList Tracker] Pending update dropped:", chunk[idx].mediaId, result.error);
+        }
+      });
+    } catch (err) {
+      if (isTokenExpiredError(err)) {
+        await handleTokenExpired();
+        remaining.push(...queue.slice(i));
+        break;
+      }
+      if (isAniListUnreachableError(err)) {
+        // Still down — keep this chunk and everything after it, try again next alarm tick.
+        remaining.push(...queue.slice(i));
+        break;
+      }
+      // Unexpected error — keep the chunk to retry later rather than lose data.
+      remaining.push(...chunk);
+    }
+  }
+
+  await setStorage({ pendingUpdates: remaining });
+  updatePendingBadge(remaining.length);
+
+  if (remaining.length === 0) {
+    chrome.alarms.clear(PENDING_RETRY_ALARM);
+  }
+
+  if (droppedCount > 0) {
+    await chrome.storage.session.set({ pendingUpdateErrorCount: droppedCount });
   }
 }
 
