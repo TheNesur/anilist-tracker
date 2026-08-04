@@ -4,7 +4,7 @@
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)
-![Version](https://img.shields.io/badge/version-0.4.1-green)
+![Version](https://img.shields.io/badge/version-0.4.4-green)
 ![License](https://img.shields.io/badge/License-MIT-green)
 [![Edge Add-ons](https://img.shields.io/badge/Edge%20Add--ons-available-0078D4?logo=microsoftedge)](https://microsoftedge.microsoft.com/addons/detail/anilist-tracker)
 

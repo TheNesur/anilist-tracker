@@ -6,6 +6,7 @@ import { MangaPlusParser } from "./manga/mangaplus";
 import { AsuraParser } from "./manga/asura";
 import { FlameParser } from "./manga/flame";
 import { ReaperParser } from "./manga/reaper";
+import { AnimeSamaMangaParser } from "./manga/anime-sama";
 import { CrunchyrollParser } from "./anime/crunchyroll";
 import { VoirAnimeParser } from "./anime/voiranime";
 import { AnimeSamaParser } from "./anime/anime-sama";
@@ -30,7 +31,11 @@ export function getParser(): SiteParser | null {
 
   if (host.includes("crunchyroll")) return new CrunchyrollParser();
   if (host.includes("voir-anime")) return new VoirAnimeParser();
-  if (host.includes("anime-sama")) return new AnimeSamaParser();
+  if (host.includes("anime-sama")) {
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    if (parts[2] === "scan") return new AnimeSamaMangaParser();
+    return new AnimeSamaParser();
+  }
 
   return null;
 }

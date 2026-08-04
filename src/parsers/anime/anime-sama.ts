@@ -15,33 +15,42 @@ export class AnimeSamaParser {
     const titleEl = document.getElementById('titreOeuvre');
     const title = titleEl?.textContent?.trim() ?? this.extractTitleFromUrl() ?? null;
 
-    const episodeEl: HTMLSelectElement | null = document.getElementById("selectEpisodes") as HTMLSelectElement;
-    const nextEpisodeEl = document.getElementById('nextEpisode') as HTMLButtonElement;
-    const lastEpisodeEl = document.getElementById('lastEpisode') as HTMLButtonElement;
-    const prevEpisodeEl = document.getElementById('prevEpisode') as HTMLButtonElement;
+    const episodeEl = document.getElementById("selectEpisodes") as HTMLSelectElement | null;
+    const nextEpisodeEl = document.getElementById('nextEpisode') as HTMLButtonElement | null;
+    const lastEpisodeEl = document.getElementById('lastEpisode') as HTMLButtonElement | null;
+    const prevEpisodeEl = document.getElementById('prevEpisode') as HTMLButtonElement | null;
 
-    function updateProgress() {
-        const episodeSelect = document.getElementById("selectEpisodes") as HTMLSelectElement
-        const episodeOption = episodeSelect.children[episodeSelect.selectedIndex] as HTMLOptionElement;
-        const episode = Number(episodeOption.innerText.split(" ")[1]);
+    const extractEpisodeNumber = (select: HTMLSelectElement): number | null => {
+      const option = select.children[select.selectedIndex] as HTMLOptionElement | undefined;
+      if (!option) return null;
+      const parts = option.innerText.split(" ");
+      const value = Number(parts[1]);
+      return isNaN(value) ? null : value;
+    };
 
-        chrome.runtime.sendMessage({
-            type: "LOCAL_UPDATE_PROGRESS",
-            payload: {
-                progress: episode
-            },
-        });
-    }
-    
-    episodeEl.addEventListener('change', updateProgress);
-    nextEpisodeEl.addEventListener('click', updateProgress);
-    lastEpisodeEl.addEventListener('click', updateProgress);
-    prevEpisodeEl.addEventListener('click', updateProgress);
+    const updateProgress = () => {
+      const currentSelect = document.getElementById("selectEpisodes") as HTMLSelectElement | null;
+      if (!currentSelect) return;
+      const episode = extractEpisodeNumber(currentSelect);
+      if (episode === null) return;
 
-    const episodeOption = episodeEl?.children[episodeEl.selectedIndex] as HTMLOptionElement;
-    const episode = Number(episodeOption.innerText.split(" ")[1]);
+      chrome.runtime.sendMessage({
+        type: "LOCAL_UPDATE_PROGRESS",
+        payload: {
+          progress: episode
+        },
+      });
+    };
 
-    if (!title || !episode) return null;
+    episodeEl?.addEventListener('change', updateProgress);
+    nextEpisodeEl?.addEventListener('click', updateProgress);
+    lastEpisodeEl?.addEventListener('click', updateProgress);
+    prevEpisodeEl?.addEventListener('click', updateProgress);
+
+    if (!episodeEl) return null;
+    const episode = extractEpisodeNumber(episodeEl);
+
+    if (!title || episode === null) return null;
 
     return {
       title: cleanTitle(title),
@@ -54,6 +63,6 @@ export class AnimeSamaParser {
 
   private extractTitleFromUrl(): string | null {
     const parts = window.location.pathname.split("/").filter(Boolean);
-    return parts[1].replace("-", " ");
+    return parts[1]?.replace("-", " ") ?? null;
   }
 }

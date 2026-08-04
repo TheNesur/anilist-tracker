@@ -29,7 +29,9 @@ const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
   "voir-anime.to": "voiranime",
   "www.voir-anime.to": "voiranime",
 
-  "anime-sama.to": "anime-sama"
+  "anime-sama.to": "anime-sama",
+  "anime-sama.fr": "anime-sama",
+  "www.anime-sama.fr": "anime-sama"
 };
 
 const SITE_NAMES: Record<SupportedSite, string> = {
