@@ -1,7 +1,6 @@
 import { AniListUnreachableError, TokenExpiredError, type AniListMedia, type AniListMediaList } from "../types";
 
 const ANILIST_API = "https://graphql.anilist.co";
-// const ANILIST_API = "https://httpstat.us/500";
 const SEARCH_PER_PAGE = 10;
 const MAX_RETRIES_429 = 3;
 const DEFAULT_RETRY_AFTER_MS = 60_000;
