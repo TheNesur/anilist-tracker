@@ -34,9 +34,10 @@ review times.
 ## Code style
 
 - **TypeScript**, strict mode.
-- **No comments in code.** Code should be self-explanatory through clear
-  naming and structure; comments are considered noise here and will be
-  removed in review.
+- Favor clear naming and structure over comments that just restate what
+  the code does. Comments are welcome (and encouraged) when they explain a
+  non-obvious *why* — a workaround for a specific site's quirky DOM, a
+  constraint from the AniList API, a browser-specific gotcha, etc.
 - Keep parsers consistent with the existing `SiteParser` interface pattern
   in `src/parsers/`. If you're adding support for a new site, see the
   "Adding a New Site" section in the README.
