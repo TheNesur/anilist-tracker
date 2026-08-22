@@ -23,11 +23,17 @@ export async function clearSession(): Promise<void> {
 }
 
 export async function getToken(): Promise<string | null> {
-  const { accessToken } = await chrome.storage.session.get({ accessToken: null });
-  return accessToken;
+  const session = await chrome.storage.session.get({ accessToken: null });
+  if (session.accessToken) return session.accessToken;
+  const local = await chrome.storage.local.get({ accessToken: null });
+  if (local.accessToken) {
+    await chrome.storage.session.set({ accessToken: local.accessToken });
+  }
+  return local.accessToken ?? null;
 }
 
 export async function setToken(token: string | null): Promise<void> {
+  await chrome.storage.local.set({ accessToken: token });
   await chrome.storage.session.set({ accessToken: token });
 }
 
@@ -65,8 +71,8 @@ export async function removeTitleMapping(title: string): Promise<void> {
 }
 
 export async function logoutSelective(): Promise<void> {
-  await setToken(null);
   await setStorage({
+    accessToken: null,
     userId: null,
     username: null,
     mangaProgressCache: {},

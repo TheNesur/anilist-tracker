@@ -94,6 +94,7 @@ export interface PendingUpdate {
 }
 
 export interface StorageData {
+  accessToken: string | null;
   userId: number | null;
   username: string | null;
   titleMappings: Record<string, number>;
@@ -108,6 +109,7 @@ export interface StorageData {
 }
 
 export const DEFAULT_STORAGE: StorageData = {
+  accessToken: null,
   userId: null,
   username: null,
   titleMappings: {},
