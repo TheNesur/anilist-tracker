@@ -1,629 +1,108 @@
-import { searchManga, searchAnime, getProgress, updateProgress, getViewer, getMediaById, getProgressCollection, saveProgressBatch } from "../utils/anilist";
-import { getStorage, setStorage, getToken, getTitleMapping, saveTitleMapping } from "../utils/storage";
-import { findExactMatch } from "../utils/matching";
-import { isTokenExpiredError, isAniListUnreachableError, type MediaDetection, type AniListMedia, type PendingUpdate } from "../types";
+import { searchManga, searchAnime, getProgress } from "../utils/anilist";
+import { getStorage, getToken, setSession } from "../utils/storage";
+import { isTokenExpiredError, type MediaDetection, type AliasSubmitPayload } from "../types";
 import { normalizeSearchTitle } from "../parsers/utils";
-
-
-const CLIENT_ID = import.meta.env.VITE_ANILIST_CLIENT_ID;
-const REDIRECT_URL = import.meta.env.VITE_ANILIST_REDIRECT_URI;
-const TOKEN_ENDPOINT = import.meta.env.VITE_TOKEN_ENDPOINT || "https://auth.mraitchkovitch.fr/callback";
-
-const ALIAS_LOOKUP_ENDPOINT = TOKEN_ENDPOINT.replace(/\/callback\/?$/, "/alias/lookup");
-const ALIAS_SUBMIT_ENDPOINT = TOKEN_ENDPOINT.replace(/\/callback\/?$/, "/alias/submit");
-
-const STATE_STORAGE_KEY = "oauthState";
-const BADGE_CLEAR_ALARM = "anilist-tracker:clear-badge";
-const BADGE_CLEAR_DELAY_MIN = 0.05;
-const VIEWER_RETRY_DELAYS_MS = [500, 1000, 2000];
-const PROGRESS_CACHE_TTL_MS = 15 * 60 * 1000;
-const OAUTH_TIMEOUT_MS = 3 * 60 * 1000;
-const PENDING_RETRY_ALARM = "anilist-tracker:retry-pending";
-const PENDING_RETRY_INTERVAL_MIN = 5;
-const BATCH_CHUNK_SIZE = 25;
+import { handleDetection, handleGetProgressCache } from "./detection";
+import { handleUpdate, flushPendingUpdates, isPendingRetryAlarm } from "./progress";
+import { startOAuth, handleTokenExpired, ensureViewerLoaded } from "./oauth";
+import { submitAlias } from "./alias";
+import { isBadgeClearAlarm, updatePendingBadge } from "./badge";
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "update") {
-    chrome.tabs.create({ url: chrome.runtime.getURL("update.html") });
+    chrome.action.setBadgeText({ text: "★" });
+    chrome.action.setBadgeBackgroundColor({ color: "#3db4f2" });
   }
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === BADGE_CLEAR_ALARM) {
+  if (isBadgeClearAlarm(alarm.name)) {
     (async () => {
       const storage = await getStorage();
       updatePendingBadge(storage.pendingUpdates.length);
     })();
   }
 
-  if (alarm.name === PENDING_RETRY_ALARM) {
+  if (isPendingRetryAlarm(alarm.name)) {
     flushPendingUpdates();
   }
 });
 
-function scheduleBadgeClear() {
-  chrome.alarms.create(BADGE_CLEAR_ALARM, { delayInMinutes: BADGE_CLEAR_DELAY_MIN });
-}
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (sender.id !== chrome.runtime.id) return;
 
-function sleep(ms: number) {
-  return new Promise<void>((r) => setTimeout(r, ms));
-}
+  const { type, payload } = message as { type: string; payload?: unknown };
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.type === "MEDIA_DETECTED") {
-    handleDetection(message.payload as MediaDetection);
-  }
+  switch (type) {
+    case "MEDIA_DETECTED":
+      handleDetection(payload as MediaDetection);
+      return;
 
-  if (message.type === "UPDATE_PROGRESS") {
-    const { mediaId, progress, mediaType } = message.payload as {
-      mediaId: number;
-      progress: number;
-      mediaType: MediaDetection["mediaType"];
-    };
-    handleUpdate(mediaId, progress, mediaType).then(sendResponse);
-    return true;
-  }
+    case "UPDATE_PROGRESS": {
+      const p = payload as { mediaId: number; progress: number; mediaType: MediaDetection["mediaType"] };
+      handleUpdate(p.mediaId, p.progress, p.mediaType).then(sendResponse);
+      return true;
+    }
 
-  if(message.type === "LOCAL_UPDATE_PROGRESS") {
-    (async () => {
-      const { progress } = message.payload as { progress: number };
-      const { lastDetection } = await chrome.storage.session.get('lastDetection');
+    case "LOCAL_UPDATE_PROGRESS": {
+      const p = payload as { progress: number } | undefined;
+      if (!p || typeof p.progress !== "number" || p.progress < 0 || !Number.isFinite(p.progress)) return;
+      (async () => {
+        const session = await chrome.storage.session.get("lastDetection");
+        if (!session.lastDetection) return;
+        await chrome.storage.session.set({
+          lastDetection: { ...session.lastDetection as MediaDetection, progress: p.progress },
+        });
+      })();
+      return;
+    }
 
-      lastDetection.progress = progress;
-      
-      chrome.storage.session.set({ lastDetection });
-    })();
-  }
+    case "GET_AUTH_TOKEN":
+      startOAuth().then(sendResponse);
+      return true;
 
-  if (message.type === "GET_AUTH_TOKEN") {
-    startOAuth().then(sendResponse);
-    return true;
-  }
-
-  if (message.type === "GET_PROGRESS") {
-    const { mediaId } = message.payload as { mediaId: number };
-    (async () => {
-      const token = await getToken();
-      const storage = await getStorage();
-      if (token && storage.userId) {
-        try {
-          const entry = await getProgress(mediaId, storage.userId, token);
-          sendResponse({ progress: entry?.progress ?? 0 });
-        } catch (err) {
-          if (isTokenExpiredError(err)) {
-            await handleTokenExpired();
+    case "GET_PROGRESS": {
+      const p = payload as { mediaId: number };
+      (async () => {
+        const token = await getToken();
+        const storage = await getStorage();
+        if (token && storage.userId) {
+          try {
+            const entry = await getProgress(p.mediaId, storage.userId, token);
+            sendResponse({ progress: entry?.progress ?? 0 });
+          } catch (err) {
+            if (isTokenExpiredError(err)) {
+              await handleTokenExpired();
+            }
+            sendResponse({ progress: null });
           }
+        } else {
           sendResponse({ progress: null });
         }
-      } else {
-        sendResponse({ progress: null });
-      }
-    })();
-    return true;
-  }
+      })();
+      return true;
+    }
 
-  if (message.type === "SEARCH_ANILIST") {
-    const { title, mediaType } = message.payload as { title: string; mediaType: MediaDetection["mediaType"] };
-    const searchTitle = normalizeSearchTitle(title);
-    const search = mediaType === "ANIME" ? searchAnime(searchTitle) : searchManga(searchTitle);
-    search.then((results: AniListMedia[]) => sendResponse({ results }));
-    return true;
-  }
+    case "SEARCH_ANILIST": {
+      const p = payload as { title: string; mediaType: MediaDetection["mediaType"] };
+      const searchTitle = normalizeSearchTitle(p.title);
+      const search = p.mediaType === "ANIME" ? searchAnime(searchTitle) : searchManga(searchTitle);
+      search.then((results) => sendResponse({ results }));
+      return true;
+    }
 
-  if (message.type === "GET_PROGRESS_CACHE") {
-    const { mediaType } = message.payload as { mediaType: MediaDetection["mediaType"] };
-    (async () => {
-      if (mediaType !== "MANGA") {
-        sendResponse({ cache: {} });
-        return;
-      }
+    case "GET_PROGRESS_CACHE": {
+      const p = payload as { mediaType: MediaDetection["mediaType"] };
+      handleGetProgressCache(p.mediaType).then(sendResponse);
+      return true;
+    }
 
-      const token = await getToken();
-      const storage = await getStorage();
-      if (!token || !storage.userId) {
-        sendResponse({ cache: {} });
-        return;
-      }
+    case "FLUSH_PENDING_UPDATES":
+      flushPendingUpdates().then(() => sendResponse({ done: true }));
+      return true;
 
-      const isStale =
-        !storage.mangaProgressCacheUpdatedAt ||
-        Date.now() - storage.mangaProgressCacheUpdatedAt > PROGRESS_CACHE_TTL_MS;
-
-      if (!isStale) {
-        sendResponse({ cache: storage.mangaProgressCache });
-        return;
-      }
-
-      try {
-        const cache = await getProgressCollection(storage.userId, "MANGA", token);
-        await setStorage({ mangaProgressCache: cache, mangaProgressCacheUpdatedAt: Date.now() });
-        sendResponse({ cache });
-      } catch (err) {
-        if (isTokenExpiredError(err)) {
-          await handleTokenExpired();
-        }
-        sendResponse({ cache: storage.mangaProgressCache ?? {} });
-      }
-    })();
-    return true;
-  }
-
-  if (message.type === "FLUSH_PENDING_UPDATES") {
-    flushPendingUpdates().then(() => sendResponse({ done: true }));
-    return true;
-  }
-
-  if (message.type === "ALIAS_SUBMIT") {
-    submitAlias(message.payload as {
-      alias: string;
-      mediaType: MediaDetection["mediaType"];
-      mediaId: number;
-      mediaTitle: string;
-      sourceHostname: string | null;
-    });
+    case "ALIAS_SUBMIT":
+      submitAlias(payload as AliasSubmitPayload);
+      return;
   }
 });
-
-function generateState(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-async function getViewerWithRetry(token: string) {
-  let lastErr: unknown = null;
-  for (let attempt = 0; attempt <= VIEWER_RETRY_DELAYS_MS.length; attempt++) {
-    try {
-      return await getViewer(token);
-    } catch (err) {
-      lastErr = err;
-      if (isTokenExpiredError(err)) throw err;
-      if (attempt < VIEWER_RETRY_DELAYS_MS.length) {
-        await sleep(VIEWER_RETRY_DELAYS_MS[attempt]);
-      }
-    }
-  }
-  throw lastErr;
-}
-
-async function startOAuth(): Promise<
-  { success: true; username: string | null; partial?: boolean } | { success: false; error?: string; cancelled?: boolean; timedOut?: boolean }
-> {
-  const state = generateState();
-  await chrome.storage.session.set({ [STATE_STORAGE_KEY]: state });
-
-  const authUrl =
-    `https://anilist.co/api/v2/oauth/authorize` +
-    `?client_id=${encodeURIComponent(CLIENT_ID)}` +
-    `&redirect_uri=${encodeURIComponent(REDIRECT_URL)}` +
-    `&response_type=code` +
-    `&state=${encodeURIComponent(state)}`;
-
-  return new Promise((resolve) => {
-    let settled = false;
-    let handled = false;
-    let tabId: number | null = null;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    const cleanup = () => {
-      chrome.tabs.onUpdated.removeListener(onUpdated);
-      chrome.tabs.onRemoved.removeListener(onRemoved);
-      if (timeoutId !== null) clearTimeout(timeoutId);
-    };
-
-    const finish = async (result: Awaited<ReturnType<typeof startOAuth>>) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      await chrome.storage.session.remove(STATE_STORAGE_KEY);
-      resolve(result);
-    };
-
-    timeoutId = setTimeout(() => {
-      if (tabId !== null) {
-        chrome.tabs.remove(tabId).catch(() => {});
-      }
-      finish({ success: false, error: "Timed out waiting for AniList", timedOut: true });
-    }, OAUTH_TIMEOUT_MS);
-
-    const onUpdated = (updatedTabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
-      if (updatedTabId !== tabId) return;
-      const url = changeInfo.url ?? tab.url;
-      if (!url || !url.startsWith(REDIRECT_URL)) return;
-      if (handled) return;
-      handled = true;
-
-      (async () => {
-        const parsed = new URL(url);
-        const code = parsed.searchParams.get("code");
-        const returnedState = parsed.searchParams.get("state");
-        const oauthError = parsed.searchParams.get("error");
-
-        if (oauthError) {
-          await finish({ success: false, cancelled: oauthError === "access_denied" });
-          return;
-        }
-
-        const stored = await chrome.storage.session.get(STATE_STORAGE_KEY);
-        const expectedState = stored[STATE_STORAGE_KEY] as string | undefined;
-
-        if (!expectedState || !returnedState || returnedState !== expectedState) {
-          console.error("[AniList Tracker] OAuth state mismatch — possible CSRF");
-          await finish({ success: false, error: "State mismatch" });
-          return;
-        }
-
-        if (!code) {
-          await finish({ success: false, error: "No code received" });
-          return;
-        }
-
-        try {
-          const tokenRes = await fetch(TOKEN_ENDPOINT, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code, redirect_uri: REDIRECT_URL }),
-          });
-
-          const tokenData = await tokenRes.json().catch(() => null);
-
-          if (!tokenData || tokenData.ok === false || !tokenData.access_token) {
-            console.error("[AniList Tracker] Token exchange failed");
-            await finish({ success: false, error: "Token exchange failed" });
-            return;
-          }
-
-          const accessToken = tokenData.access_token as string;
-          await setStorage({ accessToken });
-
-          try {
-            const viewer = await getViewerWithRetry(accessToken);
-            await setStorage({ userId: viewer.id, username: viewer.name });
-            await finish({ success: true, username: viewer.name });
-          } catch (err) {
-            console.error("[AniList Tracker] getViewer failed after retries:", err);
-            await chrome.storage.session.set({ viewerFetchFailed: true });
-            await finish({ success: true, username: null, partial: true });
-          }
-        } catch (err) {
-          console.error("[AniList Tracker] OAuth error:", err);
-          await finish({ success: false, error: String(err) });
-        }
-      })();
-    };
-
-    const onRemoved = (removedTabId: number) => {
-      if (removedTabId !== tabId) return;
-      finish({ success: false, cancelled: true });
-    };
-
-    chrome.tabs.create({ url: authUrl }, (tab) => {
-      if (!tab?.id) {
-        finish({ success: false, error: "Could not open tab" });
-        return;
-      }
-      tabId = tab.id;
-      chrome.tabs.onUpdated.addListener(onUpdated);
-      chrome.tabs.onRemoved.addListener(onRemoved);
-    });
-  });
-}
-
-async function handleTokenExpired() {
-  await setStorage({ accessToken: null });
-  chrome.action.setBadgeText({ text: "!" });
-  chrome.action.setBadgeBackgroundColor({ color: "#e74c3c" });
-  await chrome.storage.session.set({ tokenExpired: true });
-}
-
-async function ensureViewerLoaded(token: string): Promise<number | null> {
-  const storage = await getStorage();
-  if (storage.userId) return storage.userId;
-
-  try {
-    const viewer = await getViewerWithRetry(token);
-    await setStorage({ userId: viewer.id, username: viewer.name });
-    await chrome.storage.session.remove("viewerFetchFailed");
-    return viewer.id;
-  } catch {
-    return null;
-  }
-}
-
-
-async function lookupAlias(alias: string, mediaType: MediaDetection["mediaType"]): Promise<{ mediaId: number; title: string } | null> {
-  try {
-    const response = await fetch(ALIAS_LOOKUP_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ alias, mediaType }),
-    });
-    const data = await response.json().catch(() => null);
-    if (data?.found) return { mediaId: data.mediaId, title: data.title };
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-async function submitAlias(params: {
-  alias: string;
-  mediaType: MediaDetection["mediaType"];
-  mediaId: number;
-  mediaTitle: string;
-  sourceHostname: string | null;
-}) {
-  const settings = await getStorage();
-  if (!settings.contributeAliases) return;
-
-  const token = await getToken();
-  if (!token) return;
-
-  try {
-    await fetch(ALIAS_SUBMIT_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(params),
-    });
-  } catch {}
-}
-
-
-
-async function handleDetection(detection: MediaDetection) {
-  chrome.storage.session.set({
-    lastDetectionUrl: detection.url,
-    lastDetection: null,
-    detectionSearching: true,
-    detectionSearchingPreview: {
-      title: detection.title,
-      progress: detection.progress,
-      mediaType: detection.mediaType,
-    },
-  });
-
-  const token = await getToken();
-  if (!token) {
-    chrome.action.setBadgeText({ text: "!" });
-    chrome.action.setBadgeBackgroundColor({ color: "#e74c3c" });
-    await chrome.storage.session.set({ detectionSearching: false });
-    return;
-  }
-
-  await chrome.storage.session.remove("apiError");
-
-  try {
-    let mediaId = await getTitleMapping(detection.title);
-
-    if (!mediaId) {
-      const searchTitle = normalizeSearchTitle(detection.title);
-      const results = detection.mediaType === "ANIME"
-        ? await searchAnime(searchTitle)
-        : await searchManga(searchTitle);
-
-      if (results.length === 0) {
-        const alias = await lookupAlias(detection.title, detection.mediaType);
-        if (alias) {
-          const media = await getMediaById(alias.mediaId).catch(() => null);
-          if (media) {
-            await saveTitleMapping(detection.title, media.id);
-            mediaId = media.id;
-          }
-        }
-
-        if (!mediaId) {
-          notifyUser(detection, []);
-          return;
-        }
-      } else {
-        const settings = await getStorage();
-        if (settings.autoMap) {
-          const exactMatch = findExactMatch(detection.title, results);
-          if (exactMatch) {
-            await saveTitleMapping(detection.title, exactMatch.id);
-            mediaId = exactMatch.id;
-          }
-        }
-
-        if (!mediaId) {
-          notifyUser(detection, results);
-          return;
-        }
-      }
-    }
-
-    const userId = await ensureViewerLoaded(token);
-    let currentProgress: number | null = null;
-    if (userId) {
-      const entry = await getProgress(mediaId, userId, token);
-      currentProgress = entry?.progress ?? null;
-    }
-
-    const storage = await getStorage();
-    if (storage.autoUpdate && (currentProgress === null || detection.progress > currentProgress)) {
-      await handleUpdate(mediaId, detection.progress, detection.mediaType);
-    } else {
-      const media = await getMediaById(mediaId);
-      if (media)
-        notifyUser(detection, null, media, currentProgress);
-      else
-        console.error("[AniList Tracker] Media not found by id", mediaId);
-    }
-  } catch (err) {
-    if (isTokenExpiredError(err)) {
-      await handleTokenExpired();
-    } else {
-      console.error("[AniList Tracker] Detection handling failed:", err);
-      await chrome.storage.session.set({
-        apiError: err instanceof Error ? err.message : String(err),
-        lastDetectionUrl: detection.url,
-      });
-    }
-  } finally {
-    await chrome.storage.session.set({ detectionSearching: false });
-  }
-}
-
-async function handleUpdate(mediaId: number, progress: number, mediaType: MediaDetection["mediaType"] = "MANGA") {
-  const token = await getToken();
-  if (!token) return { success: false, error: "Not authenticated" };
-
-  const userId = await ensureViewerLoaded(token);
-  if (!userId) return { success: false, error: "No user ID" };
-
-  try {
-    const current = await getProgress(mediaId, userId, token);
-
-    if (current && current.progress >= progress) {
-      return { success: true, skipped: true, current: current.progress };
-    }
-
-    const result = await updateProgress(mediaId, progress, token);
-
-    chrome.action.setBadgeText({ text: "✓" });
-    chrome.action.setBadgeBackgroundColor({ color: "#2ecc71" });
-    scheduleBadgeClear();
-
-    void mediaType;
-    return { success: true, progress: result.progress };
-  } catch (err) {
-    if (isTokenExpiredError(err)) {
-      await handleTokenExpired();
-      return { success: false, error: "Token expired" };
-    }
-    if (isAniListUnreachableError(err)) {
-      await queuePendingUpdate(mediaId, progress, mediaType);
-      return { success: true, queued: true };
-    }
-    console.error("[AniList Tracker] Update failed:", err);
-    return { success: false, error: String(err) };
-  }
-}
-
-function updatePendingBadge(count: number) {
-  if (count > 0) {
-    chrome.action.setBadgeText({ text: String(count) });
-    chrome.action.setBadgeBackgroundColor({ color: "#f39c12" });
-  } else {
-    chrome.action.setBadgeText({ text: "" });
-  }
-}
-
-async function ensureRetryAlarmScheduled() {
-  const existing = await chrome.alarms.get(PENDING_RETRY_ALARM);
-  if (!existing) {
-    chrome.alarms.create(PENDING_RETRY_ALARM, { periodInMinutes: PENDING_RETRY_INTERVAL_MIN });
-  }
-}
-
-async function queuePendingUpdate(
-  mediaId: number,
-  progress: number,
-  mediaType: MediaDetection["mediaType"]
-) {
-  const storage = await getStorage();
-  const pending = [...storage.pendingUpdates];
-  const existingIndex = pending.findIndex(
-    (p) => p.mediaId === mediaId && p.mediaType === mediaType
-  );
-
-  if (existingIndex !== -1) {
-    if (pending[existingIndex].progress < progress) {
-      pending[existingIndex] = { mediaId, progress, mediaType, queuedAt: Date.now() };
-    }
-  } else {
-    pending.push({ mediaId, progress, mediaType, queuedAt: Date.now() });
-  }
-
-  await setStorage({ pendingUpdates: pending });
-  updatePendingBadge(pending.length);
-  await ensureRetryAlarmScheduled();
-}
-
-async function flushPendingUpdates() {
-  const storage = await getStorage();
-  if (storage.pendingUpdates.length === 0) {
-    chrome.alarms.clear(PENDING_RETRY_ALARM);
-    return;
-  }
-
-  const token = await getToken();
-  if (!token) return;
-
-  const queue = storage.pendingUpdates;
-  const remaining: PendingUpdate[] = [];
-  let droppedCount = 0;
-
-  for (let i = 0; i < queue.length; i += BATCH_CHUNK_SIZE) {
-    const chunk = queue.slice(i, i + BATCH_CHUNK_SIZE);
-
-    try {
-      const results = await saveProgressBatch(
-        chunk.map((p) => ({ mediaId: p.mediaId, progress: p.progress })),
-        token
-      );
-
-      results.forEach((result, idx) => {
-        if (!result.success) {
-          // Real GraphQL error for this specific entry (not an outage) —
-          // retrying it forever would be pointless, so it's dropped.
-          droppedCount++;
-          console.error("[AniList Tracker] Pending update dropped:", chunk[idx].mediaId, result.error);
-        }
-      });
-    } catch (err) {
-      if (isTokenExpiredError(err)) {
-        await handleTokenExpired();
-        remaining.push(...queue.slice(i));
-        break;
-      }
-      if (isAniListUnreachableError(err)) {
-        // Still down — keep this chunk and everything after it, try again next alarm tick.
-        remaining.push(...queue.slice(i));
-        break;
-      }
-      // Unexpected error — keep the chunk to retry later rather than lose data.
-      remaining.push(...chunk);
-    }
-  }
-
-  await setStorage({ pendingUpdates: remaining });
-  updatePendingBadge(remaining.length);
-
-  if (remaining.length === 0) {
-    chrome.alarms.clear(PENDING_RETRY_ALARM);
-  }
-
-  if (droppedCount > 0) {
-    await chrome.storage.session.set({ pendingUpdateErrorCount: droppedCount });
-  }
-}
-
-function notifyUser(
-  detection: MediaDetection,
-  searchResults: AniListMedia[] | null,
-  confirmedMedia?: AniListMedia,
-  currentProgress?: number | null
-) {
-  if(currentProgress === null) currentProgress = 0;
-
-  chrome.storage.session.set({
-    lastDetection: detection,
-    searchResults,
-    confirmedMedia: confirmedMedia ?? null,
-    currentProgress: currentProgress ?? null,
-    lastDetectionUrl: detection.url,
-    confirmedSiteUrl: confirmedMedia?.id
-      ? `https://anilist.co/${detection.mediaType === "ANIME" ? "anime" : "manga"}/${confirmedMedia.id}`
-      : null,
-  });
-
-  chrome.action.setBadgeText({ text: "?" });
-  chrome.action.setBadgeBackgroundColor({ color: "#3498db" });
-}

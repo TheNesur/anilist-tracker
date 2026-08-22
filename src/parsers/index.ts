@@ -17,9 +17,10 @@ export interface SiteParser {
   detect(): MediaDetection | null;
 }
 
-export function getParser(): SiteParser | null {
-  const host = window.location.hostname.replace("www.", "");
+let cachedParser: SiteParser | null | undefined;
+let cachedHost: string | null = null;
 
+function resolveParser(host: string): SiteParser | null {
   if (host.includes("asuracomic")) return new AsuraParser();
   if (host.includes("flamecomics")) return new FlameParser();
   if (host.includes("reaperscans")) return new ReaperParser();
@@ -27,7 +28,6 @@ export function getParser(): SiteParser | null {
   if (host.includes("webtoons")) return new WebtoonParser();
   if (host.includes("mangadex")) return new MangaDexParser();
   if (host.includes("mangaplus")) return new MangaPlusParser();
-
 
   if (host.includes("crunchyroll")) return new CrunchyrollParser();
   if (host.includes("voir-anime")) return new VoirAnimeParser();
@@ -38,4 +38,16 @@ export function getParser(): SiteParser | null {
   }
 
   return null;
+}
+
+export function getParser(): SiteParser | null {
+  const host = window.location.hostname.replace("www.", "");
+
+  if (cachedHost === host && cachedParser !== undefined) {
+    return cachedParser;
+  }
+
+  cachedHost = host;
+  cachedParser = resolveParser(host);
+  return cachedParser;
 }

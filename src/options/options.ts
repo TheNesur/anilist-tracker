@@ -1,4 +1,5 @@
-import { getStorage, setStorage, getTheme, setTheme, removeTitleMapping } from "../utils/storage";
+import { getStorage, setStorage, getTheme, setTheme, removeTitleMapping, logoutSelective } from "../utils/storage";
+import { escapeHtml } from "../utils/dom";
 import { t } from "../utils/i18n";
 
 async function init() {
@@ -71,8 +72,7 @@ async function init() {
 
   document.getElementById("btn-logout")!.addEventListener("click", async () => {
     if (!confirm(t("logoutConfirm"))) return;
-    await chrome.storage.local.clear();
-    await chrome.storage.session.clear();
+    await logoutSelective();
     window.close();
   });
 
@@ -102,7 +102,6 @@ async function switchTheme(theme: "dark" | "light") {
   await setTheme(theme);
   applyTheme(theme);
   updateThemeButtons(theme);
-  chrome.runtime.sendMessage({ type: "THEME_CHANGED", payload: { theme } }).catch(() => {});
 }
 
 async function renderMappings(filter = "") {
@@ -116,29 +115,49 @@ async function renderMappings(filter = "") {
   );
 
   if (Object.keys(mappings).length === 0) {
-    container.innerHTML = `<p class="empty-hint">${t("noMappings")}</p>`;
+    const hint = document.createElement("p");
+    hint.className = "empty-hint";
+    hint.textContent = t("noMappings");
+    container.appendChild(hint);
     return;
   }
 
   if (entries.length === 0) {
-    container.innerHTML = `<p class="empty-hint">${t("noMappingsSearch")}</p>`;
+    const hint = document.createElement("p");
+    hint.className = "empty-hint";
+    hint.textContent = t("noMappingsSearch");
+    container.appendChild(hint);
     return;
   }
 
   for (const [siteTitle, mediaId] of entries) {
     const row = document.createElement("div");
     row.className = "mapping-row";
-    row.innerHTML = `
-      <div class="mapping-info">
-        <div class="mapping-title">${siteTitle}</div>
-        <div class="mapping-id">AniList ID : ${mediaId}</div>
-      </div>
-      <button class="btn-remove" data-title="${siteTitle}">✕</button>
-    `;
-    row.querySelector(".btn-remove")!.addEventListener("click", async () => {
+
+    const info = document.createElement("div");
+    info.className = "mapping-info";
+
+    const titleDiv = document.createElement("div");
+    titleDiv.className = "mapping-title";
+    titleDiv.textContent = siteTitle;
+
+    const idDiv = document.createElement("div");
+    idDiv.className = "mapping-id";
+    idDiv.textContent = `AniList ID : ${mediaId}`;
+
+    info.appendChild(titleDiv);
+    info.appendChild(idDiv);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "btn-remove";
+    removeBtn.textContent = "✕";
+    removeBtn.addEventListener("click", async () => {
       await removeTitleMapping(siteTitle);
       await renderMappings(filter);
     });
+
+    row.appendChild(info);
+    row.appendChild(removeBtn);
     container.appendChild(row);
   }
 }

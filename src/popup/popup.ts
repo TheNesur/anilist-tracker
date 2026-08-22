@@ -1,58 +1,8 @@
-import { getStorage, setTheme, getTheme } from "../utils/storage";
+import { getStorage, setTheme, getTheme, getToken } from "../utils/storage";
+import { escapeHtml } from "../utils/dom";
+import { getSiteForHostname, getDisplayName, isAnimeSite } from "../sites/registry";
 import type { AniListMedia, MediaDetection, PopupState, SupportedSite, GenericDetectionResult, MediaType } from "../types";
 import { t } from "../utils/i18n";
-
-const SUPPORTED_HOSTNAMES: Record<string, SupportedSite> = {
-  "asuracomic.net": "asura",
-  "www.asuracomic.net": "asura",
-
-  "flamecomics.xyz": "flame",
-  "www.flamecomics.xyz": "flame",
-
-  "reaperscans.com": "reaper",
-  "www.reaperscans.com": "reaper",
-
-  "raijin-scans.fr": "raijin",
-  "www.raijin-scans.fr": "raijin",
-
-  "webtoons.com": "webtoon",
-  "www.webtoons.com": "webtoon",
-
-  "mangadex.org": "mangadex",
-  "www.mangadex.org": "mangadex",
-
-  "mangaplus.shueisha.co.jp": "mangaplus",
-
-  "crunchyroll.com": "crunchyroll",
-  "www.crunchyroll.com": "crunchyroll",
-
-  "voir-anime.to": "voiranime",
-  "www.voir-anime.to": "voiranime",
-
-  "anime-sama.to": "anime-sama",
-  "anime-sama.fr": "anime-sama",
-  "www.anime-sama.fr": "anime-sama"
-};
-
-const SITE_NAMES: Record<SupportedSite, string> = {
-  asura: "Asura Comics",
-  flame: "Flame Comics",
-  reaper: "Reaper Scans",
-  raijin: "Raijin Scans",
-  webtoon: "Webtoon",
-  mangadex: "MangaDex",
-  mangaplus: "MangaPlus",
-  crunchyroll: "Crunchyroll",
-  voiranime: "Voir Anime",
-  "anime-sama": "Anime Sama",
-  generic: "Generic Site"
-};
-
-const ANIME_SITES = new Set<SupportedSite>([
-  "crunchyroll",
-  "voiranime",
-  "anime-sama"
-]);
 
 const loginView = document.getElementById("login-view")!;
 const mainView = document.getElementById("main-view")!;
@@ -66,13 +16,14 @@ let selectedMedia: AniListMedia | null = null;
 
 async function init() {
   const storage = await getStorage();
+  const token = await getToken();
   const theme = await getTheme();
   applyTheme(theme);
 
   document.getElementById("login-description")!.textContent = t("loginDescription");
   document.getElementById("btn-login")!.textContent = t("btnLogin");
 
-  if (!storage.accessToken) {
+  if (!token) {
     showView("login");
     return;
   }
@@ -179,11 +130,6 @@ async function tryGenericDetection(tabId: number): Promise<GenericDetectionResul
           };
         }
 
-        function extractFromDocTitle(): string | null {
-          const title = document.title.trim();
-          return title.length > 0 ? title : null;
-        }
-
         function stripSiteSuffix(title: string): string {
           const [first] = title.split(/\s+[-|·–—]\s+/);
           return first?.trim() || title;
@@ -203,7 +149,8 @@ async function tryGenericDetection(tabId: number): Promise<GenericDetectionResul
           const ogTitle = document.querySelector<HTMLMetaElement>("meta[property='og:title']")?.content?.trim();
           const twitterTitle = document.querySelector<HTMLMetaElement>("meta[name='twitter:title']")?.content?.trim();
           const h1 = document.querySelector("h1")?.textContent?.trim();
-          const candidate = ogTitle || twitterTitle || h1 || extractFromDocTitle();
+          const docTitle = document.title.trim() || null;
+          const candidate = ogTitle || twitterTitle || h1 || docTitle;
           return candidate ? cleanTitle(stripScanlationSuffix(stripSiteSuffix(candidate))) : null;
         }
 
@@ -268,8 +215,16 @@ async function resolveState() {
     return;
   }
 
-  const hostname = new URL(url).hostname;
-  const site = SUPPORTED_HOSTNAMES[hostname];
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    renderState({ type: "unsupported_site", hostname: "unknown" });
+    return;
+  }
+
+  const siteInfo = getSiteForHostname(hostname);
+  const site = siteInfo?.id ?? null;
 
   const session = await chrome.storage.session.get([
     "lastDetection",
@@ -299,7 +254,7 @@ async function resolveState() {
   }
 
   const lastUrl = session.lastDetectionUrl as string | null;
-  const isCurrentPage = lastUrl && new URL(lastUrl).hostname === hostname && lastUrl === url;
+  const isCurrentPage = lastUrl && lastUrl === url;
 
   if (session.apiError && isCurrentPage) {
     renderState({ type: "error", message: session.apiError as string });
@@ -373,7 +328,7 @@ function renderState(state: PopupState) {
       stateContainer.innerHTML = `
         <div class="state-box">
           <div class="spinner"></div>
-          <p class="state-text">${t("stateLoading")}</p>
+          <p class="state-text">${escapeHtml(t("stateLoading"))}</p>
         </div>`;
       break;
 
@@ -385,8 +340,8 @@ function renderState(state: PopupState) {
       stateContainer.innerHTML = `
         <div class="state-box">
           <div class="spinner"></div>
-          ${preview ? `<p class="state-title">${preview.title}</p><p class="state-text">${label}</p>` : ""}
-          <p class="state-hint" style="margin-top:8px">${t("stateSearching")}</p>
+          ${preview ? `<p class="state-title">${escapeHtml(preview.title)}</p><p class="state-text">${escapeHtml(label)}</p>` : ""}
+          <p class="state-hint" style="margin-top:8px">${escapeHtml(t("stateSearching"))}</p>
         </div>`;
       break;
     }
@@ -395,9 +350,9 @@ function renderState(state: PopupState) {
       stateContainer.innerHTML = `
         <div class="state-box">
           <div class="state-icon">🌐</div>
-          <p class="state-title">${t("stateUnsupportedSite")}</p>
-          <p class="state-text"><strong>${state.hostname}</strong> ${t("stateUnsupportedSiteText")}</p>
-          <button class="btn btn-ghost" id="btn-retry-generic" style="margin-top:10px">${t("retryDetection")}</button>
+          <p class="state-title">${escapeHtml(t("stateUnsupportedSite"))}</p>
+          <p class="state-text"><strong>${escapeHtml(state.hostname)}</strong> ${escapeHtml(t("stateUnsupportedSiteText"))}</p>
+          <button class="btn btn-ghost" id="btn-retry-generic" style="margin-top:10px">${escapeHtml(t("retryDetection"))}</button>
         </div>`;
       document.getElementById("btn-retry-generic")!.addEventListener("click", resolveState);
       break;
@@ -406,12 +361,12 @@ function renderState(state: PopupState) {
       stateContainer.innerHTML = `
         <div class="state-box">
           <div class="state-icon">🤔</div>
-          <p class="state-title">${state.candidate.title}</p>
-          <p class="state-text">${t("chapterLabel", String(state.candidate.progress))}</p>
-          <p class="state-hint" style="margin-bottom:10px">${t("askMediaType")}</p>
+          <p class="state-title">${escapeHtml(state.candidate.title)}</p>
+          <p class="state-text">${escapeHtml(t("chapterLabel", String(state.candidate.progress)))}</p>
+          <p class="state-hint" style="margin-bottom:10px">${escapeHtml(t("askMediaType"))}</p>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-primary" id="pick-manga">📖 ${t("typeManga")}</button>
-            <button class="btn btn-primary" id="pick-anime">📺 ${t("typeAnime")}</button>
+            <button class="btn btn-primary" id="pick-manga">📖 ${escapeHtml(t("typeManga"))}</button>
+            <button class="btn btn-primary" id="pick-anime">📺 ${escapeHtml(t("typeAnime"))}</button>
           </div>
         </div>`;
       document.getElementById("pick-manga")!.addEventListener("click", () =>
@@ -423,13 +378,13 @@ function renderState(state: PopupState) {
       break;
 
     case "unsupported_page": {
-      const isAnimeSite = ANIME_SITES.has(state.site);
+      const anime = isAnimeSite(state.site);
       stateContainer.innerHTML = `
         <div class="state-box">
-          <div class="state-icon">${isAnimeSite ? "📺" : "📖"}</div>
-          <p class="state-title">${isAnimeSite ? t("stateNoEpisode") : t("stateNoChapter")}</p>
-          <p class="state-text">${t("youAreOn")} <strong>${SITE_NAMES[state.site]}</strong>.</p>
-          <p class="state-hint">${isAnimeSite ? t("stateNoEpisodeText") : t("stateNoChapterText")}</p>
+          <div class="state-icon">${anime ? "📺" : "📖"}</div>
+          <p class="state-title">${escapeHtml(anime ? t("stateNoEpisode") : t("stateNoChapter"))}</p>
+          <p class="state-text">${escapeHtml(t("youAreOn"))} <strong>${escapeHtml(getDisplayName(state.site))}</strong>.</p>
+          <p class="state-hint">${escapeHtml(anime ? t("stateNoEpisodeText") : t("stateNoChapterText"))}</p>
         </div>`;
       break;
     }
@@ -438,9 +393,9 @@ function renderState(state: PopupState) {
       stateContainer.innerHTML = `
         <div class="state-box">
           <div class="state-icon">⚠️</div>
-          <p class="state-title">${t("stateDetectionFailed")}</p>
-          <p class="state-text">${t("stateDetectionFailedText")}</p>
-          <p class="state-hint">${t("stateDetectionFailedHint")} <a href="https://github.com/TheNesur/anilist-tracker/issues" target="_blank">${t("reportBug")}</a></p>
+          <p class="state-title">${escapeHtml(t("stateDetectionFailed"))}</p>
+          <p class="state-text">${escapeHtml(t("stateDetectionFailedText"))}</p>
+          <p class="state-hint">${escapeHtml(t("stateDetectionFailedHint"))} <a href="https://github.com/TheNesur/anilist-tracker/issues" target="_blank">${escapeHtml(t("reportBug"))}</a></p>
         </div>`;
       break;
 
@@ -452,9 +407,9 @@ function renderState(state: PopupState) {
       stateContainer.innerHTML = `
         <div class="state-box">
           <div class="state-icon">❌</div>
-          <p class="state-title">${t("errorTitle")}</p>
-          <p class="state-text">${t("apiError")}</p>
-          <p class="state-hint"><a href="https://discord.gg/TF428cr" target="_blank">${t("apiErrorHint")}</a></p>
+          <p class="state-title">${escapeHtml(t("errorTitle"))}</p>
+          <p class="state-text">${escapeHtml(t("apiError"))}</p>
+          <p class="state-hint"><a href="https://discord.gg/TF428cr" target="_blank">${escapeHtml(t("apiErrorHint"))}</a></p>
         </div>`;
       break;
   }
@@ -468,22 +423,28 @@ function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
     ? t("episodeLabel", String(detection.progress))
     : t("chapterLabel", String(detection.progress));
 
+  const displayTitle = escapeHtml(media?.title.english ?? media?.title.romaji ?? detection.title);
+
   const progressText = progress !== null
-    ? `${progressLabel} <span class="progress-hint" id="progress-hint">(${progress})</span>`
-    : progressLabel;
+    ? `${escapeHtml(progressLabel)} <span class="progress-hint" id="progress-hint">(${progress})</span>`
+    : escapeHtml(progressLabel);
+
+  const sourceHostname = (() => {
+    try { return new URL(detection.url).hostname; } catch { return detection.source; }
+  })();
 
   stateContainer.innerHTML = `
     <div class="detection-card">
-      <div class="media-title" id="media-title">${media?.title.english ?? media?.title.romaji ?? detection.title}</div>
+      <div class="media-title" id="media-title">${displayTitle}</div>
       <div class="media-progress">${progressText}</div>
-      <div class="media-source">${t("sourceLabel")} : ${detection.source} · ${new URL(detection.url).hostname}</div>
+      <div class="media-source">${escapeHtml(t("sourceLabel"))} : ${escapeHtml(detection.source)} · ${escapeHtml(sourceHostname)}</div>
     </div>
     <div id="results-section" style="display:none">
-      <p class="results-label" id="results-label">${isAnime ? t("selectAnime") : t("selectManga")}</p>
+      <p class="results-label" id="results-label">${escapeHtml(isAnime ? t("selectAnime") : t("selectManga"))}</p>
       <ul class="results-list" id="results-list"></ul>
     </div>
     <div id="confirm-section" style="display:none">
-      <button class="btn btn-success" id="btn-update" style="width:100%">${t("updateBtn")}</button>
+      <button class="btn btn-success" id="btn-update" style="width:100%">${escapeHtml(t("updateBtn"))}</button>
     </div>`;
 
   if (media) {
@@ -511,33 +472,35 @@ function showManualSearch(detection: MediaDetection) {
   label.textContent = t("noResultsFound");
   section.style.display = "block";
 
-  list.innerHTML = `
-    <li style="padding:4px 0 10px;display:block">
-      <p class="state-hint" style="margin-bottom:8px">${t("noResultsHint")}</p>
-      <div style="display:flex;gap:6px">
-        <input
-          id="manual-search-input"
-          type="text"
-          value="${detection.title}"
-          style="
-            flex:1;
-            background:var(--bg-tertiary);
-            border:1px solid var(--border);
-            border-radius:6px;
-            padding:7px 10px;
-            font-size:13px;
-            color:var(--text-primary);
-            outline:none;
-          "
-        />
-        <button id="btn-manual-search" class="btn btn-primary" style="width:auto;padding:7px 12px;flex-shrink:0">
-          🔍
-        </button>
-      </div>
-    </li>`;
+  const li = document.createElement("li");
+  li.style.cssText = "padding:4px 0 10px;display:block";
 
-  const input = document.getElementById("manual-search-input") as HTMLInputElement;
-  const btn = document.getElementById("btn-manual-search") as HTMLButtonElement;
+  const hint = document.createElement("p");
+  hint.className = "state-hint";
+  hint.style.marginBottom = "8px";
+  hint.textContent = t("noResultsHint");
+
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:6px";
+
+  const input = document.createElement("input");
+  input.id = "manual-search-input";
+  input.type = "text";
+  input.value = detection.title;
+  input.style.cssText = "flex:1;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text-primary);outline:none";
+
+  const btn = document.createElement("button");
+  btn.id = "btn-manual-search";
+  btn.className = "btn btn-primary";
+  btn.style.cssText = "width:auto;padding:7px 12px;flex-shrink:0";
+  btn.textContent = "🔍";
+
+  row.appendChild(input);
+  row.appendChild(btn);
+  li.appendChild(hint);
+  li.appendChild(row);
+  list.innerHTML = "";
+  list.appendChild(li);
 
   const doSearch = async () => {
     const query = input.value.trim();
@@ -561,10 +524,14 @@ function showManualSearch(detection: MediaDetection) {
       document.getElementById("results-label")!.textContent =
         detection.mediaType === "ANIME" ? t("selectAnime") : t("selectManga");
     } else {
-      list.innerHTML = `
-        <li style="padding:8px 0;display:block">
-          <p class="state-hint">${t("noResultsRetry")}</p>
-        </li>`;
+      list.innerHTML = "";
+      const noResult = document.createElement("li");
+      noResult.style.cssText = "padding:8px 0;display:block";
+      const noResultHint = document.createElement("p");
+      noResultHint.className = "state-hint";
+      noResultHint.textContent = t("noResultsRetry");
+      noResult.appendChild(noResultHint);
+      list.appendChild(noResult);
       showManualSearch(detection);
     }
   };
@@ -583,12 +550,29 @@ function showResults(results: AniListMedia[], detection?: MediaDetection) {
 
   for (const media of results) {
     const li = document.createElement("li");
-    li.innerHTML = `
-      <img src="${media.coverImage.medium}" alt="" />
-      <div class="info">
-        <div class="title">${media.title.english ?? media.title.romaji}</div>
-        <div class="subtitle">${media.title.romaji}</div>
-      </div>`;
+
+    const img = document.createElement("img");
+    img.alt = "";
+    try {
+      const imgUrl = new URL(media.coverImage.medium);
+      if (imgUrl.protocol === "https:") img.src = imgUrl.href;
+    } catch { /* skip invalid URLs */ }
+
+    const info = document.createElement("div");
+    info.className = "info";
+
+    const titleDiv = document.createElement("div");
+    titleDiv.className = "title";
+    titleDiv.textContent = media.title.english ?? media.title.romaji;
+
+    const subtitleDiv = document.createElement("div");
+    subtitleDiv.className = "subtitle";
+    subtitleDiv.textContent = media.title.romaji;
+
+    info.appendChild(titleDiv);
+    info.appendChild(subtitleDiv);
+    li.appendChild(img);
+    li.appendChild(info);
     li.addEventListener("click", () => selectMedia(media));
     list.appendChild(li);
   }
@@ -596,15 +580,16 @@ function showResults(results: AniListMedia[], detection?: MediaDetection) {
   if (detection) {
     const li = document.createElement("li");
     li.style.cssText = "display:block;padding:6px 0 2px";
-    li.innerHTML = `
-      <button id="btn-retry-search" class="btn btn-ghost" style="width:100%;font-size:12px;padding:6px">
-        ${t("searchOtherTitle")}
-      </button>`;
-    li.querySelector("#btn-retry-search")!.addEventListener("click", () => {
+    const retryBtn = document.createElement("button");
+    retryBtn.className = "btn btn-ghost";
+    retryBtn.style.cssText = "width:100%;font-size:12px;padding:6px";
+    retryBtn.textContent = t("searchOtherTitle");
+    retryBtn.addEventListener("click", () => {
       list.innerHTML = "";
       document.getElementById("results-label")!.textContent = t("noResultsFound");
       showManualSearch(detection);
     });
+    li.appendChild(retryBtn);
     list.appendChild(li);
   }
 }
@@ -643,7 +628,11 @@ function showConfirm(detection: MediaDetection, progress: number | null) {
 
     const session = await chrome.storage.session.get(["searchResults"]);
     if (!session.searchResults || (session.searchResults as AniListMedia[]).length === 0) {
-      resultsList.innerHTML = `<li style="padding:8px;color:var(--text-muted)">${t("stateLoading")}</li>`;
+      resultsList.innerHTML = "";
+      const loadingLi = document.createElement("li");
+      loadingLi.style.cssText = "padding:8px;color:var(--text-muted)";
+      loadingLi.textContent = t("stateLoading");
+      resultsList.appendChild(loadingLi);
       const response = await chrome.runtime.sendMessage({
         type: "SEARCH_ANILIST",
         payload: { title: detection.title, mediaType: detection.mediaType },
@@ -660,7 +649,7 @@ function showConfirm(detection: MediaDetection, progress: number | null) {
   });
 
   section.appendChild(changeBtn);
-  btn.addEventListener("click", handleUpdate);
+  btn.addEventListener("click", handleUpdateClick);
 }
 
 async function selectMedia(media: AniListMedia) {
@@ -678,7 +667,7 @@ async function selectMedia(media: AniListMedia) {
         mediaId: media.id,
         mediaTitle: media.title.english ?? media.title.romaji,
         sourceHostname: (() => {
-          try { return new URL(currentDetection.url).hostname; } catch { return null; }
+          try { return new URL(currentDetection!.url).hostname; } catch { return null; }
         })(),
       },
     }).catch(() => {});
@@ -692,10 +681,10 @@ async function selectMedia(media: AniListMedia) {
   const progress = response?.progress ?? null;
   if (progress !== null) {
     await chrome.storage.session.set({ currentProgress: progress, confirmedMedia: media });
-    document.getElementById("media-title")!.innerText = media.title.english ?? media.title.romaji;
+    const titleEl = document.getElementById("media-title");
+    if (titleEl) titleEl.textContent = media.title.english ?? media.title.romaji;
     const progressHint = document.getElementById("progress-hint");
-    if(progressHint)
-      progressHint.innerText = `(${progress})`;
+    if (progressHint) progressHint.textContent = `(${progress})`;
   }
 
   if (currentDetection) showConfirm(currentDetection, progress);
@@ -703,7 +692,7 @@ async function selectMedia(media: AniListMedia) {
   document.getElementById("confirm-section")!.style.display = "block";
 }
 
-async function handleUpdate() {
+async function handleUpdateClick() {
   if (!selectedMedia || !currentDetection) return;
 
   const btn = document.getElementById("btn-update") as HTMLButtonElement;

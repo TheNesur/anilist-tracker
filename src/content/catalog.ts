@@ -1,5 +1,5 @@
 import { getCatalogParser } from "../parsers/catalog";
-import { getStorage, getTitleMapping } from "../utils/storage";
+import { getStorage, getTitleMapping, getToken } from "../utils/storage";
 import { t } from "../utils/i18n";
 import type { CatalogEntry } from "../types";
 
@@ -76,7 +76,8 @@ async function runCatalogOverlay() {
   if (!parser || !parser.isCatalogPage()) return;
 
   const storage = await getStorage();
-  if (!storage.showCatalogStatus || !storage.accessToken) return;
+  const token = await getToken();
+  if (!storage.showCatalogStatus || !token) return;
 
   const entries = parser.detectEntries();
   if (entries.length === 0) return;

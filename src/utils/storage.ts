@@ -1,32 +1,42 @@
-import { DEFAULT_STORAGE, type StorageData, type Theme } from "../types";
+import { DEFAULT_STORAGE, DEFAULT_SESSION, type StorageData, type SessionData, type Theme } from "../types";
 
 export async function getStorage(): Promise<StorageData> {
   const data = await chrome.storage.local.get(DEFAULT_STORAGE);
   return data as StorageData;
 }
 
-export async function setStorage(
-  partial: Partial<StorageData>
-): Promise<void> {
+export async function setStorage(partial: Partial<StorageData>): Promise<void> {
   await chrome.storage.local.set(partial);
 }
 
+export async function getSession(): Promise<SessionData> {
+  const data = await chrome.storage.session.get(DEFAULT_SESSION);
+  return data as SessionData;
+}
+
+export async function setSession(partial: Partial<SessionData>): Promise<void> {
+  await chrome.storage.session.set(partial);
+}
+
+export async function clearSession(): Promise<void> {
+  await chrome.storage.session.clear();
+}
+
 export async function getToken(): Promise<string | null> {
-  const { accessToken } = await getStorage();
+  const { accessToken } = await chrome.storage.session.get({ accessToken: null });
   return accessToken;
 }
 
-export async function getTitleMapping(
-  siteTitle: string
-): Promise<number | null> {
+export async function setToken(token: string | null): Promise<void> {
+  await chrome.storage.session.set({ accessToken: token });
+}
+
+export async function getTitleMapping(siteTitle: string): Promise<number | null> {
   const { titleMappings } = await getStorage();
   return titleMappings[siteTitle] ?? null;
 }
 
-export async function saveTitleMapping(
-  siteTitle: string,
-  mediaId: number
-): Promise<void> {
+export async function saveTitleMapping(siteTitle: string, mediaId: number): Promise<void> {
   const { titleMappings } = await getStorage();
   titleMappings[siteTitle] = mediaId;
   await setStorage({ titleMappings });
@@ -52,4 +62,21 @@ export async function removeTitleMapping(title: string): Promise<void> {
     "searchResults",
     "currentProgress",
   ]);
+}
+
+export async function logoutSelective(): Promise<void> {
+  await setToken(null);
+  await setStorage({
+    userId: null,
+    username: null,
+    mangaProgressCache: {},
+    mangaProgressCacheUpdatedAt: null,
+    pendingUpdates: [],
+  });
+  await clearSession();
+}
+
+export async function isAuthenticated(): Promise<boolean> {
+  const token = await getToken();
+  return token !== null;
 }

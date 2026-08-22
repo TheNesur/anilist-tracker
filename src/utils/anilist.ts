@@ -1,16 +1,14 @@
 import { AniListUnreachableError, TokenExpiredError, type AniListMedia, type AniListMediaList } from "../types";
+import { sleep } from "./sleep";
 
 const ANILIST_API = "https://graphql.anilist.co";
 const SEARCH_PER_PAGE = 10;
 const MAX_RETRIES_429 = 3;
 const DEFAULT_RETRY_AFTER_MS = 60_000;
+const FETCH_TIMEOUT_MS = 15_000;
 
 const MANGA_FORMATS = ["MANGA", "ONE_SHOT"];
 const ANIME_FORMATS = ["TV", "TV_SHORT", "MOVIE", "SPECIAL", "OVA", "ONA"];
-
-function sleep(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms));
-}
 
 interface GqlErrorItem {
   message: string;
@@ -37,16 +35,24 @@ async function rawGqlRequest<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
   let res: Response;
   try {
     res = await fetch(ANILIST_API, {
       method: "POST",
       headers,
       body: JSON.stringify({ query, variables }),
+      signal: controller.signal,
     });
   } catch (err) {
-    // fetch() itself rejected — no response at all, e.g. DNS/connection failure
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new AniListUnreachableError("AniList request timed out");
+    }
     throw new AniListUnreachableError(err instanceof Error ? err.message : String(err));
+  } finally {
+    clearTimeout(timeout);
   }
 
   if (res.status === 401) {
@@ -72,7 +78,7 @@ async function rawGqlRequest<T>(
   let json: { data?: T; errors?: GqlErrorItem[] };
   try {
     json = await res.json();
-  } catch (err) {
+  } catch {
     throw new AniListUnreachableError("AniList returned an invalid response");
   }
 

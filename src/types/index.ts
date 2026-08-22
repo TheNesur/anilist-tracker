@@ -2,7 +2,7 @@ export type MediaType = "MANGA" | "ANIME";
 
 export interface MediaDetection {
   title: string;
-  progress: number;    // chapter for manga, episode for anime
+  progress: number;
   mediaType: MediaType;
   source: SupportedSite;
   url: string;
@@ -43,7 +43,7 @@ export interface CatalogParser {
 
 export interface AniListMedia {
   id: number;
-  title: { romaji: string; english: string | null; native: string | null; };
+  title: { romaji: string; english: string | null; native: string | null };
   synonyms?: string[];
   coverImage: { medium: string };
   siteUrl: string;
@@ -62,29 +62,28 @@ export type MessageType =
   | "SEARCH_ANILIST"
   | "GET_AUTH_TOKEN"
   | "GET_PROGRESS"
-  | "AUTH_SUCCESS"
   | "LOCAL_UPDATE_PROGRESS"
   | "ALIAS_SUBMIT"
   | "GET_PROGRESS_CACHE"
   | "FLUSH_PENDING_UPDATES";
 
-export interface ExtensionMessage {
-  type: MessageType;
-  payload?: unknown;
-}
+export type Message =
+  | { type: "MEDIA_DETECTED"; payload: MediaDetection }
+  | { type: "UPDATE_PROGRESS"; payload: { mediaId: number; progress: number; mediaType: MediaType } }
+  | { type: "SEARCH_ANILIST"; payload: { title: string; mediaType: MediaType } }
+  | { type: "GET_AUTH_TOKEN" }
+  | { type: "GET_PROGRESS"; payload: { mediaId: number } }
+  | { type: "LOCAL_UPDATE_PROGRESS"; payload: { progress: number } }
+  | { type: "ALIAS_SUBMIT"; payload: AliasSubmitPayload }
+  | { type: "GET_PROGRESS_CACHE"; payload: { mediaType: MediaType } }
+  | { type: "FLUSH_PENDING_UPDATES" };
 
-export interface MediaDetectedMessage extends ExtensionMessage {
-  type: "MEDIA_DETECTED";
-  payload: MediaDetection;
-}
-
-export interface UpdateProgressMessage extends ExtensionMessage {
-  type: "UPDATE_PROGRESS";
-  payload: {
-    mediaId: number;
-    progress: number;
-    mediaType: MediaType;
-  };
+export interface AliasSubmitPayload {
+  alias: string;
+  mediaType: MediaType;
+  mediaId: number;
+  mediaTitle: string;
+  sourceHostname: string | null;
 }
 
 export interface PendingUpdate {
@@ -95,7 +94,6 @@ export interface PendingUpdate {
 }
 
 export interface StorageData {
-  accessToken: string | null;
   userId: number | null;
   username: string | null;
   titleMappings: Record<string, number>;
@@ -110,7 +108,6 @@ export interface StorageData {
 }
 
 export const DEFAULT_STORAGE: StorageData = {
-  accessToken: null,
   userId: null,
   username: null,
   titleMappings: {},
@@ -122,6 +119,40 @@ export const DEFAULT_STORAGE: StorageData = {
   mangaProgressCache: {},
   mangaProgressCacheUpdatedAt: null,
   pendingUpdates: [],
+};
+
+export interface SessionData {
+  accessToken: string | null;
+  lastDetection: MediaDetection | null;
+  lastDetectionUrl: string | null;
+  searchResults: AniListMedia[] | null;
+  confirmedMedia: AniListMedia | null;
+  currentProgress: number | null;
+  detectionFailed: boolean;
+  detectionSearching: boolean;
+  detectionSearchingPreview: { title: string; progress: number; mediaType: MediaType } | null;
+  tokenExpired: boolean;
+  viewerFetchFailed: boolean;
+  apiError: string | null;
+  oauthState: string | null;
+  pendingUpdateErrorCount: number;
+}
+
+export const DEFAULT_SESSION: SessionData = {
+  accessToken: null,
+  lastDetection: null,
+  lastDetectionUrl: null,
+  searchResults: null,
+  confirmedMedia: null,
+  currentProgress: null,
+  detectionFailed: false,
+  detectionSearching: false,
+  detectionSearchingPreview: null,
+  tokenExpired: false,
+  viewerFetchFailed: false,
+  apiError: null,
+  oauthState: null,
+  pendingUpdateErrorCount: 0,
 };
 
 export type Theme = "dark" | "light";

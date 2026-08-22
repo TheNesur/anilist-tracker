@@ -1,6 +1,8 @@
 import type { MediaDetection, SupportedSite } from "../../types";
 import { cleanTitle, extractChapterNumber } from "../utils";
 
+let listenersBound = false;
+
 export class AnimeSamaMangaParser {
   site: SupportedSite = "anime-sama";
 
@@ -16,9 +18,6 @@ export class AnimeSamaMangaParser {
     const title = titleEl?.textContent?.trim() ?? this.extractTitleFromUrl() ?? null;
 
     const selectEl = document.getElementById("selectChapitres") as HTMLSelectElement | null;
-    const prevButtons = document.querySelectorAll<HTMLButtonElement>('[id="prevChapitre"]');
-    const lastButtons = document.querySelectorAll<HTMLButtonElement>('[id="lastChapitre"]');
-    const nextButtons = document.querySelectorAll<HTMLButtonElement>('[id="nextChapitre"]');
 
     const extractChapterFromSelect = (select: HTMLSelectElement): number | null => {
       const option = select.children[select.selectedIndex] as HTMLOptionElement | undefined;
@@ -26,24 +25,25 @@ export class AnimeSamaMangaParser {
       return extractChapterNumber(option.textContent ?? "");
     };
 
-    const updateProgress = () => {
-      const currentSelect = document.getElementById("selectChapitres") as HTMLSelectElement | null;
-      if (!currentSelect) return;
-      const chapter = extractChapterFromSelect(currentSelect);
-      if (chapter === null) return;
+    if (!listenersBound) {
+      listenersBound = true;
+      const updateProgress = () => {
+        const currentSelect = document.getElementById("selectChapitres") as HTMLSelectElement | null;
+        if (!currentSelect) return;
+        const chapter = extractChapterFromSelect(currentSelect);
+        if (chapter === null) return;
 
-      chrome.runtime.sendMessage({
-        type: "LOCAL_UPDATE_PROGRESS",
-        payload: {
-          progress: Math.floor(chapter)
-        },
-      });
-    };
+        chrome.runtime.sendMessage({
+          type: "LOCAL_UPDATE_PROGRESS",
+          payload: { progress: Math.floor(chapter) },
+        });
+      };
 
-    selectEl?.addEventListener('change', updateProgress);
-    prevButtons.forEach(btn => btn.addEventListener('click', updateProgress));
-    lastButtons.forEach(btn => btn.addEventListener('click', updateProgress));
-    nextButtons.forEach(btn => btn.addEventListener('click', updateProgress));
+      selectEl?.addEventListener('change', updateProgress);
+      document.querySelectorAll<HTMLButtonElement>('[id="prevChapitre"]').forEach(btn => btn.addEventListener('click', updateProgress));
+      document.querySelectorAll<HTMLButtonElement>('[id="lastChapitre"]').forEach(btn => btn.addEventListener('click', updateProgress));
+      document.querySelectorAll<HTMLButtonElement>('[id="nextChapitre"]').forEach(btn => btn.addEventListener('click', updateProgress));
+    }
 
     if (!selectEl) return null;
     const chapter = extractChapterFromSelect(selectEl);

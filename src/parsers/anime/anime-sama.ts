@@ -1,6 +1,8 @@
 import type { MediaDetection, SupportedSite } from "../../types";
 import { cleanTitle } from "../utils";
 
+let listenersBound = false;
+
 export class AnimeSamaParser {
   site: SupportedSite = "anime-sama";
 
@@ -16,9 +18,6 @@ export class AnimeSamaParser {
     const title = titleEl?.textContent?.trim() ?? this.extractTitleFromUrl() ?? null;
 
     const episodeEl = document.getElementById("selectEpisodes") as HTMLSelectElement | null;
-    const nextEpisodeEl = document.getElementById('nextEpisode') as HTMLButtonElement | null;
-    const lastEpisodeEl = document.getElementById('lastEpisode') as HTMLButtonElement | null;
-    const prevEpisodeEl = document.getElementById('prevEpisode') as HTMLButtonElement | null;
 
     const extractEpisodeNumber = (select: HTMLSelectElement): number | null => {
       const option = select.children[select.selectedIndex] as HTMLOptionElement | undefined;
@@ -28,24 +27,25 @@ export class AnimeSamaParser {
       return isNaN(value) ? null : value;
     };
 
-    const updateProgress = () => {
-      const currentSelect = document.getElementById("selectEpisodes") as HTMLSelectElement | null;
-      if (!currentSelect) return;
-      const episode = extractEpisodeNumber(currentSelect);
-      if (episode === null) return;
+    if (!listenersBound) {
+      listenersBound = true;
+      const updateProgress = () => {
+        const currentSelect = document.getElementById("selectEpisodes") as HTMLSelectElement | null;
+        if (!currentSelect) return;
+        const episode = extractEpisodeNumber(currentSelect);
+        if (episode === null) return;
 
-      chrome.runtime.sendMessage({
-        type: "LOCAL_UPDATE_PROGRESS",
-        payload: {
-          progress: episode
-        },
-      });
-    };
+        chrome.runtime.sendMessage({
+          type: "LOCAL_UPDATE_PROGRESS",
+          payload: { progress: episode },
+        });
+      };
 
-    episodeEl?.addEventListener('change', updateProgress);
-    nextEpisodeEl?.addEventListener('click', updateProgress);
-    lastEpisodeEl?.addEventListener('click', updateProgress);
-    prevEpisodeEl?.addEventListener('click', updateProgress);
+      episodeEl?.addEventListener('change', updateProgress);
+      document.getElementById('nextEpisode')?.addEventListener('click', updateProgress);
+      document.getElementById('lastEpisode')?.addEventListener('click', updateProgress);
+      document.getElementById('prevEpisode')?.addEventListener('click', updateProgress);
+    }
 
     if (!episodeEl) return null;
     const episode = extractEpisodeNumber(episodeEl);
@@ -63,6 +63,6 @@ export class AnimeSamaParser {
 
   private extractTitleFromUrl(): string | null {
     const parts = window.location.pathname.split("/").filter(Boolean);
-    return parts[1]?.replace("-", " ") ?? null;
+    return parts[1]?.replace(/-/g, " ") ?? null;
   }
 }
