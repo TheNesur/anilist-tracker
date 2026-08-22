@@ -1,3 +1,5 @@
+import { normalizeForSearch } from "../shared/anilist-tracker-shared/index.js";
+
 const TYPE_WORDS = "manga|manhwa|manhua|webtoon|comic";
 const RE_TYPE_PREFIX = new RegExp(`^\\s*(${TYPE_WORDS})\\s+`, "i");
 const RE_TYPE_SUFFIX = new RegExp(`\\s+(${TYPE_WORDS})\\s*$`, "i");
@@ -35,13 +37,4 @@ export function stripScanlationSuffix(raw: string): string {
     .trim();
 }
 
-export function normalizeSearchTitle(title: string): string {
-  return title
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/['\u2018\u2019\u02BC`]s\b/gi, " ")
-    .replace(/['\u2018\u2019\u02BC`]/g, " ")
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+export { normalizeForSearch as normalizeSearchTitle };

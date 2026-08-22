@@ -1,22 +1,11 @@
 import type { AniListMedia } from "../types";
-
-function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/['\u2018\u2019\u02BC`]s\b/gi, " ")
-    .replace(/['\u2018\u2019\u02BC`]/g, " ")  
-    .replace(/[^\w\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+import { normalizeForMatch } from "../shared/anilist-tracker-shared/index.js";
 
 export function findExactMatch(
   detectedTitle: string,
   results: AniListMedia[]
 ): AniListMedia | null {
-  const target = normalize(detectedTitle);
+  const target = normalizeForMatch(detectedTitle);
   if (!target) return null;
 
   for (const media of results) {
@@ -28,7 +17,7 @@ export function findExactMatch(
     ];
 
     for (const candidate of candidates) {
-      if (candidate && normalize(candidate) === target) {
+      if (candidate && normalizeForMatch(candidate) === target) {
         return media;
       }
     }
