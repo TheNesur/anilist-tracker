@@ -1,0 +1,3 @@
+[submodule "src/shared/anilist-tracker-shared"]
+	path = src/shared/anilist-tracker-shared
+	url = https://github.com/TheNesur/Anilist-tracker-shared.git
