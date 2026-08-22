@@ -65,20 +65,28 @@
   "updateBtnProgress": {
     "message": "Update $from$ → $to$",
     "placeholders": {
-      "from": { "content": "$1" },
-      "to": { "content": "$2" }
+      "from": {
+        "content": "$1"
+      },
+      "to": {
+        "content": "$2"
+      }
     }
   },
   "alreadyUpToDate": {
     "message": "Already at Ch. $chapter$ — no update needed",
     "placeholders": {
-      "chapter": { "content": "$1" }
+      "chapter": {
+        "content": "$1"
+      }
     }
   },
   "updatedSuccess": {
     "message": "Updated to Ch. $chapter$ ✓",
     "placeholders": {
-      "chapter": { "content": "$1" }
+      "chapter": {
+        "content": "$1"
+      }
     }
   },
   "updateQueued": {
@@ -87,7 +95,9 @@
   "pendingQueueLabel": {
     "message": "$count$ update(s) pending (AniList unreachable)",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "retryNow": {
@@ -96,7 +106,9 @@
   "pendingUpdateErrors": {
     "message": "$count$ update(s) couldn't be synced. Please retry them manually.",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "updateError": {
@@ -117,7 +129,9 @@
   "accountId": {
     "message": "ID: $id$",
     "placeholders": {
-      "id": { "content": "$1" }
+      "id": {
+        "content": "$1"
+      }
     }
   },
   "sectionAppearance": {
@@ -183,7 +197,9 @@
   "chapterLabel": {
     "message": "Chapter $chapter$",
     "placeholders": {
-      "chapter": { "content": "$1" }
+      "chapter": {
+        "content": "$1"
+      }
     }
   },
   "errorTitle": {
@@ -206,7 +222,11 @@
   },
   "episodeLabel": {
     "message": "Episode $episode$",
-    "placeholders": { "episode": { "content": "$1" } }
+    "placeholders": {
+      "episode": {
+        "content": "$1"
+      }
+    }
   },
   "stateNoEpisode": {
     "message": "No episode detected"
@@ -241,16 +261,45 @@
   "apiErrorHint": {
     "message": "Check the AniList Discord for status updates."
   },
-  "stateSearching": { "message": "Searching on AniList…" },
-  "contributeAliases": { "message": "Contribute title matches" },
-  "contributeAliasesHint": { "message": "Anonymously share manual title corrections to help other users on unsupported sites" },
-  "catalogStatus": { "message": "Show progress status on catalog pages" },
-  "catalogStatusHint": { "message": "Highlight titles you've already mapped with a color and label showing whether you're up to date, on supported catalog pages" },
-  "catalogUnmapped": { "message": "Not mapped" },
-  "catalogNotStarted": { "message": "Not started" },
-  "catalogUpToDate": { "message": "Up to date" },
+  "stateSearching": {
+    "message": "Searching on AniList…"
+  },
+  "contributeAliases": {
+    "message": "Contribute title matches"
+  },
+  "contributeAliasesHint": {
+    "message": "Anonymously share manual title corrections to help other users on unsupported sites"
+  },
+  "catalogStatus": {
+    "message": "Show progress status on catalog pages"
+  },
+  "catalogStatusHint": {
+    "message": "Highlight titles you've already mapped with a color and label showing whether you're up to date, on supported catalog pages"
+  },
+  "catalogUnmapped": {
+    "message": "Not mapped"
+  },
+  "catalogNotStarted": {
+    "message": "Not started"
+  },
+  "catalogUpToDate": {
+    "message": "Up to date"
+  },
   "catalogBehind": {
     "message": "$count$ ch. behind",
-    "placeholders": { "count": { "content": "$1" } }
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "showUpdatePage": {
+    "message": "Show changelog on update"
+  },
+  "showUpdatePageHint": {
+    "message": "Open the changelog page after each extension update"
+  },
+  "linkDiscord": {
+    "message": "Join us on Discord"
   }
 }

@@ -65,20 +65,28 @@
   "updateBtnProgress": {
     "message": "Mettre à jour $from$ → $to$",
     "placeholders": {
-      "from": { "content": "$1" },
-      "to": { "content": "$2" }
+      "from": {
+        "content": "$1"
+      },
+      "to": {
+        "content": "$2"
+      }
     }
   },
   "alreadyUpToDate": {
     "message": "Déjà au Ch. $chapter$ — aucune mise à jour nécessaire",
     "placeholders": {
-      "chapter": { "content": "$1" }
+      "chapter": {
+        "content": "$1"
+      }
     }
   },
   "updatedSuccess": {
     "message": "Mis à jour au Ch. $chapter$ ✓",
     "placeholders": {
-      "chapter": { "content": "$1" }
+      "chapter": {
+        "content": "$1"
+      }
     }
   },
   "updateQueued": {
@@ -87,7 +95,9 @@
   "pendingQueueLabel": {
     "message": "$count$ en attente (AniList indisponible)",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "retryNow": {
@@ -96,7 +106,9 @@
   "pendingUpdateErrors": {
     "message": "$count$ mise(s) à jour n'ont pas pu être synchronisées. Retente-les manuellement.",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "updateError": {
@@ -117,7 +129,9 @@
   "accountId": {
     "message": "ID : $id$",
     "placeholders": {
-      "id": { "content": "$1" }
+      "id": {
+        "content": "$1"
+      }
     }
   },
   "sectionAppearance": {
@@ -183,7 +197,9 @@
   "chapterLabel": {
     "message": "Chapitre $chapter$",
     "placeholders": {
-      "chapter": { "content": "$1" }
+      "chapter": {
+        "content": "$1"
+      }
     }
   },
   "errorTitle": {
@@ -206,7 +222,11 @@
   },
   "episodeLabel": {
     "message": "Épisode $episode$",
-    "placeholders": { "episode": { "content": "$1" } }
+    "placeholders": {
+      "episode": {
+        "content": "$1"
+      }
+    }
   },
   "stateNoEpisode": {
     "message": "Aucun épisode détecté"
@@ -241,17 +261,45 @@
   "apiErrorHint": {
     "message": "Consulte le Discord officiel d'AniList pour plus d'informations."
   },
-  "stateSearching": { "message": "Recherche sur AniList…" },
-  "contributeAliases": { "message": "Contribuer aux correspondances de titres" },
-  "contributeAliasesHint": { "message": "Partage anonymement tes corrections manuelles de titres pour aider les autres utilisateurs sur les sites non supportés" },
-  "catalogStatus": { "message": "Afficher le statut de lecture sur les pages catalogue" },
-  "catalogStatusHint": { "message": "Met en évidence les titres déjà mappés avec une couleur et un message indiquant si tu es à jour, sur les pages catalogue supportées" },
-  "catalogUnmapped": { "message": "Non mappé" },
-  "catalogNotStarted": { "message": "Pas commencé" },
-  "catalogUpToDate": { "message": "À jour" },
+  "stateSearching": {
+    "message": "Recherche sur AniList…"
+  },
+  "contributeAliases": {
+    "message": "Contribuer aux correspondances de titres"
+  },
+  "contributeAliasesHint": {
+    "message": "Partage anonymement tes corrections manuelles de titres pour aider les autres utilisateurs sur les sites non supportés"
+  },
+  "catalogStatus": {
+    "message": "Afficher le statut de lecture sur les pages catalogue"
+  },
+  "catalogStatusHint": {
+    "message": "Met en évidence les titres déjà mappés avec une couleur et un message indiquant si tu es à jour, sur les pages catalogue supportées"
+  },
+  "catalogUnmapped": {
+    "message": "Non mappé"
+  },
+  "catalogNotStarted": {
+    "message": "Pas commencé"
+  },
+  "catalogUpToDate": {
+    "message": "À jour"
+  },
   "catalogBehind": {
     "message": "En retard de $count$ ch.",
-    "placeholders": { "count": { "content": "$1" } }
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "showUpdatePage": {
+    "message": "Afficher le changelog après mise à jour"
+  },
+  "showUpdatePageHint": {
+    "message": "Ouvrir la page du changelog après chaque mise à jour de l'extension"
+  },
+  "linkDiscord": {
+    "message": "Rejoindre le Discord"
   }
-
 }

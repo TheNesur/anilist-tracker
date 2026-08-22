@@ -43,6 +43,12 @@ async function init() {
     await setStorage({ showCatalogStatus: catalogStatusToggle.checked });
   });
 
+  const showUpdatePageToggle = document.getElementById("toggle-show-update-page") as HTMLInputElement;
+  showUpdatePageToggle.checked = storage.showUpdatePage;
+  showUpdatePageToggle.addEventListener("change", async () => {
+    await setStorage({ showUpdatePage: showUpdatePageToggle.checked });
+  });
+
   document.getElementById("theme-dark")!.addEventListener("click", () => switchTheme("dark"));
   document.getElementById("theme-light")!.addEventListener("click", () => switchTheme("light"));
 
@@ -60,9 +66,12 @@ async function init() {
   document.getElementById("hint-contribute-aliases")!.textContent = t("contributeAliasesHint");
   document.getElementById("label-catalog-status")!.textContent = t("catalogStatus");
   document.getElementById("hint-catalog-status")!.textContent = t("catalogStatusHint");
+  document.getElementById("label-show-update-page")!.textContent = t("showUpdatePage");
+  document.getElementById("hint-show-update-page")!.textContent = t("showUpdatePageHint");
   document.getElementById("label-logout")!.textContent = t("logout");
   document.getElementById("hint-logout")!.textContent = t("logoutHint");
   document.getElementById("btn-logout")!.textContent = t("logout");
+  document.getElementById("link-discord")!.textContent = t("linkDiscord");
   document.getElementById("link-source")!.textContent = t("linkSourceCode");
   document.getElementById("link-bug")!.textContent = t("linkReportBug");
   document.getElementById("link-privacy")!.textContent = t("linkPrivacy");

@@ -10,8 +10,15 @@ import { isBadgeClearAlarm, updatePendingBadge } from "./badge";
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "update") {
-    chrome.action.setBadgeText({ text: "★" });
-    chrome.action.setBadgeBackgroundColor({ color: "#3db4f2" });
+    (async () => {
+      const storage = await getStorage();
+      if (storage.showUpdatePage) {
+        chrome.tabs.create({ url: chrome.runtime.getURL("update.html") });
+      } else {
+        chrome.action.setBadgeText({ text: "★" });
+        chrome.action.setBadgeBackgroundColor({ color: "#3db4f2" });
+      }
+    })();
   }
 });
 

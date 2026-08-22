@@ -103,6 +103,7 @@ export interface StorageData {
   theme: Theme;
   contributeAliases: boolean;
   showCatalogStatus: boolean;
+  showUpdatePage: boolean;
   mangaProgressCache: Record<number, number>;
   mangaProgressCacheUpdatedAt: number | null;
   pendingUpdates: PendingUpdate[];
@@ -118,6 +119,7 @@ export const DEFAULT_STORAGE: StorageData = {
   theme: "dark",
   contributeAliases: false,
   showCatalogStatus: false,
+  showUpdatePage: false,
   mangaProgressCache: {},
   mangaProgressCacheUpdatedAt: null,
   pendingUpdates: [],
