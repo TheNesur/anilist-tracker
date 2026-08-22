@@ -1,5 +1,4 @@
 import { getParser } from "../parsers";
-import type { MediaDetectedMessage } from "../types";
 
 if (window.self !== window.top) {
   throw new Error("AniList Tracker: skipping iframe context");
@@ -24,12 +23,10 @@ function detectAndNotify() {
 
   chrome.storage.session.set({ detectionFailed: false });
 
-  const message: MediaDetectedMessage = {
+  chrome.runtime.sendMessage({
     type: "MEDIA_DETECTED",
     payload: detection,
-  };
-
-  chrome.runtime.sendMessage(message).catch(() => {});
+  }).catch(() => {});
 }
 
 function waitForParserReady() {
