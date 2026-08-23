@@ -18,6 +18,21 @@ export default defineConfig(({ mode }) => {
       ...manifest.host_permissions,
       "https://auth-dev.mraitchkovitch.fr/*",
     ];
+    manifestWithVersion.icons = {
+      "16": "icons-dev/icon16.png",
+      "48": "icons-dev/icon48.png",
+      "128": "icons-dev/icon128.png",
+    };
+    if (manifestWithVersion.action) {
+      manifestWithVersion.action = {
+        ...manifestWithVersion.action,
+        default_icon: {
+          "16": "icons-dev/icon16.png",
+          "48": "icons-dev/icon48.png",
+          "128": "icons-dev/icon128.png",
+        },
+      };
+    }
   }
 
   return {
