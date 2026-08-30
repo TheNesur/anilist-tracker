@@ -1,3 +1,4 @@
+import { errMsg } from "../utils/dom";
 import { searchManga, searchAnime, getProgress, getMediaById, getProgressCollection } from "../utils/anilist";
 import { getStorage, setStorage, getToken, getTitleMapping, saveTitleMapping, setSession } from "../utils/storage";
 import { findExactMatch } from "../utils/matching";
@@ -80,7 +81,12 @@ export async function handleDetection(detection: MediaDetection) {
     }
 
     if (storage.autoUpdate && (currentProgress === null || detection.progress > currentProgress)) {
-      await handleUpdate(mediaId, detection.progress, detection.mediaType);
+      const result = await handleUpdate(mediaId, detection.progress, detection.mediaType);
+      const media = await getMediaById(mediaId);
+      if (media) {
+        const newProgress = result?.progress ?? detection.progress;
+        notifyUser(detection, null, media, newProgress);
+      }
     } else {
       const media = await getMediaById(mediaId);
       if (media) {
@@ -93,9 +99,9 @@ export async function handleDetection(detection: MediaDetection) {
     if (isTokenExpiredError(err)) {
       await handleTokenExpired();
     } else {
-      console.error("[AniList Tracker] Detection handling failed:", err instanceof Error ? err.message : "unknown");
+      console.error("[AniList Tracker] Detection handling failed:", errMsg(err));
       await setSession({
-        apiError: err instanceof Error ? err.message : String(err),
+        apiError: errMsg(err),
         lastDetectionUrl: detection.url,
       });
     }

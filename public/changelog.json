@@ -78,5 +78,23 @@
       "Reliability fix for Anime-Sama progress tracking: fixed a possible crash when some page elements aren't loaded yet, and correctly handled duplicated navigation buttons (top and bottom of the page).",
       "Optimized AniList calls: progress for all your titles is now fetched in a single request instead of one per title, with a local cache to reduce unnecessary requests."
     ]
+  },
+  "0.5.0": {
+    "fr": [
+      "Refonte de la sécurité et du stockage des tokens pour une meilleure protection de votre compte.",
+      "Amélioration de la détection des titres (meilleur nettoyage des noms de chapitres, saisons et années).",
+      "Support mobile (Edge Android) avec une interface adaptée aux écrans tactiles.",
+      "Déconnexion sélective : vos réglages et correspondances de titres sont désormais conservés lors d'une déconnexion.",
+      "Ajout d'un paramètre pour afficher ou non ce changelog après les mises à jour.",
+      "Ajout du lien Discord dans les paramètres."
+    ],
+    "en": [
+      "Security audit and revamped token storage for better account protection.",
+      "Improved title detection (better handling of chapters, seasons, and years).",
+      "Mobile support (Edge Android) with a UI adapted for touch screens.",
+      "Selective logout: your settings and title mappings are now preserved when logging out.",
+      "New setting to control whether this changelog appears after updates.",
+      "Discord link added to settings."
+    ]
   }
 }

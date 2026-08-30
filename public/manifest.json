@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "permissions": [
-    "storage", 
-    "tabs", 
-    "alarms", 
-    "scripting", 
+    "storage",
+    "tabs",
+    "alarms",
+    "scripting",
     "activeTab"
   ],
   "host_permissions": [
@@ -27,35 +27,29 @@
       "matches": [
         "https://asuracomic.net/*",
         "https://www.asuracomic.net/*",
-
         "https://flamecomics.xyz/*",
         "https://www.flamecomics.xyz/*",
-
         "https://reaperscans.com/*",
         "https://www.reaperscans.com/*",
-
         "https://raijin-scans.fr/*",
         "https://www.raijin-scans.fr/*",
-
         "https://www.webtoons.com/*",
         "https://webtoons.com/*",
-
         "https://mangadex.org/*",
         "https://www.mangadex.org/*",
-
         "https://mangaplus.shueisha.co.jp/*",
-
         "https://www.crunchyroll.com/*",
         "https://crunchyroll.com/*",
-
         "https://voir-anime.to/*",
         "https://www.voir-anime.to/*",
-        
         "https://anime-sama.to/*",
         "https://anime-sama.fr/*",
         "https://www.anime-sama.fr/*"
       ],
-      "js": ["src/content/index.ts", "src/content/catalog.ts"],
+      "js": [
+        "src/content/index.ts",
+        "src/content/catalog.ts"
+      ],
       "run_at": "document_idle"
     }
   ],

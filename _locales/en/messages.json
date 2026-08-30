@@ -174,10 +174,10 @@
     "message": "Disconnect"
   },
   "logoutHint": {
-    "message": "Removes token and local data"
+    "message": "Disconnects your account. Mappings and settings are kept."
   },
   "logoutConfirm": {
-    "message": "Disconnect and delete all local data?"
+    "message": "Disconnect your AniList account?"
   },
   "notConnected": {
     "message": "Not connected"

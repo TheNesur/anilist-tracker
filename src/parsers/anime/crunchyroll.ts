@@ -1,5 +1,5 @@
 import type { MediaDetection, SupportedSite } from "../../types";
-import { cleanTitle } from "../utils";
+import { cleanTitle, stripSeasonSuffix } from "../utils";
 
 export class CrunchyrollParser {
   site: SupportedSite = "crunchyroll";
@@ -45,20 +45,12 @@ export class CrunchyrollParser {
     if (!title || !episode) return null;
 
     return {
-      title: cleanTitle(this.stripSeasonSuffix(title)),
+      title: cleanTitle(stripSeasonSuffix(title)),
       progress: episode,
       mediaType: "ANIME",
       source: this.site,
       url: window.location.href,
     };
-  }
-
-  private stripSeasonSuffix(title: string): string {
-    return title
-      .replace(/\s*\(Saison\s*\d+\)\s*$/i, "")
-      .replace(/\s*\(Season\s*\d+\)\s*$/i, "")
-      .replace(/\s*\|\s*E\d+.*$/i, "")
-      .trim();
   }
 
   private extractTitleFromLdJson(): string | null {

@@ -1,3 +1,4 @@
+import { errMsg } from "../utils/dom";
 import { getToken, getStorage } from "../utils/storage";
 import { TOKEN_ENDPOINT } from "./oauth";
 import type { MediaDetection } from "../types";
@@ -46,6 +47,6 @@ export async function submitAlias(params: {
       body: JSON.stringify(params),
     });
   } catch (err) {
-    console.error("[AniList Tracker] Alias submit failed:", err instanceof Error ? err.message : "unknown");
+    console.error("[AniList Tracker] Alias submit failed:", errMsg(err));
   }
 }

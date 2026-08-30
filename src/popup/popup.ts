@@ -96,22 +96,28 @@ async function tryGenericDetection(tabId: number): Promise<GenericDetectionResul
       target: { tabId },
       func: () => {
         function extractChapterNumber(text: string): number | null {
-          const match = text.match(/(?:chapter|chapitre|ch\.?|ep|episode|épisode)\s*([\d]+(?:\.[\d]+)?)/i);
+          const match = text.match(/(?:chapter|chapitre|ch\.?|ep\.?|episode|épisode)\s*([\d]+(?:\.[\d]+)?)/i);
           if (match) return parseFloat(match[1]);
           const numbers = text.match(/(\d+(?:\.\d+)?)/g);
-          if (numbers && numbers.length > 0) {
-            return parseFloat(numbers[numbers.length - 1]);
-          }
-          return null;
+          if (!numbers || numbers.length === 0) return null;
+          const filtered = numbers.filter((n) => {
+            if (/^(?:19|20)\d{2}$/.test(n)) return false;
+            const idx = text.indexOf(n);
+            if (idx > 0 && /v$/i.test(text.slice(Math.max(0, idx - 1), idx))) return false;
+            return true;
+          });
+          if (filtered.length === 0) return null;
+          return parseFloat(filtered[filtered.length - 1]);
         }
 
         const TYPE_WORDS = "manga|manhwa|manhua|webtoon|comic";
         function cleanTitle(raw: string): string {
-          return raw
+          const cleaned = raw
             .replace(new RegExp(`^\\s*(${TYPE_WORDS})\\s+`, "i"), "")
             .replace(new RegExp(`\\s+(${TYPE_WORDS})\\s*$`, "i"), "")
             .replace(/\s+/g, " ")
             .trim();
+          return cleaned || raw.trim();
         }
 
         const VIDEO_URL_HINTS = /episode|watch|player|streaming/i;
@@ -137,11 +143,13 @@ async function tryGenericDetection(tabId: number): Promise<GenericDetectionResul
 
         function stripScanlationSuffix(raw: string): string {
           return raw
-            .replace(/\s*\((vf|vostfr|vostf|vo|raw|fr|en|es|de|jp|kr|cn)\)\s*$/i, "")
+            .replace(/\s*\((vf|vostfr|vostf|vo|raw|fr|en|es|de|jp|kr|cn|pt|it|ru|ar|tr)\)\s*$/i, "")
+            .replace(/\s*\[(vf|vostfr|vostf|vo|raw|fr|en|es|de|jp|kr|cn|pt|it|ru|ar|tr|scan\s*vf|scan\s*fr)\]\s*$/i, "")
             .replace(/\s*[-–—:|]\s*(scan\s*)?(vf|vostfr|vostf|vo|raw|fr)\b.*$/i, "")
+            .replace(/\s*[-–—:|]\s*(english|french|français|spanish|español|german|deutsch|japanese|korean|chinese|portuguese|italian|indonesian|thai|arabic|turkish|russian)\s*$/i, "")
             .replace(/\s+scan\s*(vf|vostfr|vostf|vo|fr)\s*.*$/i, "")
             .replace(/\s+(vf|vostfr|vostf)\s*$/i, "")
-            .replace(/\s*\([^()]*\)\s*$/, "")
+            .replace(/\s*\((scan|scanlation|traduction|translation|trad|fantrad|fan\s*trad)\b[^()]*\)\s*$/i, "")
             .trim();
         }
 

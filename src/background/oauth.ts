@@ -1,3 +1,4 @@
+import { errMsg } from "../utils/dom";
 import { getViewer } from "../utils/anilist";
 import { setStorage, setToken, setSession } from "../utils/storage";
 import { isTokenExpiredError } from "../types";
@@ -168,12 +169,12 @@ export async function startOAuth(): Promise<
             await setStorage({ userId: viewer.id, username: viewer.name });
             await finish({ success: true, username: viewer.name });
           } catch (err) {
-            console.error("[AniList Tracker] getViewer failed:", err instanceof Error ? err.message : "unknown");
+            console.error("[AniList Tracker] getViewer failed:", errMsg(err));
             await chrome.storage.session.set({ viewerFetchFailed: true });
             await finish({ success: true, username: null, partial: true });
           }
         } catch (err) {
-          console.error("[AniList Tracker] OAuth error:", err instanceof Error ? err.message : "unknown");
+          console.error("[AniList Tracker] OAuth error:", errMsg(err));
           await finish({ success: false, error: "OAuth error" });
         }
       })();

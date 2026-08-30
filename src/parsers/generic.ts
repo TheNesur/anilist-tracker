@@ -1,5 +1,5 @@
 import type { MediaType } from "../types";
-import { cleanTitle, extractChapterNumber } from "./utils";
+import { cleanTitle, extractChapterNumber, stripScanlationSuffix } from "./utils";
 
 export interface GenericDetectionResult {
   title: string;
@@ -40,7 +40,7 @@ function extractTitle(): string | null {
   const h1 = document.querySelector("h1")?.textContent?.trim();
 
   const candidate = ogTitle || twitterTitle || h1 || extractFromDocTitle();
-  return candidate ? cleanTitle(candidate) : null;
+  return candidate ? cleanTitle(stripScanlationSuffix(candidate)) : null;
 }
 
 function extractProgress(title: string): number | null {

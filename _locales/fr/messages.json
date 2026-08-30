@@ -174,10 +174,10 @@
     "message": "Déconnecter"
   },
   "logoutHint": {
-    "message": "Supprime le token et les données locales"
+    "message": "Déconnecte ton compte. Les associations et réglages sont conservés."
   },
   "logoutConfirm": {
-    "message": "Se déconnecter et supprimer toutes les données locales ?"
+    "message": "Se déconnecter de ton compte AniList ?"
   },
   "notConnected": {
     "message": "Non connecté"

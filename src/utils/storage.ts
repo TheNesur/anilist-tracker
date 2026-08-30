@@ -81,8 +81,3 @@ export async function logoutSelective(): Promise<void> {
   });
   await clearSession();
 }
-
-export async function isAuthenticated(): Promise<boolean> {
-  const token = await getToken();
-  return token !== null;
-}

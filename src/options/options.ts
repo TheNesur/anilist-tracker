@@ -19,6 +19,15 @@ async function init() {
     nameEl.textContent = t("notConnected");
   }
 
+  const betaSection = document.getElementById("beta-section")!;
+  const betaToggle = document.getElementById("toggle-beta-features") as HTMLInputElement;
+  betaToggle.checked = storage.showBetaFeatures;
+  betaSection.style.display = storage.showBetaFeatures ? "block" : "none";
+  betaToggle.addEventListener("change", async () => {
+    await setStorage({ showBetaFeatures: betaToggle.checked });
+    betaSection.style.display = betaToggle.checked ? "block" : "none";
+  });
+
   const autoUpdateToggle = document.getElementById("toggle-autoupdate") as HTMLInputElement;
   autoUpdateToggle.checked = storage.autoUpdate;
   autoUpdateToggle.addEventListener("change", async () => {
@@ -58,6 +67,9 @@ async function init() {
   document.getElementById("section-behavior")!.textContent = t("sectionBehavior");
   document.getElementById("section-info")!.textContent = t("sectionInfo");
   document.getElementById("section-danger")!.textContent = t("dangerZone");
+  document.getElementById("label-beta-features")!.textContent = t("betaFeatures");
+  document.getElementById("hint-beta-features")!.textContent = t("betaFeaturesHint");
+  document.getElementById("section-beta")!.textContent = t("sectionBeta");
   document.getElementById("label-autoupdate")!.textContent = t("autoUpdate");
   document.getElementById("hint-autoupdate")!.textContent = t("autoUpdateHint");
   document.getElementById("label-automap")!.textContent = t("autoMap");

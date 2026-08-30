@@ -1,3 +1,4 @@
+import { errMsg } from "../utils/dom";
 import { getProgress, updateProgress, saveProgressBatch } from "../utils/anilist";
 import { getToken, getStorage, setStorage } from "../utils/storage";
 import { isTokenExpiredError, isAniListUnreachableError, type MediaDetection, type PendingUpdate } from "../types";
@@ -48,8 +49,8 @@ export async function handleUpdate(
       await queuePendingUpdate(mediaId, progress, mediaType);
       return { success: true, queued: true };
     }
-    console.error("[AniList Tracker] Update failed:", err instanceof Error ? err.message : "unknown");
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
+    console.error("[AniList Tracker] Update failed:", errMsg(err));
+    return { success: false, error: errMsg(err) };
   }
 }
 

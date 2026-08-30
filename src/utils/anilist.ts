@@ -1,3 +1,4 @@
+import { errMsg } from "./dom";
 import { AniListUnreachableError, TokenExpiredError, type AniListMedia, type AniListMediaList } from "../types";
 import { sleep } from "./sleep";
 
@@ -50,7 +51,7 @@ async function rawGqlRequest<T>(
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new AniListUnreachableError("AniList request timed out");
     }
-    throw new AniListUnreachableError(err instanceof Error ? err.message : String(err));
+    throw new AniListUnreachableError(errMsg(err));
   } finally {
     clearTimeout(timeout);
   }
