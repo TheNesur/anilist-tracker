@@ -14,14 +14,12 @@ function detectAndNotify() {
 
   const detection = parser.detect();
   if (!detection) {
-    chrome.storage.session.set({
-      detectionFailed: true,
-      lastDetectionUrl: window.location.href,
-    });
+    chrome.runtime.sendMessage({
+      type: "DETECTION_FAILED",
+      url: window.location.href,
+    }).catch(() => {});
     return;
   }
-
-  chrome.storage.session.set({ detectionFailed: false });
 
   chrome.runtime.sendMessage({
     type: "MEDIA_DETECTED",
@@ -41,10 +39,10 @@ function waitForParserReady() {
       detectAndNotify();
     } else if (attempts >= POLL_MAX_ATTEMPTS) {
       window.clearInterval(interval);
-      chrome.storage.session.set({
-        detectionFailed: true,
-        lastDetectionUrl: window.location.href,
-      });
+      chrome.runtime.sendMessage({
+        type: "DETECTION_FAILED",
+        url: window.location.href,
+      }).catch(() => {});
     }
   }, POLL_INTERVAL_MS);
 }

@@ -7,13 +7,15 @@ import { normalizeSearchTitle } from "../parsers/utils";
 import { lookupAlias } from "./alias";
 import { handleUpdate } from "./progress";
 import { ensureViewerLoaded, handleTokenExpired } from "./oauth";
+import { setTabState } from "./tab-state";
 
 const PROGRESS_CACHE_TTL_MS = 15 * 60 * 1000;
 
-export async function handleDetection(detection: MediaDetection) {
-  await setSession({
+export async function handleDetection(detection: MediaDetection, tabId: number) {
+  await setTabState(tabId, {
     lastDetectionUrl: detection.url,
     lastDetection: null,
+    detectionFailed: false,
     detectionSearching: true,
     detectionSearchingPreview: {
       title: detection.title,
@@ -26,11 +28,11 @@ export async function handleDetection(detection: MediaDetection) {
   if (!token) {
     chrome.action.setBadgeText({ text: "!" });
     chrome.action.setBadgeBackgroundColor({ color: "#e74c3c" });
-    await setSession({ detectionSearching: false });
+    await setTabState(tabId, { detectionSearching: false });
     return;
   }
 
-  await setSession({ apiError: null });
+  await setTabState(tabId, { apiError: null });
 
   const storage = await getStorage();
 
@@ -54,7 +56,7 @@ export async function handleDetection(detection: MediaDetection) {
         }
 
         if (!mediaId) {
-          notifyUser(detection, []);
+          notifyUser(tabId, detection, []);
           return;
         }
       } else {
@@ -67,7 +69,7 @@ export async function handleDetection(detection: MediaDetection) {
         }
 
         if (!mediaId) {
-          notifyUser(detection, results);
+          notifyUser(tabId, detection, results);
           return;
         }
       }
@@ -85,12 +87,12 @@ export async function handleDetection(detection: MediaDetection) {
       const media = await getMediaById(mediaId);
       if (media) {
         const newProgress = result?.progress ?? detection.progress;
-        notifyUser(detection, null, media, newProgress);
+        notifyUser(tabId, detection, null, media, newProgress);
       }
     } else {
       const media = await getMediaById(mediaId);
       if (media) {
-        notifyUser(detection, null, media, currentProgress);
+        notifyUser(tabId, detection, null, media, currentProgress);
       } else {
         console.error("[AniList Tracker] Media not found by id", mediaId);
       }
@@ -100,13 +102,13 @@ export async function handleDetection(detection: MediaDetection) {
       await handleTokenExpired();
     } else {
       console.error("[AniList Tracker] Detection handling failed:", errMsg(err));
-      await setSession({
+      await setTabState(tabId, {
         apiError: errMsg(err),
         lastDetectionUrl: detection.url,
       });
     }
   } finally {
-    await setSession({ detectionSearching: false });
+    await setTabState(tabId, { detectionSearching: false });
   }
 }
 
@@ -142,6 +144,7 @@ export async function handleGetProgressCache(mediaType: MediaDetection["mediaTyp
 }
 
 function notifyUser(
+  tabId: number,
   detection: MediaDetection,
   searchResults: AniListMedia[] | null,
   confirmedMedia?: AniListMedia,
@@ -149,7 +152,7 @@ function notifyUser(
 ) {
   if (currentProgress === null) currentProgress = 0;
 
-  chrome.storage.session.set({
+  setTabState(tabId, {
     lastDetection: detection,
     searchResults,
     confirmedMedia: confirmedMedia ?? null,

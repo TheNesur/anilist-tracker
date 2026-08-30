@@ -7,6 +7,7 @@ import { handleUpdate, flushPendingUpdates, isPendingRetryAlarm } from "./progre
 import { startOAuth, handleTokenExpired, ensureViewerLoaded } from "./oauth";
 import { submitAlias, reportAlias } from "./alias";
 import { isBadgeClearAlarm, updatePendingBadge } from "./badge";
+import { setTabState, removeTabState, getTabState } from "./tab-state";
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "update") {
@@ -35,15 +36,30 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
+chrome.tabs.onRemoved.addListener((tabId) => {
+  removeTabState(tabId);
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id) return;
 
   const { type, payload } = message as { type: string; payload?: unknown };
 
   switch (type) {
-    case "MEDIA_DETECTED":
-      handleDetection(payload as MediaDetection);
+    case "MEDIA_DETECTED": {
+      const tabId = sender.tab?.id ?? (message as { tabId?: number }).tabId;
+      if (tabId) handleDetection(payload as MediaDetection, tabId);
       return;
+    }
+
+    case "DETECTION_FAILED": {
+      const tabId = sender.tab?.id;
+      if (tabId) {
+        const url = (message as { url?: string }).url ?? sender.tab?.url ?? null;
+        setTabState(tabId, { detectionFailed: true, lastDetectionUrl: url });
+      }
+      return;
+    }
 
     case "UPDATE_PROGRESS": {
       const p = payload as { mediaId: number; progress: number; mediaType: MediaDetection["mediaType"] };
@@ -54,11 +70,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case "LOCAL_UPDATE_PROGRESS": {
       const p = payload as { progress: number } | undefined;
       if (!p || typeof p.progress !== "number" || p.progress < 0 || !Number.isFinite(p.progress)) return;
+      const tabId = sender.tab?.id;
+      if (!tabId) return;
       (async () => {
-        const session = await chrome.storage.session.get("lastDetection");
-        if (!session.lastDetection) return;
-        await chrome.storage.session.set({
-          lastDetection: { ...session.lastDetection as MediaDetection, progress: p.progress },
+        const state = await getTabState(tabId);
+        if (!state.lastDetection) return;
+        await setTabState(tabId, {
+          lastDetection: { ...state.lastDetection, progress: p.progress },
         });
       })();
       return;

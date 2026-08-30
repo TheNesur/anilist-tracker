@@ -13,6 +13,21 @@ const btnSettings = document.getElementById("btn-settings")!;
 
 let currentDetection: MediaDetection | null = null;
 let selectedMedia: AniListMedia | null = null;
+let activeTabId: number | null = null;
+
+async function readTabState(): Promise<Record<string, unknown>> {
+  if (!activeTabId) return {};
+  const key = `tab_${activeTabId}`;
+  const result = await chrome.storage.session.get(key);
+  return result[key] ?? {};
+}
+
+async function updateTabState(partial: Record<string, unknown>): Promise<void> {
+  if (!activeTabId) return;
+  const key = `tab_${activeTabId}`;
+  const current = await readTabState();
+  await chrome.storage.session.set({ [key]: { ...current, ...partial } });
+}
 
 async function init() {
   const storage = await getStorage();
@@ -35,7 +50,8 @@ async function init() {
   await renderPendingErrors();
 
   chrome.storage.session.onChanged.addListener((changes) => {
-    if (changes.lastDetection || changes.lastDetectionUrl || changes.detectionFailed || changes.detectionSearching) {
+    const tabStateKey = activeTabId ? `tab_${activeTabId}` : null;
+    if ((tabStateKey && changes[tabStateKey]) || changes.tokenExpired) {
       resolveState();
     }
   });
@@ -209,7 +225,7 @@ async function proceedWithGenericDetection(candidate: GenericDetectionResult, me
     url: candidate.url,
   };
   renderState({ type: "loading" });
-  chrome.runtime.sendMessage({ type: "MEDIA_DETECTED", payload: detection }).catch(() => {});
+  chrome.runtime.sendMessage({ type: "MEDIA_DETECTED", payload: detection, tabId: activeTabId }).catch(() => {});
 }
 
 async function resolveState() {
@@ -217,6 +233,7 @@ async function resolveState() {
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const url = tab?.url;
+  activeTabId = tab?.id ?? null;
 
   if (!url || url.startsWith("chrome://") || url.startsWith("edge://") || url.startsWith("about:")) {
     renderState({ type: "unsupported_site", hostname: "system page" });
@@ -234,19 +251,13 @@ async function resolveState() {
   const siteInfo = getSiteForHostname(hostname);
   const site = siteInfo?.id ?? null;
 
-  const session = await chrome.storage.session.get([
-    "lastDetection",
-    "searchResults",
-    "confirmedMedia",
-    "confirmedMediaManual",
-    "currentProgress",
-    "detectionFailed",
-    "lastDetectionUrl",
-    "tokenExpired",
-    "apiError",
-    "detectionSearching",
-    "detectionSearchingPreview",
-  ]);
+  const tabState = await readTabState();
+  const globalSession = await chrome.storage.session.get(["tokenExpired"]);
+
+  const session = {
+    ...tabState,
+    tokenExpired: globalSession.tokenExpired,
+  };
 
   if (session.tokenExpired) {
     renderState({ type: "error", message: t("tokenExpired") });
@@ -530,7 +541,7 @@ function showManualSearch(detection: MediaDetection) {
     btn.disabled = false;
 
     if (response?.results && response.results.length > 0) {
-      await chrome.storage.session.set({ searchResults: response.results });
+      await updateTabState({ searchResults: response.results });
       list.innerHTML = "";
       showResults(response.results, detection);
       document.getElementById("results-label")!.textContent =
@@ -638,8 +649,9 @@ function showConfirm(detection: MediaDetection, progress: number | null, isManua
     const resultsList = document.getElementById("results-list")!;
     resultsSection.style.display = "block";
 
-    const session = await chrome.storage.session.get(["searchResults"]);
-    if (!session.searchResults || (session.searchResults as AniListMedia[]).length === 0) {
+    const tabState = await readTabState();
+    const searchResults = tabState.searchResults as AniListMedia[] | undefined;
+    if (!searchResults || searchResults.length === 0) {
       resultsList.innerHTML = "";
       const loadingLi = document.createElement("li");
       loadingLi.style.cssText = "padding:8px;color:var(--text-muted)";
@@ -650,13 +662,13 @@ function showConfirm(detection: MediaDetection, progress: number | null, isManua
         payload: { title: detection.title, mediaType: detection.mediaType },
       });
       if (response?.results && response.results.length > 0) {
-        await chrome.storage.session.set({ searchResults: response.results });
+        await updateTabState({ searchResults: response.results });
         showResults(response.results, detection);
       } else {
         showManualSearch(detection);
       }
     } else {
-      showResults(session.searchResults as AniListMedia[], detection);
+      showResults(searchResults, detection);
     }
   });
 
@@ -726,7 +738,7 @@ async function selectMedia(media: AniListMedia) {
     }).catch(() => {});
   }
 
-  await chrome.storage.session.set({ confirmedMediaManual: true });
+  await updateTabState({ confirmedMediaManual: true });
 
   const response = await chrome.runtime.sendMessage({
     type: "GET_PROGRESS",
@@ -735,7 +747,7 @@ async function selectMedia(media: AniListMedia) {
 
   const progress = response?.progress ?? null;
   if (progress !== null) {
-    await chrome.storage.session.set({ currentProgress: progress, confirmedMedia: media });
+    await updateTabState({ currentProgress: progress, confirmedMedia: media });
     const titleEl = document.getElementById("media-title");
     if (titleEl) titleEl.textContent = media.title.english ?? media.title.romaji;
     const progressHint = document.getElementById("progress-hint");
@@ -771,7 +783,7 @@ async function handleUpdateClick() {
       renderPendingQueue();
     } else {
       if (!response.skipped) {
-        await chrome.storage.session.set({ currentProgress: response.progress });
+        await updateTabState({ currentProgress: response.progress });
       }
 
       btn.textContent = response.skipped
