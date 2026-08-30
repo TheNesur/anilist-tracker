@@ -58,6 +58,7 @@ export interface AniListMediaList {
 
 export type MessageType =
   | "MEDIA_DETECTED"
+  | "DETECTION_FAILED"
   | "UPDATE_PROGRESS"
   | "SEARCH_ANILIST"
   | "GET_AUTH_TOKEN"
@@ -70,6 +71,7 @@ export type MessageType =
 
 export type Message =
   | { type: "MEDIA_DETECTED"; payload: MediaDetection }
+  | { type: "DETECTION_FAILED"; url: string }
   | { type: "UPDATE_PROGRESS"; payload: { mediaId: number; progress: number; mediaType: MediaType } }
   | { type: "SEARCH_ANILIST"; payload: { title: string; mediaType: MediaType } }
   | { type: "GET_AUTH_TOKEN" }
@@ -137,36 +139,16 @@ export const DEFAULT_STORAGE: StorageData = {
 
 export interface SessionData {
   accessToken: string | null;
-  lastDetection: MediaDetection | null;
-  lastDetectionUrl: string | null;
-  searchResults: AniListMedia[] | null;
-  confirmedMedia: AniListMedia | null;
-  confirmedMediaManual: boolean;
-  currentProgress: number | null;
-  detectionFailed: boolean;
-  detectionSearching: boolean;
-  detectionSearchingPreview: { title: string; progress: number; mediaType: MediaType } | null;
   tokenExpired: boolean;
   viewerFetchFailed: boolean;
-  apiError: string | null;
   oauthState: string | null;
   pendingUpdateErrorCount: number;
 }
 
 export const DEFAULT_SESSION: SessionData = {
   accessToken: null,
-  lastDetection: null,
-  lastDetectionUrl: null,
-  searchResults: null,
-  confirmedMedia: null,
-  confirmedMediaManual: false,
-  currentProgress: null,
-  detectionFailed: false,
-  detectionSearching: false,
-  detectionSearchingPreview: null,
   tokenExpired: false,
   viewerFetchFailed: false,
-  apiError: null,
   oauthState: null,
   pendingUpdateErrorCount: 0,
 };

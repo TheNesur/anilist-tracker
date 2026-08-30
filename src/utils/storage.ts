@@ -62,12 +62,6 @@ export async function removeTitleMapping(title: string): Promise<void> {
   const mappings = { ...storage.titleMappings };
   delete mappings[title];
   await setStorage({ titleMappings: mappings });
-  await chrome.storage.session.remove([
-    "confirmedMedia",
-    "lastDetection",
-    "searchResults",
-    "currentProgress",
-  ]);
 }
 
 export async function logoutSelective(): Promise<void> {

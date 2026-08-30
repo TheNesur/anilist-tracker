@@ -2,6 +2,7 @@ import { getStorage, setTheme, getTheme, getToken } from "../utils/storage";
 import { escapeHtml } from "../utils/dom";
 import { getSiteForHostname, getDisplayName, isAnimeSite } from "../sites/registry";
 import type { AniListMedia, MediaDetection, PopupState, SupportedSite, GenericDetectionResult, MediaType } from "../types";
+import type { TabDetectionState } from "../background/tab-state";
 import { t } from "../utils/i18n";
 
 const loginView = document.getElementById("login-view")!;
@@ -15,14 +16,14 @@ let currentDetection: MediaDetection | null = null;
 let selectedMedia: AniListMedia | null = null;
 let activeTabId: number | null = null;
 
-async function readTabState(): Promise<Record<string, unknown>> {
+async function readTabState(): Promise<Partial<TabDetectionState>> {
   if (!activeTabId) return {};
   const key = `tab_${activeTabId}`;
   const result = await chrome.storage.session.get(key);
-  return result[key] ?? {};
+  return (result[key] as Partial<TabDetectionState>) ?? {};
 }
 
-async function updateTabState(partial: Record<string, unknown>): Promise<void> {
+async function updateTabState(partial: Partial<TabDetectionState>): Promise<void> {
   if (!activeTabId) return;
   const key = `tab_${activeTabId}`;
   const current = await readTabState();
@@ -252,11 +253,11 @@ async function resolveState() {
   const site = siteInfo?.id ?? null;
 
   const tabState = await readTabState();
-  const globalSession = await chrome.storage.session.get(["tokenExpired"]);
+  const globalSession = await chrome.storage.session.get(["tokenExpired"]) as { tokenExpired?: boolean };
 
   const session = {
     ...tabState,
-    tokenExpired: globalSession.tokenExpired,
+    tokenExpired: globalSession.tokenExpired ?? false,
   };
 
   if (session.tokenExpired) {
@@ -273,33 +274,33 @@ async function resolveState() {
     return;
   }
 
-  const lastUrl = session.lastDetectionUrl as string | null;
+  const lastUrl = session.lastDetectionUrl ?? null;
   const isCurrentPage = lastUrl && lastUrl === url;
   const isManualMatch = Boolean(session.confirmedMediaManual);
 
   if (session.apiError && isCurrentPage) {
-    renderState({ type: "error", message: session.apiError as string });
+    renderState({ type: "error", message: session.apiError });
     return;
   }
 
   if (session.detectionSearching && isCurrentPage) {
     renderState({
       type: "searching",
-      preview: (session.detectionSearchingPreview as { title: string; progress: number; mediaType: MediaType } | null) ?? null,
+      preview: session.detectionSearchingPreview ?? null,
     });
     return;
   }
 
   if (!site) {
     if (session.lastDetection && isCurrentPage) {
-      currentDetection = session.lastDetection as MediaDetection;
-      selectedMedia = (session.confirmedMedia as AniListMedia | null) ?? null;
+      currentDetection = session.lastDetection;
+      selectedMedia = session.confirmedMedia ?? null;
       renderState({
         type: "detected",
         detection: currentDetection,
-        progress: (session.currentProgress as number | null) ?? null,
+        progress: session.currentProgress ?? null,
         media: selectedMedia,
-        searchResults: selectedMedia ? null : (session.searchResults as AniListMedia[] | null),
+        searchResults: selectedMedia ? null : (session.searchResults ?? null),
         isManualMatch,
       });
       return;
@@ -330,15 +331,15 @@ async function resolveState() {
     return;
   }
 
-  currentDetection = session.lastDetection as MediaDetection;
-  selectedMedia = (session.confirmedMedia as AniListMedia | null) ?? null;
+  currentDetection = session.lastDetection!;
+  selectedMedia = session.confirmedMedia ?? null;
 
   renderState({
     type: "detected",
     detection: currentDetection,
-    progress: (session.currentProgress as number | null) ?? null,
+    progress: session.currentProgress ?? null,
     media: selectedMedia,
-    searchResults: selectedMedia ? null : (session.searchResults as AniListMedia[] | null),
+    searchResults: selectedMedia ? null : (session.searchResults ?? null),
     isManualMatch,
   });
 }
@@ -650,7 +651,7 @@ function showConfirm(detection: MediaDetection, progress: number | null, isManua
     resultsSection.style.display = "block";
 
     const tabState = await readTabState();
-    const searchResults = tabState.searchResults as AniListMedia[] | undefined;
+    const searchResults = tabState.searchResults;
     if (!searchResults || searchResults.length === 0) {
       resultsList.innerHTML = "";
       const loadingLi = document.createElement("li");
@@ -678,7 +679,7 @@ function showConfirm(detection: MediaDetection, progress: number | null, isManua
     section.appendChild(buildReportButton(detection, selectedMedia));
   }
 
-  btn.addEventListener("click", handleUpdateClick);
+  btn.onclick = handleUpdateClick;
 }
 
 function buildReportButton(detection: MediaDetection, media: AniListMedia): HTMLButtonElement {

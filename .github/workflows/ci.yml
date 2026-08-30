@@ -31,7 +31,7 @@ jobs:
       - name: Build extension
         env:
           VITE_ANILIST_CLIENT_ID: ${{ secrets.VITE_ANILIST_CLIENT_ID || '0' }}
-          VITE_ANILIST_REDIRECT_URL: ${{ secrets.VITE_ANILIST_REDIRECT_URL || 'https://example.chromiumapp.org/' }}
+          VITE_ANILIST_REDIRECT_URI: ${{ secrets.VITE_ANILIST_REDIRECT_URI || 'https://example.chromiumapp.org/' }}
         run: npm run build
 
       - name: Upload build artifact

@@ -1,6 +1,6 @@
 import { errMsg } from "../utils/dom";
 import { searchManga, searchAnime, getProgress, getMediaById, getProgressCollection } from "../utils/anilist";
-import { getStorage, setStorage, getToken, getTitleMapping, saveTitleMapping, setSession } from "../utils/storage";
+import { getStorage, setStorage, getToken, getTitleMapping, saveTitleMapping } from "../utils/storage";
 import { findExactMatch } from "../utils/matching";
 import { isTokenExpiredError, type MediaDetection, type AniListMedia } from "../types";
 import { normalizeSearchTitle } from "../parsers/utils";

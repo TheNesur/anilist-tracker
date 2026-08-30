@@ -1,5 +1,5 @@
 import { searchManga, searchAnime, getProgress } from "../utils/anilist";
-import { getStorage, getToken, setSession } from "../utils/storage";
+import { getStorage, getToken } from "../utils/storage";
 import { isTokenExpiredError, type MediaDetection, type AliasSubmitPayload, type AliasReportPayload } from "../types";
 import { normalizeSearchTitle } from "../parsers/utils";
 import { handleDetection, handleGetProgressCache } from "./detection";

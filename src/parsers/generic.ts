@@ -1,12 +1,5 @@
-import type { MediaType } from "../types";
+import type { GenericDetectionResult, MediaType } from "../types";
 import { cleanTitle, extractChapterNumber, stripScanlationSuffix } from "./utils";
-
-export interface GenericDetectionResult {
-  title: string;
-  progress: number;
-  url: string;
-  possibleTypes: MediaType[];
-}
 
 const VIDEO_URL_HINTS = /episode|watch|player|streaming/i;
 const MANGA_URL_HINTS = /chapter|chapitre|read|scan|manga|manhwa|webtoon/i;
