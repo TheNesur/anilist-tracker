@@ -64,6 +64,7 @@ export type MessageType =
   | "GET_PROGRESS"
   | "LOCAL_UPDATE_PROGRESS"
   | "ALIAS_SUBMIT"
+  | "ALIAS_REPORT"
   | "GET_PROGRESS_CACHE"
   | "FLUSH_PENDING_UPDATES";
 
@@ -75,6 +76,7 @@ export type Message =
   | { type: "GET_PROGRESS"; payload: { mediaId: number } }
   | { type: "LOCAL_UPDATE_PROGRESS"; payload: { progress: number } }
   | { type: "ALIAS_SUBMIT"; payload: AliasSubmitPayload }
+  | { type: "ALIAS_REPORT"; payload: AliasReportPayload }
   | { type: "GET_PROGRESS_CACHE"; payload: { mediaType: MediaType } }
   | { type: "FLUSH_PENDING_UPDATES" };
 
@@ -84,6 +86,12 @@ export interface AliasSubmitPayload {
   mediaId: number;
   mediaTitle: string;
   sourceHostname: string | null;
+}
+
+export interface AliasReportPayload {
+  alias: string;
+  mediaType: MediaType;
+  mediaId: number;
 }
 
 export interface PendingUpdate {
@@ -133,6 +141,7 @@ export interface SessionData {
   lastDetectionUrl: string | null;
   searchResults: AniListMedia[] | null;
   confirmedMedia: AniListMedia | null;
+  confirmedMediaManual: boolean;
   currentProgress: number | null;
   detectionFailed: boolean;
   detectionSearching: boolean;
@@ -150,6 +159,7 @@ export const DEFAULT_SESSION: SessionData = {
   lastDetectionUrl: null,
   searchResults: null,
   confirmedMedia: null,
+  confirmedMediaManual: false,
   currentProgress: null,
   detectionFailed: false,
   detectionSearching: false,
@@ -170,7 +180,7 @@ export type PopupState =
   | { type: "unsupported_page"; site: SupportedSite }
   | { type: "detection_failed"; site: SupportedSite }
   | { type: "generic_type_pick"; candidate: GenericDetectionResult; hostname: string }
-  | { type: "detected"; detection: MediaDetection; progress: number | null; media: AniListMedia | null; searchResults: AniListMedia[] | null }
+  | { type: "detected"; detection: MediaDetection; progress: number | null; media: AniListMedia | null; searchResults: AniListMedia[] | null; isManualMatch: boolean }
   | { type: "searching"; preview: { title: string; progress: number; mediaType: MediaType } | null }
   | { type: "error"; message: string };
 

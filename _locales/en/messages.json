@@ -301,5 +301,14 @@
   },
   "linkDiscord": {
     "message": "Join us on Discord"
+  },
+  "reportMatch": {
+    "message": "Report this match"
+  },
+  "reportSent": {
+    "message": "Reported ✓"
+  },
+  "reportFailed": {
+    "message": "Report failed"
   }
 }

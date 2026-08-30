@@ -1,11 +1,11 @@
 import { searchManga, searchAnime, getProgress } from "../utils/anilist";
 import { getStorage, getToken, setSession } from "../utils/storage";
-import { isTokenExpiredError, type MediaDetection, type AliasSubmitPayload } from "../types";
+import { isTokenExpiredError, type MediaDetection, type AliasSubmitPayload, type AliasReportPayload } from "../types";
 import { normalizeSearchTitle } from "../parsers/utils";
 import { handleDetection, handleGetProgressCache } from "./detection";
 import { handleUpdate, flushPendingUpdates, isPendingRetryAlarm } from "./progress";
 import { startOAuth, handleTokenExpired, ensureViewerLoaded } from "./oauth";
-import { submitAlias } from "./alias";
+import { submitAlias, reportAlias } from "./alias";
 import { isBadgeClearAlarm, updatePendingBadge } from "./badge";
 
 chrome.runtime.onInstalled.addListener((details) => {
@@ -111,5 +111,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case "ALIAS_SUBMIT":
       submitAlias(payload as AliasSubmitPayload);
       return;
+
+    case "ALIAS_REPORT":
+      reportAlias(payload as AliasReportPayload).then(sendResponse);
+      return true;
   }
 });
