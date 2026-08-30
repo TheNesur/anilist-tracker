@@ -189,6 +189,25 @@
       border: 1px solid var(--border);
     }
 
+    .btn-report {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 6px 0 0;
+      width: auto;
+      margin-top: 4px;
+      transition: color 0.2s;
+    }
+
+    .btn-report:hover { color: var(--error); }
+    .btn-report:disabled { color: var(--text-muted); cursor: default; opacity: 0.7; }
+    .btn-report svg { width: 13px; height: 13px; flex-shrink: 0; }
+
     /* State container */
     #state-container { padding: 14px 16px; }
 

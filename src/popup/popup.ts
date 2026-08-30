@@ -238,6 +238,7 @@ async function resolveState() {
     "lastDetection",
     "searchResults",
     "confirmedMedia",
+    "confirmedMediaManual",
     "currentProgress",
     "detectionFailed",
     "lastDetectionUrl",
@@ -263,6 +264,7 @@ async function resolveState() {
 
   const lastUrl = session.lastDetectionUrl as string | null;
   const isCurrentPage = lastUrl && lastUrl === url;
+  const isManualMatch = Boolean(session.confirmedMediaManual);
 
   if (session.apiError && isCurrentPage) {
     renderState({ type: "error", message: session.apiError as string });
@@ -287,6 +289,7 @@ async function resolveState() {
         progress: (session.currentProgress as number | null) ?? null,
         media: selectedMedia,
         searchResults: selectedMedia ? null : (session.searchResults as AniListMedia[] | null),
+        isManualMatch,
       });
       return;
     }
@@ -325,6 +328,7 @@ async function resolveState() {
     progress: (session.currentProgress as number | null) ?? null,
     media: selectedMedia,
     searchResults: selectedMedia ? null : (session.searchResults as AniListMedia[] | null),
+    isManualMatch,
   });
 }
 
@@ -424,7 +428,7 @@ function renderState(state: PopupState) {
 }
 
 function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
-  const { detection, progress, media, searchResults } = state;
+  const { detection, progress, media, searchResults, isManualMatch } = state;
 
   const isAnime = detection.mediaType === "ANIME";
   const progressLabel = isAnime
@@ -456,7 +460,7 @@ function renderDetected(state: Extract<PopupState, { type: "detected" }>) {
     </div>`;
 
   if (media) {
-    showConfirm(detection, progress);
+    showConfirm(detection, progress, isManualMatch);
   } else if (searchResults !== null && searchResults.length === 0) {
     showManualSearch(detection);
   } else if (searchResults && searchResults.length > 0) {
@@ -602,11 +606,11 @@ function showResults(results: AniListMedia[], detection?: MediaDetection) {
   }
 }
 
-function showConfirm(detection: MediaDetection, progress: number | null) {
+function showConfirm(detection: MediaDetection, progress: number | null, isManualMatch: boolean) {
   const section = document.getElementById("confirm-section")!;
   const btn = document.getElementById("btn-update") as HTMLButtonElement;
 
-  section.querySelectorAll(".btn-change").forEach(el => el.remove());
+  section.querySelectorAll(".btn-change, .btn-report").forEach(el => el.remove());
   section.style.display = "block";
 
   if (progress !== null && detection.progress <= progress) {
@@ -657,7 +661,48 @@ function showConfirm(detection: MediaDetection, progress: number | null) {
   });
 
   section.appendChild(changeBtn);
+
+  if (!isManualMatch && selectedMedia) {
+    section.appendChild(buildReportButton(detection, selectedMedia));
+  }
+
   btn.addEventListener("click", handleUpdateClick);
+}
+
+function buildReportButton(detection: MediaDetection, media: AniListMedia): HTMLButtonElement {
+  const reportBtn = document.createElement("button");
+  reportBtn.className = "btn-report";
+  reportBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+      <line x1="4" y1="22" x2="4" y2="15"/>
+    </svg>
+    <span>${escapeHtml(t("reportMatch"))}</span>
+  `;
+
+  reportBtn.addEventListener("click", async () => {
+    reportBtn.disabled = true;
+    reportBtn.querySelector("span")!.textContent = t("stateLoading");
+
+    const response = await chrome.runtime.sendMessage({
+      type: "ALIAS_REPORT",
+      payload: {
+        alias: detection.title,
+        mediaType: detection.mediaType,
+        mediaId: media.id,
+      },
+    });
+
+    reportBtn.querySelector("span")!.textContent = response?.success
+      ? t("reportSent")
+      : t("reportFailed");
+
+    if (!response?.success) {
+      reportBtn.disabled = false;
+    }
+  });
+
+  return reportBtn;
 }
 
 async function selectMedia(media: AniListMedia) {
@@ -681,6 +726,8 @@ async function selectMedia(media: AniListMedia) {
     }).catch(() => {});
   }
 
+  await chrome.storage.session.set({ confirmedMediaManual: true });
+
   const response = await chrome.runtime.sendMessage({
     type: "GET_PROGRESS",
     payload: { mediaId: media.id },
@@ -695,7 +742,7 @@ async function selectMedia(media: AniListMedia) {
     if (progressHint) progressHint.textContent = `(${progress})`;
   }
 
-  if (currentDetection) showConfirm(currentDetection, progress);
+  if (currentDetection) showConfirm(currentDetection, progress, true);
   document.getElementById("results-section")!.style.display = "none";
   document.getElementById("confirm-section")!.style.display = "block";
 }
