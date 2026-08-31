@@ -96,5 +96,17 @@
       "New setting to control whether this changelog appears after updates.",
       "Discord link added to settings."
     ]
+  },
+  "0.5.1": {
+    "fr": [
+      "Correction d'un bug qui empêchait la détection de fonctionner sur la version dev (conflit d'écriture interne entre la détection et la fin du traitement).",
+      "Correction d'un bug où un manga et un anime portant le même nom (ex. One Piece) partageaient la même correspondance AniList, au lieu d'être suivis séparément.",
+      "Le message affiché sur les sites non officiels reflète maintenant la détection automatique."
+    ],
+    "en": [
+      "Fixed a bug that prevented detection from working on the dev build (internal write conflict between detection and processing cleanup).",
+      "Fixed a bug where a manga and an anime with the same name (e.g. One Piece) shared the same AniList mapping, instead of being tracked separately.",
+      "The message shown on unofficial sites now reflects automatic detection."
+    ]
   }
 }
