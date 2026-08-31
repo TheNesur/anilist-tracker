@@ -90,7 +90,7 @@ async function runCatalogOverlay() {
   const progressCache: Record<number, number> = response?.cache ?? {};
 
   for (const entry of entries) {
-    const mediaId = await getTitleMapping(entry.title);
+    const mediaId = await getTitleMapping(entry.title, "MANGA");
 
     if (!mediaId) {
       applyBadge(entry, "unmapped", t("catalogUnmapped"));

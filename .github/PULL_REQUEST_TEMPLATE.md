@@ -1,6 +1,5 @@
 ## What does this PR do?
 
-<!-- Short description of the change -->
 
 ## Type of change
 
@@ -10,9 +9,7 @@
 - [ ] UX / polish
 - [ ] Other (please describe)
 
-## Site(s) affected / tested on
 
-<!-- If this touches a parser, list which site(s) and confirm you tested on the actual page -->
 
 ## Checklist
 
@@ -23,4 +20,3 @@
 
 ## Screenshots (if UI-related)
 
-<!-- Popup, options page, etc. -->

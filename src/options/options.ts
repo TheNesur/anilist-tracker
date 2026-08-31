@@ -131,9 +131,10 @@ async function renderMappings(filter = "") {
   const container = document.getElementById("mappings-list")!;
   container.innerHTML = "";
 
-  const entries = Object.entries(mappings).filter(([title]) =>
-    title.toLowerCase().includes(filter.toLowerCase())
-  );
+  const entries = Object.entries(mappings).filter(([key]) => {
+    const title = key.lastIndexOf("::") > 0 ? key.slice(0, key.lastIndexOf("::")) : key;
+    return title.toLowerCase().includes(filter.toLowerCase());
+  });
 
   if (Object.keys(mappings).length === 0) {
     const hint = document.createElement("p");
@@ -151,7 +152,11 @@ async function renderMappings(filter = "") {
     return;
   }
 
-  for (const [siteTitle, mediaId] of entries) {
+  for (const [mappingKey, mediaId] of entries) {
+    const separatorIndex = mappingKey.lastIndexOf("::");
+    const displayTitle = separatorIndex > 0 ? mappingKey.slice(0, separatorIndex) : mappingKey;
+    const mediaType = separatorIndex > 0 ? mappingKey.slice(separatorIndex + 2) : null;
+
     const row = document.createElement("div");
     row.className = "mapping-row";
 
@@ -160,11 +165,13 @@ async function renderMappings(filter = "") {
 
     const titleDiv = document.createElement("div");
     titleDiv.className = "mapping-title";
-    titleDiv.textContent = siteTitle;
+    titleDiv.textContent = displayTitle;
 
     const idDiv = document.createElement("div");
     idDiv.className = "mapping-id";
-    idDiv.textContent = `AniList ID : ${mediaId}`;
+    idDiv.textContent = mediaType
+      ? `AniList ID : ${mediaId} · ${mediaType}`
+      : `AniList ID : ${mediaId}`;
 
     info.appendChild(titleDiv);
     info.appendChild(idDiv);
@@ -173,7 +180,7 @@ async function renderMappings(filter = "") {
     removeBtn.className = "btn-remove";
     removeBtn.textContent = "✕";
     removeBtn.addEventListener("click", async () => {
-      await removeTitleMapping(siteTitle);
+      await removeTitleMapping(mappingKey);
       await renderMappings(filter);
     });
 

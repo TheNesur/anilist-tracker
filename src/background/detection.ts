@@ -37,7 +37,7 @@ export async function handleDetection(detection: MediaDetection, tabId: number) 
   const storage = await getStorage();
 
   try {
-    let mediaId = storage.titleMappings[detection.title] ?? null;
+    let mediaId = storage.titleMappings[`${detection.title}::${detection.mediaType}`] ?? null;
 
     if (!mediaId) {
       const searchTitle = normalizeSearchTitle(detection.title);
@@ -50,26 +50,26 @@ export async function handleDetection(detection: MediaDetection, tabId: number) 
         if (alias) {
           const media = await getMediaById(alias.mediaId).catch(() => null);
           if (media) {
-            await saveTitleMapping(detection.title, media.id);
+            await saveTitleMapping(detection.title, detection.mediaType, media.id);
             mediaId = media.id;
           }
         }
 
         if (!mediaId) {
-          notifyUser(tabId, detection, []);
+          await notifyUser(tabId, detection, []);
           return;
         }
       } else {
         if (storage.autoMap) {
           const exactMatch = findExactMatch(detection.title, results);
           if (exactMatch) {
-            await saveTitleMapping(detection.title, exactMatch.id);
+            await saveTitleMapping(detection.title, detection.mediaType, exactMatch.id);
             mediaId = exactMatch.id;
           }
         }
 
         if (!mediaId) {
-          notifyUser(tabId, detection, results);
+          await notifyUser(tabId, detection, results);
           return;
         }
       }
@@ -87,14 +87,17 @@ export async function handleDetection(detection: MediaDetection, tabId: number) 
       const media = await getMediaById(mediaId);
       if (media) {
         const newProgress = result?.progress ?? detection.progress;
-        notifyUser(tabId, detection, null, media, newProgress);
+        await notifyUser(tabId, detection, null, media, newProgress);
+      } else {
+        await setTabState(tabId, { detectionSearching: false });
       }
     } else {
       const media = await getMediaById(mediaId);
       if (media) {
-        notifyUser(tabId, detection, null, media, currentProgress);
+        await notifyUser(tabId, detection, null, media, currentProgress);
       } else {
         console.error("[AniList Tracker] Media not found by id", mediaId);
+        await setTabState(tabId, { detectionSearching: false });
       }
     }
   } catch (err) {
@@ -107,7 +110,6 @@ export async function handleDetection(detection: MediaDetection, tabId: number) 
         lastDetectionUrl: detection.url,
       });
     }
-  } finally {
     await setTabState(tabId, { detectionSearching: false });
   }
 }
@@ -143,7 +145,7 @@ export async function handleGetProgressCache(mediaType: MediaDetection["mediaTyp
   }
 }
 
-function notifyUser(
+async function notifyUser(
   tabId: number,
   detection: MediaDetection,
   searchResults: AniListMedia[] | null,
@@ -152,12 +154,14 @@ function notifyUser(
 ) {
   if (currentProgress === null) currentProgress = 0;
 
-  setTabState(tabId, {
+  await setTabState(tabId, {
     lastDetection: detection,
     searchResults,
     confirmedMedia: confirmedMedia ?? null,
     currentProgress: currentProgress ?? null,
     lastDetectionUrl: detection.url,
+    detectionSearching: false,
+    detectionSearchingPreview: null,
   });
 
   chrome.action.setBadgeText({ text: "?" });

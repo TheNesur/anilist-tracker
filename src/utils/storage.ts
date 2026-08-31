@@ -37,14 +37,14 @@ export async function setToken(token: string | null): Promise<void> {
   await chrome.storage.session.set({ accessToken: token });
 }
 
-export async function getTitleMapping(siteTitle: string): Promise<number | null> {
+export async function getTitleMapping(siteTitle: string, mediaType: string): Promise<number | null> {
   const { titleMappings } = await getStorage();
-  return titleMappings[siteTitle] ?? null;
+  return titleMappings[`${siteTitle}::${mediaType}`] ?? null;
 }
 
-export async function saveTitleMapping(siteTitle: string, mediaId: number): Promise<void> {
+export async function saveTitleMapping(siteTitle: string, mediaType: string, mediaId: number): Promise<void> {
   const { titleMappings } = await getStorage();
-  titleMappings[siteTitle] = mediaId;
+  titleMappings[`${siteTitle}::${mediaType}`] = mediaId;
   await setStorage({ titleMappings });
 }
 
@@ -57,10 +57,10 @@ export async function setTheme(theme: Theme): Promise<void> {
   await chrome.storage.local.set({ theme });
 }
 
-export async function removeTitleMapping(title: string): Promise<void> {
+export async function removeTitleMapping(mappingKey: string): Promise<void> {
   const storage = await getStorage();
   const mappings = { ...storage.titleMappings };
-  delete mappings[title];
+  delete mappings[mappingKey];
   await setStorage({ titleMappings: mappings });
 }
 

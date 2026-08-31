@@ -723,7 +723,7 @@ async function selectMedia(media: AniListMedia) {
 
   if (currentDetection) {
     const { saveTitleMapping } = await import("../utils/storage");
-    await saveTitleMapping(currentDetection.title, media.id);
+    await saveTitleMapping(currentDetection.title, currentDetection.mediaType, media.id);
 
     chrome.runtime.sendMessage({
       type: "ALIAS_SUBMIT",
