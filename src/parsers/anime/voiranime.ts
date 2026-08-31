@@ -1,5 +1,5 @@
 import type { MediaDetection, SupportedSite } from "../../types";
-import { cleanTitle } from "../utils";
+import { cleanTitle, stripScanlationSuffix } from "../utils";
 
 export class VoirAnimeParser {
   site: SupportedSite = "voiranime";
@@ -22,7 +22,7 @@ export class VoirAnimeParser {
     if (!title || !episode) return null;
 
     return {
-      title: cleanTitle(title),
+      title: cleanTitle(stripScanlationSuffix(title)),
       progress: episode,
       mediaType: "ANIME",
       source: this.site,
