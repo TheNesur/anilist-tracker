@@ -18,7 +18,7 @@
     "message": "Site non officiel"
   },
   "stateUnsupportedSiteText": {
-    "message": "n'est pas officiellement supporté, mais la détection automatique est active. Va sur une page de chapitre et AniList Tracker essaiera de détecter ta progression."
+    "message": "n'est pas officiellement supporté, mais la détection automatique reste active sur les pages de chapitre."
   },
   "stateUnsupportedSiteHint": {
     "message": "Tu peux demander le support officiel sur notre Discord."
