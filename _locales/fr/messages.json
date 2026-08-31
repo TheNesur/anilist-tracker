@@ -15,10 +15,13 @@
     "message": "Détection en cours…"
   },
   "stateUnsupportedSite": {
-    "message": "Site non supporté"
+    "message": "Site non officiel"
   },
   "stateUnsupportedSiteText": {
-    "message": "n'est pas compatible avec AniList Tracker."
+    "message": "n'est pas officiellement supporté, mais la détection automatique est active. Va sur une page de chapitre et AniList Tracker essaiera de détecter ta progression."
+  },
+  "stateUnsupportedSiteHint": {
+    "message": "Tu peux demander le support officiel sur notre Discord."
   },
   "retryDetection": {
     "message": "Réessayer la détection"

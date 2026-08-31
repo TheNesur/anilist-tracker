@@ -376,6 +376,7 @@ function renderState(state: PopupState) {
           <div class="state-icon">🌐</div>
           <p class="state-title">${escapeHtml(t("stateUnsupportedSite"))}</p>
           <p class="state-text"><strong>${escapeHtml(state.hostname)}</strong> ${escapeHtml(t("stateUnsupportedSiteText"))}</p>
+          <p class="state-hint" style="margin-top:6px;opacity:0.7;font-size:12px">${escapeHtml(t("stateUnsupportedSiteHint"))}</p>
           <button class="btn btn-ghost" id="btn-retry-generic" style="margin-top:10px">${escapeHtml(t("retryDetection"))}</button>
         </div>`;
       document.getElementById("btn-retry-generic")!.addEventListener("click", resolveState);

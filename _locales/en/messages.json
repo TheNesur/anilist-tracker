@@ -15,10 +15,13 @@
     "message": "Detecting…"
   },
   "stateUnsupportedSite": {
-    "message": "Unsupported site"
+    "message": "Unofficial site"
   },
   "stateUnsupportedSiteText": {
-    "message": "is not compatible with AniList Tracker."
+    "message": "is not officially supported, but automatic detection is active. Navigate to a chapter page and AniList Tracker will try to detect your progress."
+  },
+  "stateUnsupportedSiteHint": {
+    "message": "You can request official support on our Discord."
   },
   "retryDetection": {
     "message": "Retry detection"
