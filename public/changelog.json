@@ -108,5 +108,27 @@
       "Fixed a bug where a manga and an anime with the same name (e.g. One Piece) shared the same AniList mapping, instead of being tracked separately.",
       "The message shown on unofficial sites now reflects automatic detection."
     ]
+  },
+  "0.5.2": {
+    "fr": [
+      "Correction majeure : les correspondances de titres enregistrées avant la 0.5.1 sont de nouveau reconnues. Elles étaient devenues invisibles suite à un changement de format interne, ce qui relançait une recherche AniList à chaque chapitre.",
+      "Détection beaucoup plus légère : plus d'accumulation de boucles de détection lors de la navigation, et la détection se met en pause sur les onglets en arrière-plan.",
+      "Moins de requêtes envoyées à AniList : les informations d'une œuvre sont mises en cache et la vérification de progression n'est plus faite en double.",
+      "Le popup ne clignote plus pendant une détection et ne se réinitialise plus quand on choisit une œuvre manuellement.",
+      "Le badge de l'icône est désormais propre à chaque onglet, et la coche de confirmation reste visible après une mise à jour automatique.",
+      "Correction de la détection des épisodes et chapitres numérotés 0.",
+      "L'overlay catalogue fonctionne de nouveau et ne ralentit plus les pages avec beaucoup de vignettes.",
+      "Connexion AniList plus fiable si le navigateur met l'extension en veille pendant l'authentification."
+    ],
+    "en": [
+      "Major fix: title mappings saved before 0.5.1 are recognised again. An internal key format change had made them invisible, forcing a fresh AniList search on every chapter.",
+      "Much lighter detection: navigation no longer stacks up detection loops, and detection pauses on background tabs.",
+      "Fewer requests sent to AniList: media details are cached and the progress check is no longer performed twice.",
+      "The popup no longer flickers during detection and no longer resets itself when picking a media manually.",
+      "The toolbar badge is now per-tab, and the success checkmark stays visible after an automatic update.",
+      "Fixed detection of episodes and chapters numbered 0.",
+      "The catalog overlay works again and no longer slows down pages with many thumbnails.",
+      "More reliable AniList login when the browser suspends the extension during authentication."
+    ]
   }
 }

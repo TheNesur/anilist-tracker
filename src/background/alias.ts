@@ -1,7 +1,7 @@
 import { errMsg } from "../utils/dom";
-import { getToken, getStorage } from "../utils/storage";
+import { getToken, getSettings } from "../utils/storage";
 import { TOKEN_ENDPOINT } from "./oauth";
-import type { MediaDetection } from "../types";
+import type { AliasReportPayload, AliasSubmitPayload, MediaType } from "../types";
 
 const ALIAS_LOOKUP_ENDPOINT = TOKEN_ENDPOINT.replace(/\/callback\/?$/, "/alias/lookup");
 const ALIAS_SUBMIT_ENDPOINT = TOKEN_ENDPOINT.replace(/\/callback\/?$/, "/alias/submit");
@@ -9,7 +9,7 @@ const ALIAS_REPORT_ENDPOINT = TOKEN_ENDPOINT.replace(/\/callback\/?$/, "/alias/r
 
 export async function lookupAlias(
   alias: string,
-  mediaType: MediaDetection["mediaType"]
+  mediaType: MediaType
 ): Promise<{ mediaId: number; title: string } | null> {
   try {
     const response = await fetch(ALIAS_LOOKUP_ENDPOINT, {
@@ -25,14 +25,8 @@ export async function lookupAlias(
   }
 }
 
-export async function submitAlias(params: {
-  alias: string;
-  mediaType: MediaDetection["mediaType"];
-  mediaId: number;
-  mediaTitle: string;
-  sourceHostname: string | null;
-}) {
-  const settings = await getStorage();
+export async function submitAlias(params: AliasSubmitPayload): Promise<void> {
+  const settings = await getSettings();
   if (!settings.contributeAliases) return;
 
   const token = await getToken();
@@ -52,11 +46,7 @@ export async function submitAlias(params: {
   }
 }
 
-export async function reportAlias(params: {
-  alias: string;
-  mediaType: MediaDetection["mediaType"];
-  mediaId: number;
-}): Promise<{ success: boolean }> {
+export async function reportAlias(params: AliasReportPayload): Promise<{ success: boolean }> {
   const token = await getToken();
   if (!token) return { success: false };
 

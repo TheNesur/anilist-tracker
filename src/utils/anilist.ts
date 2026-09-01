@@ -1,10 +1,10 @@
 import { errMsg } from "./dom";
 import { AniListUnreachableError, TokenExpiredError, type AniListMedia, type AniListMediaList } from "../types";
-import { sleep } from "./sleep";
+import { blockUntil, enqueue, exceedsInlineWait, remainingBlockMs } from "./request-queue";
 
 const ANILIST_API = "https://graphql.anilist.co";
 const SEARCH_PER_PAGE = 10;
-const MAX_RETRIES_429 = 3;
+const MAX_RETRIES_429 = 2;
 const DEFAULT_RETRY_AFTER_MS = 60_000;
 const FETCH_TIMEOUT_MS = 15_000;
 
@@ -21,12 +21,15 @@ interface RawGqlResult<T> {
   errors: GqlErrorItem[] | null;
 }
 
-async function rawGqlRequest<T>(
+class RateLimitedSignal {
+  constructor(readonly waitMs: number) {}
+}
+
+async function performRequest<T>(
   query: string,
   variables: Record<string, unknown>,
-  token?: string | null,
-  retryCount = 0
-): Promise<RawGqlResult<T>> {
+  token?: string | null
+): Promise<RawGqlResult<T> | RateLimitedSignal> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -61,15 +64,12 @@ async function rawGqlRequest<T>(
   }
 
   if (res.status === 429) {
-    if (retryCount >= MAX_RETRIES_429) {
-      throw new AniListUnreachableError("AniList rate limit: max retries exceeded");
-    }
     const retryAfter = Number(res.headers.get("Retry-After"));
     const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
       ? retryAfter * 1000
       : DEFAULT_RETRY_AFTER_MS;
-    await sleep(waitMs);
-    return rawGqlRequest<T>(query, variables, token, retryCount + 1);
+    blockUntil(Date.now() + waitMs);
+    return new RateLimitedSignal(waitMs);
   }
 
   if (res.status >= 500) {
@@ -86,13 +86,36 @@ async function rawGqlRequest<T>(
   return { data: json.data ?? null, errors: json.errors ?? null };
 }
 
+async function rawGqlRequest<T>(
+  query: string,
+  variables: Record<string, unknown>,
+  token?: string | null
+): Promise<RawGqlResult<T>> {
+  if (exceedsInlineWait(remainingBlockMs())) {
+    throw new AniListUnreachableError("AniList rate limit in effect");
+  }
+
+  for (let attempt = 0; attempt <= MAX_RETRIES_429; attempt++) {
+    const result = await enqueue(() => performRequest<T>(query, variables, token));
+
+    if (!(result instanceof RateLimitedSignal)) {
+      return result;
+    }
+
+    if (exceedsInlineWait(result.waitMs) || attempt === MAX_RETRIES_429) {
+      throw new AniListUnreachableError("AniList rate limit reached");
+    }
+  }
+
+  throw new AniListUnreachableError("AniList rate limit reached");
+}
+
 async function gqlRequest<T>(
   query: string,
   variables: Record<string, unknown>,
-  token?: string | null,
-  retryCount = 0
+  token?: string | null
 ): Promise<T> {
-  const { data, errors } = await rawGqlRequest<T>(query, variables, token, retryCount);
+  const { data, errors } = await rawGqlRequest<T>(query, variables, token);
 
   if (errors) {
     throw new Error(errors[0]?.message ?? "AniList API error");
@@ -106,6 +129,7 @@ query ($search: String, $perPage: Int, $formats: [MediaFormat]) {
   Page(perPage: $perPage) {
     media(search: $search, type: MANGA, format_in: $formats, sort: SEARCH_MATCH) {
       id
+      type
       format
       countryOfOrigin
       title { romaji english native }
@@ -129,6 +153,7 @@ query ($search: String, $perPage: Int, $formats: [MediaFormat]) {
   Page(perPage: $perPage) {
     media(search: $search, type: ANIME, format_in: $formats, sort: SEARCH_MATCH) {
       id
+      type
       format
       title { romaji english native }
       synonyms
@@ -150,6 +175,7 @@ const GET_MEDIA_BY_ID = `
 query ($id: Int) {
   Media(id: $id) {
     id
+    type
     format
     countryOfOrigin
     title { romaji english native }
@@ -161,12 +187,10 @@ query ($id: Int) {
 
 export async function getMediaById(id: number): Promise<AniListMedia | null> {
   try {
-    const data = await gqlRequest<{ Media: AniListMedia }>(
-      GET_MEDIA_BY_ID,
-      { id }
-    );
+    const data = await gqlRequest<{ Media: AniListMedia }>(GET_MEDIA_BY_ID, { id });
     return data.Media;
-  } catch {
+  } catch (err) {
+    if (err instanceof TokenExpiredError) throw err;
     return null;
   }
 }
@@ -177,12 +201,6 @@ query ($mediaId: Int, $userId: Int) {
     id
     progress
     status
-    media {
-      id
-      title { romaji english native }
-      coverImage { medium }
-      siteUrl
-    }
   }
 }`;
 
@@ -329,13 +347,7 @@ query {
   Viewer { id name }
 }`;
 
-export async function getViewer(
-  token: string
-): Promise<{ id: number; name: string }> {
-  const data = await gqlRequest<{ Viewer: { id: number; name: string } }>(
-    GET_VIEWER,
-    {},
-    token
-  );
+export async function getViewer(token: string): Promise<{ id: number; name: string }> {
+  const data = await gqlRequest<{ Viewer: { id: number; name: string } }>(GET_VIEWER, {}, token);
   return data.Viewer;
 }

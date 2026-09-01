@@ -1,9 +1,10 @@
-import { getStorage, setStorage, getTheme, setTheme, removeTitleMapping, logoutSelective } from "../utils/storage";
+import { getSettings, setStorage, getTheme, setTheme, getTitleMappings, removeTitleMapping, logoutSelective } from "../utils/storage";
 import { escapeHtml } from "../utils/dom";
 import { t } from "../utils/i18n";
 
 async function init() {
-  const storage = await getStorage();
+  const settings = await getSettings();
+  const account = await chrome.storage.local.get({ userId: null, username: null });
   const theme = await getTheme();
 
   applyTheme(theme);
@@ -12,48 +13,48 @@ async function init() {
   const nameEl = document.getElementById("account-name")!;
   const idEl = document.getElementById("account-id")!;
 
-  if (storage.userId) {
-    nameEl.textContent = storage.username ?? t("accountName");
-    idEl.textContent = t("accountId", String(storage.userId));
+  if (account.userId) {
+    nameEl.textContent = account.username ?? t("accountName");
+    idEl.textContent = t("accountId", String(account.userId));
   } else {
     nameEl.textContent = t("notConnected");
   }
 
   const betaSection = document.getElementById("beta-section")!;
   const betaToggle = document.getElementById("toggle-beta-features") as HTMLInputElement;
-  betaToggle.checked = storage.showBetaFeatures;
-  betaSection.style.display = storage.showBetaFeatures ? "block" : "none";
+  betaToggle.checked = settings.showBetaFeatures;
+  betaSection.style.display = settings.showBetaFeatures ? "block" : "none";
   betaToggle.addEventListener("change", async () => {
     await setStorage({ showBetaFeatures: betaToggle.checked });
     betaSection.style.display = betaToggle.checked ? "block" : "none";
   });
 
   const autoUpdateToggle = document.getElementById("toggle-autoupdate") as HTMLInputElement;
-  autoUpdateToggle.checked = storage.autoUpdate;
+  autoUpdateToggle.checked = settings.autoUpdate;
   autoUpdateToggle.addEventListener("change", async () => {
     await setStorage({ autoUpdate: autoUpdateToggle.checked });
   });
 
   const autoMapToggle = document.getElementById("toggle-automap") as HTMLInputElement;
-  autoMapToggle.checked = storage.autoMap;
+  autoMapToggle.checked = settings.autoMap;
   autoMapToggle.addEventListener("change", async () => {
     await setStorage({ autoMap: autoMapToggle.checked });
   });
 
   const contributeAliasesToggle = document.getElementById("toggle-contribute-aliases") as HTMLInputElement;
-  contributeAliasesToggle.checked = storage.contributeAliases;
+  contributeAliasesToggle.checked = settings.contributeAliases;
   contributeAliasesToggle.addEventListener("change", async () => {
     await setStorage({ contributeAliases: contributeAliasesToggle.checked });
   });
 
   const catalogStatusToggle = document.getElementById("toggle-catalog-status") as HTMLInputElement;
-  catalogStatusToggle.checked = storage.showCatalogStatus;
+  catalogStatusToggle.checked = settings.showCatalogStatus;
   catalogStatusToggle.addEventListener("change", async () => {
     await setStorage({ showCatalogStatus: catalogStatusToggle.checked });
   });
 
   const showUpdatePageToggle = document.getElementById("toggle-show-update-page") as HTMLInputElement;
-  showUpdatePageToggle.checked = storage.showUpdatePage;
+  showUpdatePageToggle.checked = settings.showUpdatePage;
   showUpdatePageToggle.addEventListener("change", async () => {
     await setStorage({ showUpdatePage: showUpdatePageToggle.checked });
   });
@@ -126,8 +127,8 @@ async function switchTheme(theme: "dark" | "light") {
 }
 
 async function renderMappings(filter = "") {
-  const storage = await getStorage();
-  const mappings = storage.titleMappings;
+  const { scoped } = await getTitleMappings();
+  const mappings = scoped;
   const container = document.getElementById("mappings-list")!;
   container.innerHTML = "";
 

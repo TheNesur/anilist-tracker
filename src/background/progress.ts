@@ -1,8 +1,14 @@
 import { errMsg } from "../utils/dom";
 import { getProgress, updateProgress, saveProgressBatch } from "../utils/anilist";
 import { getToken, getStorage, setStorage } from "../utils/storage";
-import { isTokenExpiredError, isAniListUnreachableError, type MediaDetection, type PendingUpdate } from "../types";
-import { scheduleBadgeClear, updatePendingBadge } from "./badge";
+import {
+  isTokenExpiredError,
+  isAniListUnreachableError,
+  type MediaType,
+  type PendingUpdate,
+  type UpdateResult,
+} from "../types";
+import { scheduleBadgeClear, setTabBadge, updatePendingBadge } from "./badge";
 import { ensureViewerLoaded, handleTokenExpired } from "./oauth";
 
 const PENDING_RETRY_ALARM = "anilist-tracker:retry-pending";
@@ -11,6 +17,11 @@ const BATCH_CHUNK_SIZE = 25;
 
 let flushing = false;
 
+export interface UpdateOptions {
+  tabId?: number;
+  knownProgress?: number | null;
+}
+
 export function isPendingRetryAlarm(name: string): boolean {
   return name === PENDING_RETRY_ALARM;
 }
@@ -18,8 +29,9 @@ export function isPendingRetryAlarm(name: string): boolean {
 export async function handleUpdate(
   mediaId: number,
   progress: number,
-  mediaType: MediaDetection["mediaType"] = "MANGA"
-) {
+  mediaType: MediaType = "MANGA",
+  options: UpdateOptions = {}
+): Promise<UpdateResult> {
   const token = await getToken();
   if (!token) return { success: false, error: "Not authenticated" };
 
@@ -27,22 +39,25 @@ export async function handleUpdate(
   if (!userId) return { success: false, error: "No user ID" };
 
   try {
-    const current = await getProgress(mediaId, userId, token);
+    const current = options.knownProgress !== undefined
+      ? options.knownProgress
+      : (await getProgress(mediaId, userId, token))?.progress ?? null;
 
-    if (current && current.progress >= progress) {
-      return { success: true, skipped: true, current: current.progress };
+    if (current !== null && current >= progress) {
+      return { success: true, skipped: true, current };
     }
 
     const result = await updateProgress(mediaId, progress, token);
 
-    chrome.action.setBadgeText({ text: "✓" });
-    chrome.action.setBadgeBackgroundColor({ color: "#2ecc71" });
-    scheduleBadgeClear();
+    if (options.tabId !== undefined) {
+      setTabBadge(options.tabId, "\u2713", "#2ecc71");
+      scheduleBadgeClear(options.tabId);
+    }
 
     return { success: true, progress: result.progress };
   } catch (err) {
     if (isTokenExpiredError(err)) {
-      await handleTokenExpired();
+      await handleTokenExpired(options.tabId);
       return { success: false, error: "Token expired" };
     }
     if (isAniListUnreachableError(err)) {
@@ -54,7 +69,7 @@ export async function handleUpdate(
   }
 }
 
-async function ensureRetryAlarmScheduled() {
+async function ensureRetryAlarmScheduled(): Promise<void> {
   const existing = await chrome.alarms.get(PENDING_RETRY_ALARM);
   if (!existing) {
     chrome.alarms.create(PENDING_RETRY_ALARM, { periodInMinutes: PENDING_RETRY_INTERVAL_MIN });
@@ -64,8 +79,8 @@ async function ensureRetryAlarmScheduled() {
 async function queuePendingUpdate(
   mediaId: number,
   progress: number,
-  mediaType: MediaDetection["mediaType"]
-) {
+  mediaType: MediaType
+): Promise<void> {
   const storage = await getStorage();
   const pending = [...storage.pendingUpdates];
   const existingIndex = pending.findIndex(
@@ -85,7 +100,7 @@ async function queuePendingUpdate(
   await ensureRetryAlarmScheduled();
 }
 
-export async function flushPendingUpdates() {
+export async function flushPendingUpdates(): Promise<void> {
   if (flushing) return;
   flushing = true;
 

@@ -1,38 +1,60 @@
 import { searchManga, searchAnime, getProgress } from "../utils/anilist";
-import { getStorage, getToken } from "../utils/storage";
-import { isTokenExpiredError, type MediaDetection, type AliasSubmitPayload, type AliasReportPayload } from "../types";
+import { getSettings, getStorage, getToken } from "../utils/storage";
+import {
+  isTokenExpiredError,
+  type AliasReportPayload,
+  type AliasSubmitPayload,
+  type MediaDetection,
+  type MediaType,
+} from "../types";
 import { normalizeSearchTitle } from "../parsers/utils";
 import { handleDetection, handleGetProgressCache } from "./detection";
 import { handleUpdate, flushPendingUpdates, isPendingRetryAlarm } from "./progress";
-import { startOAuth, handleTokenExpired, ensureViewerLoaded } from "./oauth";
+import { startOAuth, handleTokenExpired, handleOAuthTimeout, OAUTH_TIMEOUT_ALARM } from "./oauth";
 import { submitAlias, reportAlias } from "./alias";
-import { isBadgeClearAlarm, updatePendingBadge } from "./badge";
-import { setTabState, removeTabState, getTabState } from "./tab-state";
+import { clearTabBadge, isBadgeClearAlarm, tabIdFromBadgeAlarm, updatePendingBadge } from "./badge";
+import { setTabState, removeTabState, getTabState, pruneTabStates } from "./tab-state";
+import { migrationsReady } from "./migrations";
+
+migrationsReady.then(() => pruneTabStates()).catch(() => {});
 
 chrome.runtime.onInstalled.addListener((details) => {
-  if (details.reason === "update") {
-    (async () => {
-      const storage = await getStorage();
-      if (storage.showUpdatePage) {
-        chrome.tabs.create({ url: chrome.runtime.getURL("update.html") });
-      } else {
-        chrome.action.setBadgeText({ text: "★" });
-        chrome.action.setBadgeBackgroundColor({ color: "#3db4f2" });
-      }
-    })();
-  }
+  if (details.reason !== "update") return;
+
+  (async () => {
+    await migrationsReady;
+    const settings = await getSettings();
+    if (settings.showUpdatePage) {
+      chrome.tabs.create({ url: chrome.runtime.getURL("update.html") });
+    } else {
+      chrome.action.setBadgeText({ text: "\u2605" });
+      chrome.action.setBadgeBackgroundColor({ color: "#3db4f2" });
+    }
+  })();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  pruneTabStates().catch(() => {});
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (isBadgeClearAlarm(alarm.name)) {
+    const tabId = tabIdFromBadgeAlarm(alarm.name);
+    if (tabId !== null) clearTabBadge(tabId);
     (async () => {
       const storage = await getStorage();
       updatePendingBadge(storage.pendingUpdates.length);
     })();
+    return;
   }
 
   if (isPendingRetryAlarm(alarm.name)) {
     flushPendingUpdates();
+    return;
+  }
+
+  if (alarm.name === OAUTH_TIMEOUT_ALARM) {
+    handleOAuthTimeout().catch(() => {});
   }
 });
 
@@ -56,14 +78,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const tabId = sender.tab?.id;
       if (tabId) {
         const url = (message as { url?: string }).url ?? sender.tab?.url ?? null;
-        setTabState(tabId, { detectionFailed: true, lastDetectionUrl: url });
+        setTabState(tabId, {
+          detectionFailed: true,
+          lastDetectionUrl: url,
+          lastDetection: null,
+          confirmedMedia: null,
+          detectionSearching: false,
+          detectionSearchingPreview: null,
+        });
+        clearTabBadge(tabId);
       }
       return;
     }
 
     case "UPDATE_PROGRESS": {
-      const p = payload as { mediaId: number; progress: number; mediaType: MediaDetection["mediaType"] };
-      handleUpdate(p.mediaId, p.progress, p.mediaType).then(sendResponse);
+      const p = payload as { mediaId: number; progress: number; mediaType: MediaType };
+      const tabId = sender.tab?.id ?? (message as { tabId?: number }).tabId;
+      handleUpdate(p.mediaId, p.progress, p.mediaType, { tabId }).then(sendResponse);
       return true;
     }
 
@@ -82,7 +113,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
-    case "GET_AUTH_TOKEN":
+    case "START_OAUTH":
       startOAuth().then(sendResponse);
       return true;
 
@@ -91,17 +122,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       (async () => {
         const token = await getToken();
         const storage = await getStorage();
-        if (token && storage.userId) {
-          try {
-            const entry = await getProgress(p.mediaId, storage.userId, token);
-            sendResponse({ progress: entry?.progress ?? 0 });
-          } catch (err) {
-            if (isTokenExpiredError(err)) {
-              await handleTokenExpired();
-            }
-            sendResponse({ progress: null });
+        if (!token || !storage.userId) {
+          sendResponse({ progress: null });
+          return;
+        }
+        try {
+          const entry = await getProgress(p.mediaId, storage.userId, token);
+          sendResponse({ progress: entry?.progress ?? 0 });
+        } catch (err) {
+          if (isTokenExpiredError(err)) {
+            await handleTokenExpired();
           }
-        } else {
           sendResponse({ progress: null });
         }
       })();
@@ -109,15 +140,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     case "SEARCH_ANILIST": {
-      const p = payload as { title: string; mediaType: MediaDetection["mediaType"] };
+      const p = payload as { title: string; mediaType: MediaType };
       const searchTitle = normalizeSearchTitle(p.title);
       const search = p.mediaType === "ANIME" ? searchAnime(searchTitle) : searchManga(searchTitle);
-      search.then((results) => sendResponse({ results }));
+      search
+        .then((results) => sendResponse({ results }))
+        .catch(() => sendResponse({ results: [] }));
       return true;
     }
 
     case "GET_PROGRESS_CACHE": {
-      const p = payload as { mediaType: MediaDetection["mediaType"] };
+      const p = payload as { mediaType: MediaType };
       handleGetProgressCache(p.mediaType).then(sendResponse);
       return true;
     }

@@ -20,14 +20,14 @@ export class AsuraParser {
     const urlMatch = window.location.pathname.match(/chapter-(\d+(?:\.\d+)?)/i);
     let chapter: number | null = urlMatch ? parseFloat(urlMatch[1]) : null;
 
-    if (!chapter) {
+    if (chapter === null || isNaN(chapter)) {
       const chapterText =
         document.querySelector<HTMLElement>("[class*='chapter-num']")?.textContent ??
         document.title;
       chapter = extractChapterNumber(chapterText);
     }
 
-    if (!rawTitle || !chapter) return null;
+    if (!rawTitle || chapter === null || isNaN(chapter)) return null;
 
     return {
       title: cleanTitle(stripScanlationSuffix(rawTitle)),

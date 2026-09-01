@@ -313,5 +313,8 @@
   },
   "reportFailed": {
     "message": "Échec du signalement"
+  },
+  "openOnAniList": {
+    "message": "Ouvrir sur AniList"
   }
 }
