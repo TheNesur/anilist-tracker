@@ -21,7 +21,7 @@ export class WebtoonParser {
 
     const chapter = this.extractChapter();
 
-    if (!rawTitle || !chapter) return null;
+    if (!rawTitle || chapter === null) return null;
 
     const cleanedTitle = cleanTitle(
       stripScanlationSuffix(this.stripLocaleSuffix(rawTitle))

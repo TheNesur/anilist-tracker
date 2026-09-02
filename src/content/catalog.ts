@@ -1,5 +1,5 @@
 import { getCatalogParser } from "../parsers/catalog";
-import { getStorage, getTitleMapping, getToken } from "../utils/storage";
+import { mappingKey } from "../utils/storage";
 import { t } from "../utils/i18n";
 import type { CatalogEntry } from "../types";
 
@@ -10,10 +10,15 @@ if (window.self !== window.top) {
 const BADGE_CLASS = "anilist-tracker-catalog-badge";
 const CARD_CLASS = "anilist-tracker-catalog-card";
 const STYLE_ID = "anilist-tracker-catalog-style";
+const RERUN_DEBOUNCE_MS = 250;
 
 type CatalogStatus = "uptodate" | "behind" | "notstarted" | "unmapped";
 
-function injectStyles() {
+let running = false;
+let rerunRequested = false;
+let debounceTimer: number | null = null;
+
+function injectStyles(): void {
   if (document.getElementById(STYLE_ID)) return;
 
   const style = document.createElement("style");
@@ -47,7 +52,7 @@ function injectStyles() {
   document.head.appendChild(style);
 }
 
-function applyBadge(entry: CatalogEntry, status: CatalogStatus, label: string) {
+function applyBadge(entry: CatalogEntry, status: CatalogStatus, label: string): void {
   entry.element.classList.add(CARD_CLASS);
   entry.element.setAttribute("data-anilist-status", status);
 
@@ -71,28 +76,33 @@ function applyBadge(entry: CatalogEntry, status: CatalogStatus, label: string) {
   info.appendChild(badge);
 }
 
-async function runCatalogOverlay() {
+async function runCatalogOverlay(): Promise<void> {
   const parser = getCatalogParser();
   if (!parser || !parser.isCatalogPage()) return;
 
-  const storage = await getStorage();
-  const token = await getToken();
-  if (!storage.showCatalogStatus || !token) return;
+  const settings = await chrome.storage.local.get({ showCatalogStatus: false });
+  if (!settings.showCatalogStatus) return;
 
   const entries = parser.detectEntries();
   if (entries.length === 0) return;
 
-  injectStyles();
-
   const response = await chrome.runtime
     .sendMessage({ type: "GET_PROGRESS_CACHE", payload: { mediaType: "MANGA" } })
     .catch(() => null);
-  const progressCache: Record<number, number> = response?.cache ?? {};
+
+  if (!response?.authed) return;
+
+  injectStyles();
+
+  const progressCache: Record<number, number> = response.cache ?? {};
+  const mappings = await chrome.storage.local.get({ titleMappings: {}, legacyTitleMappings: {} });
+  const scoped = mappings.titleMappings as Record<string, number>;
+  const legacy = mappings.legacyTitleMappings as Record<string, number>;
 
   for (const entry of entries) {
-    const mediaId = await getTitleMapping(entry.title, "MANGA");
+    const mediaId = scoped[mappingKey(entry.title, "MANGA")] ?? legacy[entry.title] ?? null;
 
-    if (!mediaId) {
+    if (mediaId === null) {
       applyBadge(entry, "unmapped", t("catalogUnmapped"));
       continue;
     }
@@ -110,22 +120,43 @@ async function runCatalogOverlay() {
   }
 }
 
-function scheduleRun() {
-  runCatalogOverlay().catch(() => {});
+async function execute(): Promise<void> {
+  if (running) {
+    rerunRequested = true;
+    return;
+  }
+
+  running = true;
+  try {
+    do {
+      rerunRequested = false;
+      await runCatalogOverlay();
+    } while (rerunRequested);
+  } catch {
+    rerunRequested = false;
+  } finally {
+    running = false;
+  }
 }
 
-function setupObserver() {
+function scheduleRun(): void {
+  if (debounceTimer !== null) window.clearTimeout(debounceTimer);
+  debounceTimer = window.setTimeout(() => {
+    debounceTimer = null;
+    execute();
+  }, RERUN_DEBOUNCE_MS);
+}
+
+function setupObserver(): void {
   const container = document.querySelector("#recently-up-ajax");
   if (!container) return;
 
-  const observer = new MutationObserver(() => {
-    scheduleRun();
-  });
+  const observer = new MutationObserver(scheduleRun);
   observer.observe(container, { childList: true, subtree: false });
 }
 
-function init() {
-  scheduleRun();
+function init(): void {
+  execute();
   setupObserver();
 }
 

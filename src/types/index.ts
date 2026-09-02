@@ -1,5 +1,7 @@
 export type MediaType = "MANGA" | "ANIME";
 
+export type Theme = "dark" | "light";
+
 export interface MediaDetection {
   title: string;
   progress: number;
@@ -43,6 +45,9 @@ export interface CatalogParser {
 
 export interface AniListMedia {
   id: number;
+  type?: MediaType;
+  format?: string | null;
+  countryOfOrigin?: string | null;
   title: { romaji: string; english: string | null; native: string | null };
   synonyms?: string[];
   coverImage: { medium: string };
@@ -55,32 +60,6 @@ export interface AniListMediaList {
   status: string;
   media: AniListMedia;
 }
-
-export type MessageType =
-  | "MEDIA_DETECTED"
-  | "DETECTION_FAILED"
-  | "UPDATE_PROGRESS"
-  | "SEARCH_ANILIST"
-  | "GET_AUTH_TOKEN"
-  | "GET_PROGRESS"
-  | "LOCAL_UPDATE_PROGRESS"
-  | "ALIAS_SUBMIT"
-  | "ALIAS_REPORT"
-  | "GET_PROGRESS_CACHE"
-  | "FLUSH_PENDING_UPDATES";
-
-export type Message =
-  | { type: "MEDIA_DETECTED"; payload: MediaDetection }
-  | { type: "DETECTION_FAILED"; url: string }
-  | { type: "UPDATE_PROGRESS"; payload: { mediaId: number; progress: number; mediaType: MediaType } }
-  | { type: "SEARCH_ANILIST"; payload: { title: string; mediaType: MediaType } }
-  | { type: "GET_AUTH_TOKEN" }
-  | { type: "GET_PROGRESS"; payload: { mediaId: number } }
-  | { type: "LOCAL_UPDATE_PROGRESS"; payload: { progress: number } }
-  | { type: "ALIAS_SUBMIT"; payload: AliasSubmitPayload }
-  | { type: "ALIAS_REPORT"; payload: AliasReportPayload }
-  | { type: "GET_PROGRESS_CACHE"; payload: { mediaType: MediaType } }
-  | { type: "FLUSH_PENDING_UPDATES" };
 
 export interface AliasSubmitPayload {
   alias: string;
@@ -103,11 +82,51 @@ export interface PendingUpdate {
   queuedAt: number;
 }
 
-export interface StorageData {
-  accessToken: string | null;
-  userId: number | null;
-  username: string | null;
-  titleMappings: Record<string, number>;
+export interface UpdateResult {
+  success: boolean;
+  progress?: number;
+  current?: number;
+  skipped?: boolean;
+  queued?: boolean;
+  error?: string;
+}
+
+export interface OAuthResult {
+  success: boolean;
+  username?: string | null;
+  partial?: boolean;
+  cancelled?: boolean;
+  timedOut?: boolean;
+  error?: string;
+}
+
+export type MessageType =
+  | "MEDIA_DETECTED"
+  | "DETECTION_FAILED"
+  | "UPDATE_PROGRESS"
+  | "SEARCH_ANILIST"
+  | "START_OAUTH"
+  | "GET_PROGRESS"
+  | "LOCAL_UPDATE_PROGRESS"
+  | "ALIAS_SUBMIT"
+  | "ALIAS_REPORT"
+  | "GET_PROGRESS_CACHE"
+  | "FLUSH_PENDING_UPDATES";
+
+export type Message =
+  | { type: "MEDIA_DETECTED"; payload: MediaDetection; tabId?: number }
+  | { type: "DETECTION_FAILED"; url: string }
+  | { type: "UPDATE_PROGRESS"; payload: { mediaId: number; progress: number; mediaType: MediaType } }
+  | { type: "SEARCH_ANILIST"; payload: { title: string; mediaType: MediaType } }
+  | { type: "START_OAUTH" }
+  | { type: "GET_PROGRESS"; payload: { mediaId: number } }
+  | { type: "LOCAL_UPDATE_PROGRESS"; payload: { progress: number } }
+  | { type: "ALIAS_SUBMIT"; payload: AliasSubmitPayload }
+  | { type: "ALIAS_REPORT"; payload: AliasReportPayload }
+  | { type: "GET_PROGRESS_CACHE"; payload: { mediaType: MediaType } }
+  | { type: "FLUSH_PENDING_UPDATES" };
+
+export interface Settings {
   autoUpdate: boolean;
   autoMap: boolean;
   theme: Theme;
@@ -115,16 +134,9 @@ export interface StorageData {
   showCatalogStatus: boolean;
   showUpdatePage: boolean;
   showBetaFeatures: boolean;
-  mangaProgressCache: Record<number, number>;
-  mangaProgressCacheUpdatedAt: number | null;
-  pendingUpdates: PendingUpdate[];
 }
 
-export const DEFAULT_STORAGE: StorageData = {
-  accessToken: null,
-  userId: null,
-  username: null,
-  titleMappings: {},
+export const DEFAULT_SETTINGS: Settings = {
   autoUpdate: false,
   autoMap: false,
   theme: "dark",
@@ -132,28 +144,51 @@ export const DEFAULT_STORAGE: StorageData = {
   showCatalogStatus: false,
   showUpdatePage: false,
   showBetaFeatures: false,
+};
+
+export interface AccountData {
+  accessToken: string | null;
+  userId: number | null;
+  username: string | null;
+  tokenExpired: boolean;
+}
+
+export const DEFAULT_ACCOUNT: AccountData = {
+  accessToken: null,
+  userId: null,
+  username: null,
+  tokenExpired: false,
+};
+
+export interface StorageData extends Settings, AccountData {
+  titleMappings: Record<string, number>;
+  legacyTitleMappings: Record<string, number>;
+  mangaProgressCache: Record<number, number>;
+  mangaProgressCacheUpdatedAt: number | null;
+  pendingUpdates: PendingUpdate[];
+  schemaVersion: number;
+}
+
+export const DEFAULT_STORAGE: StorageData = {
+  ...DEFAULT_SETTINGS,
+  ...DEFAULT_ACCOUNT,
+  titleMappings: {},
+  legacyTitleMappings: {},
   mangaProgressCache: {},
   mangaProgressCacheUpdatedAt: null,
   pendingUpdates: [],
+  schemaVersion: 0,
 };
 
 export interface SessionData {
-  accessToken: string | null;
-  tokenExpired: boolean;
   viewerFetchFailed: boolean;
-  oauthState: string | null;
   pendingUpdateErrorCount: number;
 }
 
 export const DEFAULT_SESSION: SessionData = {
-  accessToken: null,
-  tokenExpired: false,
   viewerFetchFailed: false,
-  oauthState: null,
   pendingUpdateErrorCount: 0,
 };
-
-export type Theme = "dark" | "light";
 
 export type PopupState =
   | { type: "unauthenticated" }
@@ -164,6 +199,7 @@ export type PopupState =
   | { type: "generic_type_pick"; candidate: GenericDetectionResult; hostname: string }
   | { type: "detected"; detection: MediaDetection; progress: number | null; media: AniListMedia | null; searchResults: AniListMedia[] | null; isManualMatch: boolean }
   | { type: "searching"; preview: { title: string; progress: number; mediaType: MediaType } | null }
+  | { type: "token_expired" }
   | { type: "error"; message: string };
 
 export class TokenExpiredError extends Error {

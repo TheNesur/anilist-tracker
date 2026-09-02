@@ -22,7 +22,7 @@ export class FlameParser {
       document.title;
     const chapter = extractChapterNumber(chapterText);
 
-    if (!rawTitle || !chapter) return null;
+    if (!rawTitle || chapter === null) return null;
 
     return {
       title: cleanTitle(stripScanlationSuffix(rawTitle)),

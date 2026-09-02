@@ -12,14 +12,13 @@ export class VoirAnimeParser {
   detect(): MediaDetection | null {
     if (!this.isChapterPage()) return null;
 
-    const titleEl = document.querySelector<HTMLAnchorElement>("a[href*='/anime/']");
-    const title = titleEl?.textContent?.trim() ?? this.extractTitleFromUrl() ?? null;
+    const title = this.extractTitle();
 
     const episodeMatch = window.location.pathname.match(/-(\d+)-(?:vostfr|vf(?:-\d+)?)(?:\/)?$/i)
       ?? window.location.pathname.match(/-(\d+)\/?$/i);
     const episode = episodeMatch ? parseInt(episodeMatch[1], 10) : null;
 
-    if (!title || !episode) return null;
+    if (!title || episode === null || isNaN(episode)) return null;
 
     return {
       title: cleanTitle(stripScanlationSuffix(title)),
@@ -30,12 +29,29 @@ export class VoirAnimeParser {
     };
   }
 
+  private extractTitle(): string | null {
+    const slug = window.location.pathname.split("/").filter(Boolean)[1] ?? null;
+
+    if (slug) {
+      const seriesLink = document.querySelector<HTMLAnchorElement>(
+        `.breadcrumb a[href*="/anime/${slug}/"], .breadcrumb a[href$="/anime/${slug}"], a.breadcrumb-item[href*="/anime/${slug}"]`
+      );
+      const linkTitle = seriesLink?.textContent?.trim();
+      if (linkTitle) return linkTitle;
+    }
+
+    const heading = document.querySelector<HTMLElement>("h1.entry-title, .post-title h1, h1")?.textContent?.trim();
+    if (heading) return heading;
+
+    return this.extractTitleFromUrl();
+  }
+
   private extractTitleFromUrl(): string | null {
     const parts = window.location.pathname.split("/").filter(Boolean);
     if (parts.length < 2) return null;
     return parts[1]
       .split("-")
-      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
   }
 }

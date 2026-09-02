@@ -22,7 +22,7 @@ export class ReaperParser {
         document.title
     );
 
-    if (!rawTitle || !chapter) return null;
+    if (!rawTitle || chapter === null) return null;
 
     return {
       title: cleanTitle(stripScanlationSuffix(rawTitle)),

@@ -6,9 +6,7 @@ export class CrunchyrollParser {
 
   isChapterPage(): boolean {
     if (!/\/watch\/[A-Z0-9]+/.test(window.location.pathname)) return false;
-    const showTitle = document.querySelector("[class*='show-title']")?.textContent?.trim();
-    const h1 = document.querySelector("h1")?.textContent?.trim();
-    return !!(showTitle || h1);
+    return !!document.querySelector("h1, [class*='show-title']");
   }
 
   detect(): MediaDetection | null {
@@ -30,11 +28,11 @@ export class CrunchyrollParser {
       h1.match(/épisode\s*(\d+)/i);
     if (h1Match) episode = parseInt(h1Match[1], 10);
 
-    if (!episode) {
+    if (episode === null || isNaN(episode)) {
       episode = this.extractEpisodeFromLdJson();
     }
 
-    if (!episode) {
+    if (episode === null || isNaN(episode)) {
       const docTitleMatch =
         document.title.match(/E(?:p)?\.?\s*(\d+)/i) ??
         document.title.match(/episode\s*(\d+)/i) ??
@@ -42,7 +40,7 @@ export class CrunchyrollParser {
       if (docTitleMatch) episode = parseInt(docTitleMatch[1], 10);
     }
 
-    if (!title || !episode) return null;
+    if (!title || episode === null || isNaN(episode)) return null;
 
     return {
       title: cleanTitle(stripSeasonSuffix(title)),
@@ -70,9 +68,7 @@ export class CrunchyrollParser {
             if (beforePipe) return beforePipe;
           }
         }
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
     return null;
   }
@@ -97,9 +93,7 @@ export class CrunchyrollParser {
             }
           }
         }
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
     return null;
   }
