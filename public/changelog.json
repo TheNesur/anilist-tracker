@@ -109,7 +109,7 @@
       "The message shown on unofficial sites now reflects automatic detection."
     ]
   },
-  "0.5.2": {
+  "0.5.3": {
     "fr": [
       "Correction majeure : les correspondances de titres enregistrées avant la 0.5.1 sont de nouveau reconnues. Elles étaient devenues invisibles suite à un changement de format interne, ce qui relançait une recherche AniList à chaque chapitre.",
       "Détection beaucoup plus légère : plus d'accumulation de boucles de détection lors de la navigation, et la détection se met en pause sur les onglets en arrière-plan.",
