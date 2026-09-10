@@ -49,6 +49,10 @@ export function flushPendingUpdates() {
   return send<{ done: boolean }>({ type: "FLUSH_PENDING_UPDATES" });
 }
 
+export function retryDetection(tabId: number) {
+  return send<{ ok: boolean }>({ type: "RETRY_DETECTION", tabId });
+}
+
 export function startOAuth() {
   return send<{ started: boolean; error?: string }>({ type: "START_OAUTH" });
 }

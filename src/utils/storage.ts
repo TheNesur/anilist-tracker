@@ -106,6 +106,7 @@ export async function logoutSelective(): Promise<void> {
     mangaProgressCache: {},
     mangaProgressCacheUpdatedAt: null,
     pendingUpdates: [],
+    pendingRetryMinutes: 5,
   });
   await clearSession();
 }

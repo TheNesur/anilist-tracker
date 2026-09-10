@@ -11,10 +11,16 @@ import {
   setStorage,
 } from "../utils/storage";
 import { findExactMatch } from "../utils/matching";
-import { isTokenExpiredError, type AniListMedia, type MediaDetection, type MediaType } from "../types";
+import {
+  isAniListUnreachableError,
+  isTokenExpiredError,
+  type AniListMedia,
+  type MediaDetection,
+  type MediaType,
+} from "../types";
 import { normalizeSearchTitle } from "../parsers/utils";
 import { lookupAlias } from "./alias";
-import { handleUpdate } from "./progress";
+import { handleUpdate, queuePendingUpdate } from "./progress";
 import { migrationsReady } from "./migrations";
 import { primeMedia, resolveMedia } from "./media-cache";
 import { ensureViewerLoaded, handleTokenExpired } from "./oauth";
@@ -46,12 +52,13 @@ export async function handleDetection(detection: MediaDetection, tabId: number):
 
 async function resolveFromLegacyMapping(
   detection: MediaDetection,
-  legacy: Record<string, number>
+  legacy: Record<string, number>,
+  token: string
 ): Promise<number | null> {
   const legacyId = legacy[detection.title];
   if (legacyId === undefined) return null;
 
-  const media = await resolveMedia(legacyId);
+  const media = await resolveMedia(legacyId, token);
 
   if (media && (media.type === undefined || media.type === detection.mediaType)) {
     await saveTitleMapping(detection.title, detection.mediaType, legacyId);
@@ -95,19 +102,19 @@ async function runDetection(detection: MediaDetection, tabId: number): Promise<v
     let mediaId: number | null = scoped[mappingKey(detection.title, detection.mediaType)] ?? null;
 
     if (mediaId === null) {
-      mediaId = await resolveFromLegacyMapping(detection, legacy);
+      mediaId = await resolveFromLegacyMapping(detection, legacy, token);
     }
 
     if (mediaId === null) {
       const searchTitle = normalizeSearchTitle(detection.title);
       const results = detection.mediaType === "ANIME"
-        ? await searchAnime(searchTitle)
-        : await searchManga(searchTitle);
+        ? await searchAnime(searchTitle, token)
+        : await searchManga(searchTitle, token);
 
       if (results.length === 0) {
         const alias = await lookupAlias(detection.title, detection.mediaType);
         if (alias) {
-          const media = await resolveMedia(alias.mediaId);
+          const media = await resolveMedia(alias.mediaId, token);
           if (media) {
             await saveTitleMapping(detection.title, detection.mediaType, media.id);
             mediaId = media.id;
@@ -135,11 +142,36 @@ async function runDetection(detection: MediaDetection, tabId: number): Promise<v
       }
     }
 
-    const userId = await ensureViewerLoaded(token);
+    let userId: number | null = null;
     let currentProgress: number | null = null;
-    if (userId) {
-      const entry = await getProgress(mediaId, userId, token);
-      currentProgress = entry?.progress ?? null;
+    let progressUnknown = false;
+
+    try {
+      userId = await ensureViewerLoaded(token);
+    } catch (err) {
+      if (!isAniListUnreachableError(err)) throw err;
+      progressUnknown = true;
+    }
+
+    if (!progressUnknown) {
+      if (userId === null) {
+        progressUnknown = true;
+      } else {
+        try {
+          const entry = await getProgress(mediaId, userId, token);
+          currentProgress = entry?.progress ?? null;
+        } catch (err) {
+          if (!isAniListUnreachableError(err)) throw err;
+          progressUnknown = true;
+        }
+      }
+    }
+
+    if (settings.autoUpdate && progressUnknown) {
+      await queuePendingUpdate(mediaId, detection.progress, detection.mediaType, tabId);
+      const queuedMedia = await resolveMedia(mediaId, token);
+      await notifyUser(tabId, detection, null, queuedMedia ?? undefined, null, "queued");
+      return;
     }
 
     const shouldUpdate =
@@ -150,17 +182,32 @@ async function runDetection(detection: MediaDetection, tabId: number): Promise<v
         tabId,
         knownProgress: currentProgress,
       });
-      const media = await resolveMedia(mediaId);
+      const media = await resolveMedia(mediaId, token);
+
+      if (result.queued) {
+        await notifyUser(tabId, detection, null, media ?? undefined, currentProgress, "queued");
+        return;
+      }
+
       if (media) {
-        const newProgress = result.progress ?? detection.progress;
-        await notifyUser(tabId, detection, null, media, newProgress, result.success !== false);
+        const newProgress = result.success === false
+          ? currentProgress
+          : result.progress ?? detection.progress;
+        await notifyUser(
+          tabId,
+          detection,
+          null,
+          media,
+          newProgress,
+          result.success === false ? "failed" : "updated"
+        );
       } else {
         await setTabState(tabId, { detectionSearching: false });
       }
       return;
     }
 
-    const media = await resolveMedia(mediaId);
+    const media = await resolveMedia(mediaId, token);
     if (media) {
       await notifyUser(tabId, detection, null, media, currentProgress);
     } else {
@@ -212,13 +259,15 @@ export async function handleGetProgressCache(mediaType: MediaType) {
   }
 }
 
+type NotifyOutcome = "none" | "updated" | "queued" | "failed";
+
 async function notifyUser(
   tabId: number,
   detection: MediaDetection,
   searchResults: AniListMedia[] | null,
   confirmedMedia?: AniListMedia,
   currentProgress?: number | null,
-  updated = false
+  outcome: NotifyOutcome = "none"
 ): Promise<void> {
   await setTabState(tabId, {
     lastDetection: detection,
@@ -231,7 +280,12 @@ async function notifyUser(
     detectionSearchingPreview: null,
   });
 
-  if (updated) return;
+  if (outcome === "updated" || outcome === "queued") return;
+
+  if (outcome === "failed") {
+    setTabBadge(tabId, "!", "#e74c3c");
+    return;
+  }
 
   if (confirmedMedia && currentProgress !== null && currentProgress !== undefined && detection.progress <= currentProgress) {
     clearTabBadge(tabId);

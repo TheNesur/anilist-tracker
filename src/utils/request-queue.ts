@@ -11,6 +11,10 @@ export function blockUntil(timestamp: number): void {
   if (timestamp > blockedUntil) blockedUntil = timestamp;
 }
 
+export function clearBlock(): void {
+  blockedUntil = 0;
+}
+
 export function remainingBlockMs(): number {
   return Math.max(0, blockedUntil - Date.now());
 }

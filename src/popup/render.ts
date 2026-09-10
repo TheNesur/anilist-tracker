@@ -3,7 +3,8 @@ import { t } from "../utils/i18n";
 import { getDisplayName, isAnimeSite } from "../sites/registry";
 import type { GenericDetectionResult, MediaType, PopupState } from "../types";
 import { btnLogin, stateContainer } from "./elements";
-import { requestRefresh } from "./state";
+import { getActiveTabId, requestRefresh } from "./state";
+import { retryDetection } from "./messaging";
 import { renderDetected } from "./views/detected";
 
 type GenericPick = (candidate: GenericDetectionResult, mediaType: MediaType) => void;
@@ -117,14 +118,26 @@ export function renderState(state: PopupState): void {
       break;
     }
 
-    case "error":
+    case "error": {
       stateContainer.innerHTML = `
         <div class="state-box">
           <div class="state-icon">❌</div>
           <p class="state-title">${escapeHtml(t("errorTitle"))}</p>
           <p class="state-text">${escapeHtml(t("apiError"))}</p>
           <p class="state-hint"><a href="https://discord.gg/TF428cr" target="_blank">${escapeHtml(t("apiErrorHint"))}</a></p>
+          <button class="btn btn-ghost" id="btn-retry-detection" style="margin-top:10px">${escapeHtml(t("retryNow"))}</button>
         </div>`;
+      const retryBtn = document.getElementById("btn-retry-detection") as HTMLButtonElement;
+      retryBtn.addEventListener("click", async () => {
+        retryBtn.disabled = true;
+        retryBtn.textContent = t("stateLoading");
+        const tabId = getActiveTabId();
+        if (tabId !== null) {
+          await retryDetection(tabId);
+        }
+        requestRefresh();
+      });
       break;
+    }
   }
 }

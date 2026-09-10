@@ -1,5 +1,5 @@
 import { getMediaById } from "../utils/anilist";
-import type { AniListMedia } from "../types";
+import { isTokenExpiredError, type AniListMedia } from "../types";
 
 const CACHE_KEY = "mediaCache";
 const TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -42,7 +42,7 @@ function storeMedia(id: number, media: AniListMedia): Promise<void> {
   });
 }
 
-export async function resolveMedia(id: number): Promise<AniListMedia | null> {
+export async function resolveMedia(id: number, token?: string | null): Promise<AniListMedia | null> {
   const cache = await readCache();
   const entry = cache[String(id)];
 
@@ -50,10 +50,14 @@ export async function resolveMedia(id: number): Promise<AniListMedia | null> {
     return entry.media;
   }
 
-  const media = await getMediaById(id);
-  if (media) {
-    await storeMedia(id, media);
-    return media;
+  try {
+    const media = await getMediaById(id, token);
+    if (media) {
+      await storeMedia(id, media);
+      return media;
+    }
+  } catch (err) {
+    if (isTokenExpiredError(err)) throw err;
   }
 
   return entry?.media ?? null;

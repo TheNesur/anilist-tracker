@@ -9,14 +9,16 @@ import {
 } from "../types";
 import { normalizeSearchTitle } from "../parsers/utils";
 import { handleDetection, handleGetProgressCache } from "./detection";
-import { handleUpdate, flushPendingUpdates, isPendingRetryAlarm } from "./progress";
+import { handleUpdate, flushPendingUpdates, isPendingRetryAlarm, resumePendingRetry } from "./progress";
 import { startOAuth, handleTokenExpired, handleOAuthTimeout, OAUTH_TIMEOUT_ALARM } from "./oauth";
 import { submitAlias, reportAlias } from "./alias";
 import { clearTabBadge, isBadgeClearAlarm, tabIdFromBadgeAlarm, updatePendingBadge } from "./badge";
 import { setTabState, removeTabState, getTabState, pruneTabStates } from "./tab-state";
+import { clearBlock } from "../utils/request-queue";
 import { migrationsReady } from "./migrations";
 
 migrationsReady.then(() => pruneTabStates()).catch(() => {});
+migrationsReady.then(() => resumePendingRetry()).catch(() => {});
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason !== "update") return;
@@ -35,6 +37,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 chrome.runtime.onStartup.addListener(() => {
   pruneTabStates().catch(() => {});
+  resumePendingRetry().catch(() => {});
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -49,7 +52,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 
   if (isPendingRetryAlarm(alarm.name)) {
-    flushPendingUpdates();
+    flushPendingUpdates().catch(() => {});
     return;
   }
 
@@ -141,11 +144,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case "SEARCH_ANILIST": {
       const p = payload as { title: string; mediaType: MediaType };
-      const searchTitle = normalizeSearchTitle(p.title);
-      const search = p.mediaType === "ANIME" ? searchAnime(searchTitle) : searchManga(searchTitle);
-      search
-        .then((results) => sendResponse({ results }))
-        .catch(() => sendResponse({ results: [] }));
+      (async () => {
+        const token = await getToken();
+        const searchTitle = normalizeSearchTitle(p.title);
+        try {
+          const results = p.mediaType === "ANIME"
+            ? await searchAnime(searchTitle, token)
+            : await searchManga(searchTitle, token);
+          sendResponse({ results });
+        } catch (err) {
+          if (isTokenExpiredError(err)) {
+            await handleTokenExpired();
+          }
+          sendResponse({ results: [] });
+        }
+      })();
       return true;
     }
 
@@ -155,8 +168,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    case "RETRY_DETECTION": {
+      const tabId = (message as { tabId?: number }).tabId;
+      if (typeof tabId !== "number") return;
+      clearBlock();
+      (async () => {
+        await setTabState(tabId, {
+          apiError: null,
+          detectionFailed: false,
+          detectionSearching: true,
+        });
+        try {
+          await chrome.tabs.sendMessage(tabId, { type: "REDETECT" });
+        } catch {
+          await setTabState(tabId, { detectionSearching: false });
+        }
+        sendResponse({ ok: true });
+      })();
+      return true;
+    }
+
     case "FLUSH_PENDING_UPDATES":
-      flushPendingUpdates().then(() => sendResponse({ done: true }));
+      flushPendingUpdates({ force: true }).then(() => sendResponse({ done: true }));
       return true;
 
     case "ALIAS_SUBMIT":
