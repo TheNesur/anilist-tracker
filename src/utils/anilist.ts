@@ -6,13 +6,20 @@ const ANILIST_API = "https://graphql.anilist.co";
 const SEARCH_PER_PAGE = 10;
 const MAX_RETRIES_429 = 2;
 const DEFAULT_RETRY_AFTER_MS = 60_000;
+const MIN_RETRY_AFTER_MS = 15_000;
 const FETCH_TIMEOUT_MS = 15_000;
+const OUTAGE_COOLDOWN_MS = 120_000;
+const SERVER_ERROR_COOLDOWN_MS = 30_000;
+
+const RE_OUTAGE = /temporarily disabled|stability issues|under maintenance|service unavailable/i;
+const RE_INVALID_TOKEN = /invalid token|invalid access token|unauthorized/i;
 
 const MANGA_FORMATS = ["MANGA", "ONE_SHOT"];
 const ANIME_FORMATS = ["TV", "TV_SHORT", "MOVIE", "SPECIAL", "OVA", "ONA"];
 
 interface GqlErrorItem {
   message: string;
+  status?: number;
   path?: (string | number)[];
 }
 
@@ -23,6 +30,29 @@ interface RawGqlResult<T> {
 
 class RateLimitedSignal {
   constructor(readonly waitMs: number) {}
+}
+
+function throwOnFatalGqlErrors(errors: GqlErrorItem[] | null): void {
+  if (!errors || errors.length === 0) return;
+
+  for (const item of errors) {
+    const message = item?.message ?? "";
+    const status = item?.status;
+
+    if (status === 401 || RE_INVALID_TOKEN.test(message)) {
+      throw new TokenExpiredError();
+    }
+
+    if (status === 403 || RE_OUTAGE.test(message)) {
+      blockUntil(Date.now() + OUTAGE_COOLDOWN_MS);
+      throw new AniListUnreachableError(message || "AniList API is temporarily disabled");
+    }
+
+    if (typeof status === "number" && status >= 500) {
+      blockUntil(Date.now() + SERVER_ERROR_COOLDOWN_MS);
+      throw new AniListUnreachableError(message || `AniList server error: ${status}`);
+    }
+  }
 }
 
 async function performRequest<T>(
@@ -52,8 +82,10 @@ async function performRequest<T>(
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
+      blockUntil(Date.now() + SERVER_ERROR_COOLDOWN_MS);
       throw new AniListUnreachableError("AniList request timed out");
     }
+    blockUntil(Date.now() + SERVER_ERROR_COOLDOWN_MS);
     throw new AniListUnreachableError(errMsg(err));
   } finally {
     clearTimeout(timeout);
@@ -65,14 +97,21 @@ async function performRequest<T>(
 
   if (res.status === 429) {
     const retryAfter = Number(res.headers.get("Retry-After"));
-    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+    const rawWaitMs = Number.isFinite(retryAfter) && retryAfter > 0
       ? retryAfter * 1000
       : DEFAULT_RETRY_AFTER_MS;
+    const waitMs = Math.max(rawWaitMs, MIN_RETRY_AFTER_MS);
     blockUntil(Date.now() + waitMs);
     return new RateLimitedSignal(waitMs);
   }
 
+  if (res.status === 403) {
+    blockUntil(Date.now() + OUTAGE_COOLDOWN_MS);
+    throw new AniListUnreachableError("AniList API is temporarily disabled");
+  }
+
   if (res.status >= 500) {
+    blockUntil(Date.now() + SERVER_ERROR_COOLDOWN_MS);
     throw new AniListUnreachableError(`AniList server error: ${res.status}`);
   }
 
@@ -80,10 +119,14 @@ async function performRequest<T>(
   try {
     json = await res.json();
   } catch {
+    blockUntil(Date.now() + SERVER_ERROR_COOLDOWN_MS);
     throw new AniListUnreachableError("AniList returned an invalid response");
   }
 
-  return { data: json.data ?? null, errors: json.errors ?? null };
+  const errors = json.errors ?? null;
+  throwOnFatalGqlErrors(errors);
+
+  return { data: json.data ?? null, errors };
 }
 
 async function rawGqlRequest<T>(
@@ -92,7 +135,7 @@ async function rawGqlRequest<T>(
   token?: string | null
 ): Promise<RawGqlResult<T>> {
   if (exceedsInlineWait(remainingBlockMs())) {
-    throw new AniListUnreachableError("AniList rate limit in effect");
+    throw new AniListUnreachableError("AniList is cooling down after an error");
   }
 
   for (let attempt = 0; attempt <= MAX_RETRIES_429; attempt++) {
@@ -140,10 +183,11 @@ query ($search: String, $perPage: Int, $formats: [MediaFormat]) {
   }
 }`;
 
-export async function searchManga(title: string): Promise<AniListMedia[]> {
+export async function searchManga(title: string, token?: string | null): Promise<AniListMedia[]> {
   const data = await gqlRequest<{ Page: { media: AniListMedia[] } }>(
     SEARCH_MANGA,
-    { search: title, perPage: SEARCH_PER_PAGE, formats: MANGA_FORMATS }
+    { search: title, perPage: SEARCH_PER_PAGE, formats: MANGA_FORMATS },
+    token
   );
   return data.Page.media;
 }
@@ -163,10 +207,11 @@ query ($search: String, $perPage: Int, $formats: [MediaFormat]) {
   }
 }`;
 
-export async function searchAnime(title: string): Promise<AniListMedia[]> {
+export async function searchAnime(title: string, token?: string | null): Promise<AniListMedia[]> {
   const data = await gqlRequest<{ Page: { media: AniListMedia[] } }>(
     SEARCH_ANIME,
-    { search: title, perPage: SEARCH_PER_PAGE, formats: ANIME_FORMATS }
+    { search: title, perPage: SEARCH_PER_PAGE, formats: ANIME_FORMATS },
+    token
   );
   return data.Page.media;
 }
@@ -185,12 +230,13 @@ query ($id: Int) {
   }
 }`;
 
-export async function getMediaById(id: number): Promise<AniListMedia | null> {
+export async function getMediaById(id: number, token?: string | null): Promise<AniListMedia | null> {
   try {
-    const data = await gqlRequest<{ Media: AniListMedia }>(GET_MEDIA_BY_ID, { id });
+    const data = await gqlRequest<{ Media: AniListMedia }>(GET_MEDIA_BY_ID, { id }, token);
     return data.Media;
   } catch (err) {
     if (err instanceof TokenExpiredError) throw err;
+    if (err instanceof AniListUnreachableError) throw err;
     return null;
   }
 }
@@ -218,6 +264,7 @@ export async function getProgress(
     return data.MediaList;
   } catch (err) {
     if (err instanceof TokenExpiredError) throw err;
+    if (err instanceof AniListUnreachableError) throw err;
     return null;
   }
 }
@@ -239,6 +286,10 @@ export async function updateProgress(
   const data = await gqlRequest<{
     SaveMediaListEntry: { id: number; progress: number; status: string };
   }>(SAVE_PROGRESS, { mediaId, progress: chapter, status: "CURRENT" }, token);
+
+  if (!data?.SaveMediaListEntry) {
+    throw new AniListUnreachableError("AniList returned an empty update result");
+  }
 
   return data.SaveMediaListEntry;
 }
@@ -318,26 +369,39 @@ export async function saveProgressBatch(
     token
   );
 
+  if (!data) {
+    throw new AniListUnreachableError(errors?.[0]?.message ?? "AniList rejected the batch update");
+  }
+
   const errorsByAlias = new Map<string, string>();
+  const topLevelErrors: string[] = [];
+
   if (errors) {
     for (const err of errors) {
       const alias = err.path?.[0];
       if (typeof alias === "string") {
         errorsByAlias.set(alias, err.message);
+      } else {
+        topLevelErrors.push(err.message);
       }
     }
   }
 
+  const resolvedAliases = items.filter((_item, i) => data[`u${i}`]).length;
+  if (resolvedAliases === 0 && topLevelErrors.length > 0) {
+    throw new AniListUnreachableError(topLevelErrors[0]);
+  }
+
   return items.map((item, i) => {
     const alias = `u${i}`;
-    const result = data?.[alias];
+    const result = data[alias];
     if (result) {
       return { mediaId: item.mediaId, success: true, progress: result.progress };
     }
     return {
       mediaId: item.mediaId,
       success: false,
-      error: errorsByAlias.get(alias) ?? "Unknown error",
+      error: errorsByAlias.get(alias) ?? topLevelErrors[0] ?? "Unknown error",
     };
   });
 }

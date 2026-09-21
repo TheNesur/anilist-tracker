@@ -80,6 +80,7 @@ export interface PendingUpdate {
   progress: number;
   mediaType: MediaType;
   queuedAt: number;
+  attempts?: number;
 }
 
 export interface UpdateResult {
@@ -111,7 +112,9 @@ export type MessageType =
   | "ALIAS_SUBMIT"
   | "ALIAS_REPORT"
   | "GET_PROGRESS_CACHE"
-  | "FLUSH_PENDING_UPDATES";
+  | "FLUSH_PENDING_UPDATES"
+  | "RETRY_DETECTION"
+  | "REDETECT";
 
 export type Message =
   | { type: "MEDIA_DETECTED"; payload: MediaDetection; tabId?: number }
@@ -124,7 +127,9 @@ export type Message =
   | { type: "ALIAS_SUBMIT"; payload: AliasSubmitPayload }
   | { type: "ALIAS_REPORT"; payload: AliasReportPayload }
   | { type: "GET_PROGRESS_CACHE"; payload: { mediaType: MediaType } }
-  | { type: "FLUSH_PENDING_UPDATES" };
+  | { type: "FLUSH_PENDING_UPDATES" }
+  | { type: "RETRY_DETECTION"; tabId: number }
+  | { type: "REDETECT" };
 
 export interface Settings {
   autoUpdate: boolean;
@@ -166,6 +171,7 @@ export interface StorageData extends Settings, AccountData {
   mangaProgressCache: Record<number, number>;
   mangaProgressCacheUpdatedAt: number | null;
   pendingUpdates: PendingUpdate[];
+  pendingRetryMinutes: number;
   schemaVersion: number;
 }
 
@@ -177,6 +183,7 @@ export const DEFAULT_STORAGE: StorageData = {
   mangaProgressCache: {},
   mangaProgressCacheUpdatedAt: null,
   pendingUpdates: [],
+  pendingRetryMinutes: 5,
   schemaVersion: 0,
 };
 

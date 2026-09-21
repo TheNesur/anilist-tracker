@@ -117,6 +117,15 @@ function runInitial(): void {
 }
 
 hookHistoryNavigation();
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (sender.id !== chrome.runtime.id) return;
+  if ((message as { type?: string })?.type !== "REDETECT") return;
+  lastNotified = null;
+  pendingWhileHidden = false;
+  startPolling();
+  sendResponse({ ok: true });
+});
+
 window.addEventListener(NAV_EVENT, onNavigation);
 
 window.addEventListener("visibilitychange", () => {

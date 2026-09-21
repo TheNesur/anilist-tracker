@@ -1,7 +1,7 @@
 import { errMsg } from "../utils/dom";
 import { getViewer } from "../utils/anilist";
 import { markTokenExpired, setStorage, setToken } from "../utils/storage";
-import { isTokenExpiredError, type OAuthResult } from "../types";
+import { isAniListUnreachableError, isTokenExpiredError, type OAuthResult } from "../types";
 import { sleep } from "../utils/sleep";
 import { clearTabBadge, setTabBadge } from "./badge";
 
@@ -40,6 +40,7 @@ async function getViewerWithRetry(token: string) {
     } catch (err) {
       lastErr = err;
       if (isTokenExpiredError(err)) throw err;
+      if (isAniListUnreachableError(err)) throw err;
       if (attempt < VIEWER_RETRY_DELAYS_MS.length) {
         await sleep(VIEWER_RETRY_DELAYS_MS[attempt]);
       }
@@ -57,7 +58,8 @@ export async function ensureViewerLoaded(token: string): Promise<number | null> 
     await setStorage({ userId: viewer.id, username: viewer.name });
     await chrome.storage.session.remove("viewerFetchFailed");
     return viewer.id;
-  } catch {
+  } catch (err) {
+    if (isAniListUnreachableError(err)) throw err;
     return null;
   }
 }

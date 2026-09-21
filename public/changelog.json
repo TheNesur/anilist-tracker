@@ -130,5 +130,23 @@
       "The catalog overlay works again and no longer slows down pages with many thumbnails.",
       "More reliable AniList login when the browser suspends the extension during authentication."
     ]
+  },
+  "0.5.4": {
+    "fr": [
+      "Correction majeure : la détection fonctionne de nouveau pendant les restrictions de l'API AniList. Les recherches de titres étaient envoyées sans votre session AniList, alors qu'AniList bloque actuellement les requêtes non connectées. L'extension échouait donc sur toute œuvre pas encore associée, même si votre compte, lui, pouvait passer sans problème.",
+      "Les sessions expirées sont enfin détectées : l'extension vous propose de vous reconnecter au lieu d'échouer en silence.",
+      "Les mises à jour faites pendant une indisponibilité d'AniList sont mises en attente puis renvoyées automatiquement, au lieu d'être perdues.",
+      "Votre progression ne peut plus être réduite par erreur : avant d'envoyer une mise à jour en attente, l'extension vérifie votre progression réelle sur AniList.",
+      "Ajout d'un bouton « Réessayer maintenant » sur l'écran d'erreur — plus besoin de recharger la page.",
+      "Moins de requêtes envoyées à AniList : l'extension patiente après une erreur et espace ses nouvelles tentatives, pour limiter la charge sur leurs serveurs."
+    ],
+    "en": [
+      "Major fix: detection works again during AniList API restrictions. Title searches were sent without your AniList session, while AniList is currently blocking requests that aren't logged in. The extension therefore failed on any title not already linked, even though your account could have gone through fine.",
+      "Expired sessions are finally detected: the extension now asks you to reconnect instead of failing silently.",
+      "Updates made while AniList is unavailable are queued and resent automatically, instead of being lost.",
+      "Your progress can no longer be lowered by mistake: before sending a queued update, the extension checks your actual progress on AniList.",
+      "Added a \"Retry now\" button on the error screen — no need to reload the page anymore.",
+      "Fewer requests sent to AniList: the extension waits after an error and spaces out its retries, to reduce load on their servers."
+    ]
   }
 }
