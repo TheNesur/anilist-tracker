@@ -2,6 +2,7 @@ import { t } from "../../utils/i18n";
 import type { AniListMedia, MediaDetection } from "../../types";
 import { searchAniList } from "../messaging";
 import { updateTabState } from "../state";
+import { REPORT_OPTIONS, buildReportEntry, hostnameOf } from "./report";
 
 export interface ResultsOptions {
   onSelect: (media: AniListMedia) => void;
@@ -31,6 +32,21 @@ export function showResults(
   retryBtn.addEventListener("click", () => showManualSearch(detection, options));
 
   li.appendChild(retryBtn);
+  list.appendChild(li);
+
+  appendReportEntry(list, detection, "results");
+}
+
+function appendReportEntry(list: HTMLElement, detection: MediaDetection, context: "results" | "no_results"): void {
+  const entry = buildReportEntry(
+    [REPORT_OPTIONS.notFound, REPORT_OPTIONS.wrongDetection, REPORT_OPTIONS.other],
+    { context, hostname: hostnameOf(detection.url), detection, media: null }
+  );
+  if (!entry) return;
+
+  const li = document.createElement("li");
+  li.style.cssText = "display:block;cursor:default;padding:0 0 4px";
+  li.appendChild(entry);
   list.appendChild(li);
 }
 
@@ -107,6 +123,8 @@ export function showManualSearch(
   li.appendChild(hint);
   li.appendChild(row);
   list.appendChild(li);
+
+  appendReportEntry(list, detection, "no_results");
 
   const doSearch = async () => {
     const query = input.value.trim();

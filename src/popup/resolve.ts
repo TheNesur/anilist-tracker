@@ -129,8 +129,8 @@ async function computeState(): Promise<PopupState> {
   }
 
   if (session.detectionFailed && isCurrentPage) {
-    return { type: "detection_failed", site };
+    return { type: "detection_failed", site, hostname };
   }
 
-  return { type: "unsupported_page", site };
+  return { type: "unsupported_page", site, hostname };
 }

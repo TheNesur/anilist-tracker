@@ -305,9 +305,6 @@
   "linkDiscord": {
     "message": "Rejoindre le Discord"
   },
-  "reportMatch": {
-    "message": "Signaler ce match"
-  },
   "reportSent": {
     "message": "Signalé ✓"
   },
@@ -316,5 +313,35 @@
   },
   "openOnAniList": {
     "message": "Ouvrir sur AniList"
+  },
+  "reportProblem": {
+    "message": "Signaler un problème"
+  },
+  "reportSubmit": {
+    "message": "Envoyer"
+  },
+  "reportCancel": {
+    "message": "Annuler"
+  },
+  "reportNotePlaceholder": {
+    "message": "Ajouter des détails (facultatif)"
+  },
+  "reportNoteHint": {
+    "message": "Envoyé avec le nom du site et le titre détecté. N'y mets pas d'informations personnelles."
+  },
+  "reportKindWrongMatch": {
+    "message": "Ce n'est pas la bonne œuvre"
+  },
+  "reportKindWrongDetection": {
+    "message": "Titre ou chapitre mal détecté"
+  },
+  "reportKindNotFound": {
+    "message": "Œuvre introuvable sur AniList"
+  },
+  "reportKindSiteNotWorking": {
+    "message": "La détection ne fonctionne pas sur ce site"
+  },
+  "reportKindOther": {
+    "message": "Autre problème"
   }
 }

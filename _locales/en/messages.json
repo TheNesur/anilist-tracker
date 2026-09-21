@@ -305,9 +305,6 @@
   "linkDiscord": {
     "message": "Join us on Discord"
   },
-  "reportMatch": {
-    "message": "Report this match"
-  },
   "reportSent": {
     "message": "Reported ✓"
   },
@@ -316,5 +313,35 @@
   },
   "openOnAniList": {
     "message": "Open on AniList"
+  },
+  "reportProblem": {
+    "message": "Report a problem"
+  },
+  "reportSubmit": {
+    "message": "Send"
+  },
+  "reportCancel": {
+    "message": "Cancel"
+  },
+  "reportNotePlaceholder": {
+    "message": "Add details (optional)"
+  },
+  "reportNoteHint": {
+    "message": "Sent with the site name and the detected title. Please don't include personal information."
+  },
+  "reportKindWrongMatch": {
+    "message": "This is not the right title"
+  },
+  "reportKindWrongDetection": {
+    "message": "Title or chapter detected wrongly"
+  },
+  "reportKindNotFound": {
+    "message": "Can't find this title on AniList"
+  },
+  "reportKindSiteNotWorking": {
+    "message": "Detection doesn't work on this site"
+  },
+  "reportKindOther": {
+    "message": "Something else"
   }
 }

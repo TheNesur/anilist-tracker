@@ -69,10 +69,33 @@ export interface AliasSubmitPayload {
   sourceHostname: string | null;
 }
 
+export type ReportKind = "wrong_match" | "not_found" | "site_not_working" | "other";
+
+export type ReportContextName =
+  | "detected"
+  | "results"
+  | "no_results"
+  | "detection_failed"
+  | "unsupported_page"
+  | "unsupported_site";
+
 export interface AliasReportPayload {
   alias: string;
   mediaType: MediaType;
   mediaId: number;
+  mediaTitle: string;
+  sourceHostname: string | null;
+  kind: "wrong_match" | "other";
+  note: string | null;
+}
+
+export interface FeedbackReportPayload {
+  kind: "not_found" | "site_not_working" | "other";
+  context: ReportContextName;
+  hostname: string;
+  title: string | null;
+  mediaType: MediaType | null;
+  note: string | null;
 }
 
 export interface PendingUpdate {
@@ -111,6 +134,7 @@ export type MessageType =
   | "LOCAL_UPDATE_PROGRESS"
   | "ALIAS_SUBMIT"
   | "ALIAS_REPORT"
+  | "FEEDBACK_REPORT"
   | "GET_PROGRESS_CACHE"
   | "FLUSH_PENDING_UPDATES"
   | "RETRY_DETECTION"
@@ -126,6 +150,7 @@ export type Message =
   | { type: "LOCAL_UPDATE_PROGRESS"; payload: { progress: number } }
   | { type: "ALIAS_SUBMIT"; payload: AliasSubmitPayload }
   | { type: "ALIAS_REPORT"; payload: AliasReportPayload }
+  | { type: "FEEDBACK_REPORT"; payload: FeedbackReportPayload }
   | { type: "GET_PROGRESS_CACHE"; payload: { mediaType: MediaType } }
   | { type: "FLUSH_PENDING_UPDATES" }
   | { type: "RETRY_DETECTION"; tabId: number }
@@ -201,8 +226,8 @@ export type PopupState =
   | { type: "unauthenticated" }
   | { type: "loading" }
   | { type: "unsupported_site"; hostname: string }
-  | { type: "unsupported_page"; site: SupportedSite }
-  | { type: "detection_failed"; site: SupportedSite }
+  | { type: "unsupported_page"; site: SupportedSite; hostname: string }
+  | { type: "detection_failed"; site: SupportedSite; hostname: string }
   | { type: "generic_type_pick"; candidate: GenericDetectionResult; hostname: string }
   | { type: "detected"; detection: MediaDetection; progress: number | null; media: AniListMedia | null; searchResults: AniListMedia[] | null; isManualMatch: boolean }
   | { type: "searching"; preview: { title: string; progress: number; mediaType: MediaType } | null }

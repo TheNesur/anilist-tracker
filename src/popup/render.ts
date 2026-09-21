@@ -1,11 +1,12 @@
 import { escapeHtml } from "../utils/dom";
 import { t } from "../utils/i18n";
 import { getDisplayName, isAnimeSite } from "../sites/registry";
-import type { GenericDetectionResult, MediaType, PopupState } from "../types";
+import type { GenericDetectionResult, MediaType, PopupState, ReportContextName } from "../types";
 import { btnLogin, stateContainer } from "./elements";
 import { getActiveTabId, requestRefresh } from "./state";
 import { retryDetection } from "./messaging";
 import { renderDetected } from "./views/detected";
+import { REPORT_OPTIONS, buildReportEntry, isReportableHostname } from "./views/report";
 
 type GenericPick = (candidate: GenericDetectionResult, mediaType: MediaType) => void;
 
@@ -13,6 +14,16 @@ let genericPickHandler: GenericPick = () => {};
 
 export function setGenericPickHandler(handler: GenericPick): void {
   genericPickHandler = handler;
+}
+
+function appendSiteReport(hostname: string, context: ReportContextName): void {
+  const entry = buildReportEntry([REPORT_OPTIONS.siteNotWorking, REPORT_OPTIONS.other], {
+    context,
+    hostname: isReportableHostname(hostname) ? hostname : null,
+    detection: null,
+    media: null,
+  });
+  if (entry) stateContainer.querySelector(".state-box")?.appendChild(entry);
 }
 
 export function renderState(state: PopupState): void {
@@ -51,6 +62,7 @@ export function renderState(state: PopupState): void {
           <button class="btn btn-ghost" id="btn-retry-generic" style="margin-top:10px">${escapeHtml(t("retryDetection"))}</button>
         </div>`;
       document.getElementById("btn-retry-generic")!.addEventListener("click", requestRefresh);
+      appendSiteReport(state.hostname, "unsupported_site");
       break;
 
     case "generic_type_pick":
@@ -82,6 +94,7 @@ export function renderState(state: PopupState): void {
           <p class="state-text">${escapeHtml(t("youAreOn"))} <strong>${escapeHtml(getDisplayName(state.site))}</strong>.</p>
           <p class="state-hint">${escapeHtml(anime ? t("stateNoEpisodeText") : t("stateNoChapterText"))}</p>
         </div>`;
+      appendSiteReport(state.hostname, "unsupported_page");
       break;
     }
 
@@ -93,6 +106,7 @@ export function renderState(state: PopupState): void {
           <p class="state-text">${escapeHtml(t("stateDetectionFailedText"))}</p>
           <p class="state-hint">${escapeHtml(t("stateDetectionFailedHint"))} <a href="https://github.com/TheNesur/anilist-tracker/issues" target="_blank">${escapeHtml(t("reportBug"))}</a></p>
         </div>`;
+      appendSiteReport(state.hostname, "detection_failed");
       break;
 
     case "detected":

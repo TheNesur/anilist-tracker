@@ -12,9 +12,10 @@ import {
   setSelectedMedia,
   updateTabState,
 } from "../state";
-import { fetchProgress, reportAlias, requestUpdate, searchAniList, submitAlias } from "../messaging";
+import { fetchProgress, requestUpdate, searchAniList, submitAlias } from "../messaging";
 import { renderPendingQueue } from "./banners";
 import { showManualSearch, showResults, type ResultsOptions } from "./results";
+import { REPORT_OPTIONS, buildReportEntry, hostnameOf } from "./report";
 
 const resultsOptions: ResultsOptions = { onSelect: (media) => void selectMedia(media) };
 
@@ -80,7 +81,7 @@ function showConfirm(detection: MediaDetection, progress: number | null, isManua
   const section = document.getElementById("confirm-section")!;
   const btn = document.getElementById("btn-update") as HTMLButtonElement;
 
-  section.querySelectorAll(".btn-change, .btn-report").forEach((el) => el.remove());
+  section.querySelectorAll(".btn-change, .report-entry").forEach((el) => el.remove());
   section.style.display = "block";
 
   if (progress !== null && detection.progress <= progress) {
@@ -100,8 +101,17 @@ function showConfirm(detection: MediaDetection, progress: number | null, isManua
   section.appendChild(buildChangeButton(detection, section));
 
   const selected = getSelectedMedia();
-  if (!isManualMatch && selected) {
-    section.appendChild(buildReportButton(detection, selected));
+  if (selected) {
+    const options = isManualMatch
+      ? [REPORT_OPTIONS.wrongDetection, REPORT_OPTIONS.other]
+      : [REPORT_OPTIONS.wrongMatch, REPORT_OPTIONS.wrongDetection, REPORT_OPTIONS.other];
+    const entry = buildReportEntry(options, {
+      context: "detected",
+      hostname: hostnameOf(detection.url),
+      detection,
+      media: selected,
+    });
+    if (entry) section.appendChild(entry);
   }
 
   btn.onclick = handleUpdateClick;
@@ -147,39 +157,6 @@ function buildChangeButton(detection: MediaDetection, section: HTMLElement): HTM
   });
 
   return changeBtn;
-}
-
-function buildReportButton(detection: MediaDetection, media: AniListMedia): HTMLButtonElement {
-  const reportBtn = document.createElement("button");
-  reportBtn.className = "btn-report";
-  reportBtn.innerHTML = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-      <line x1="4" y1="22" x2="4" y2="15"/>
-    </svg>
-    <span>${escapeHtml(t("reportMatch"))}</span>
-  `;
-
-  reportBtn.addEventListener("click", async () => {
-    reportBtn.disabled = true;
-    reportBtn.querySelector("span")!.textContent = t("stateLoading");
-
-    const response = await reportAlias({
-      alias: detection.title,
-      mediaType: detection.mediaType,
-      mediaId: media.id,
-    });
-
-    reportBtn.querySelector("span")!.textContent = response?.success
-      ? t("reportSent")
-      : t("reportFailed");
-
-    if (!response?.success) {
-      reportBtn.disabled = false;
-    }
-  });
-
-  return reportBtn;
 }
 
 async function selectMedia(media: AniListMedia): Promise<void> {

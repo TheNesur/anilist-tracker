@@ -1,11 +1,12 @@
 import { errMsg } from "../utils/dom";
 import { getToken, getSettings } from "../utils/storage";
 import { TOKEN_ENDPOINT } from "./oauth";
-import type { AliasReportPayload, AliasSubmitPayload, MediaType } from "../types";
+import type { AliasReportPayload, AliasSubmitPayload, FeedbackReportPayload, MediaType } from "../types";
 
 const ALIAS_LOOKUP_ENDPOINT = TOKEN_ENDPOINT.replace(/\/callback\/?$/, "/alias/lookup");
 const ALIAS_SUBMIT_ENDPOINT = TOKEN_ENDPOINT.replace(/\/callback\/?$/, "/alias/submit");
 const ALIAS_REPORT_ENDPOINT = TOKEN_ENDPOINT.replace(/\/callback\/?$/, "/alias/report");
+const ALIAS_FEEDBACK_ENDPOINT = TOKEN_ENDPOINT.replace(/\/callback\/?$/, "/alias/feedback");
 
 export async function lookupAlias(
   alias: string,
@@ -46,23 +47,31 @@ export async function submitAlias(params: AliasSubmitPayload): Promise<void> {
   }
 }
 
-export async function reportAlias(params: AliasReportPayload): Promise<{ success: boolean }> {
+async function postReport(endpoint: string, body: unknown): Promise<{ success: boolean }> {
   const token = await getToken();
   if (!token) return { success: false };
 
   try {
-    const response = await fetch(ALIAS_REPORT_ENDPOINT, {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(params),
+      body: JSON.stringify(body),
     });
     const data = await response.json().catch(() => null);
     return { success: response.ok && data?.ok === true };
   } catch (err) {
-    console.error("[AniList Tracker] Alias report failed:", errMsg(err));
+    console.error("[AniList Tracker] Report failed:", errMsg(err));
     return { success: false };
   }
+}
+
+export function reportAlias(params: AliasReportPayload): Promise<{ success: boolean }> {
+  return postReport(ALIAS_REPORT_ENDPOINT, params);
+}
+
+export function sendFeedback(params: FeedbackReportPayload): Promise<{ success: boolean }> {
+  return postReport(ALIAS_FEEDBACK_ENDPOINT, params);
 }

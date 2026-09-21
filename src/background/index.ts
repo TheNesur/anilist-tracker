@@ -3,6 +3,7 @@ import { getSettings, getStorage, getToken } from "../utils/storage";
 import {
   isTokenExpiredError,
   type AliasReportPayload,
+  type FeedbackReportPayload,
   type AliasSubmitPayload,
   type MediaDetection,
   type MediaType,
@@ -11,7 +12,7 @@ import { normalizeSearchTitle } from "../parsers/utils";
 import { handleDetection, handleGetProgressCache } from "./detection";
 import { handleUpdate, flushPendingUpdates, isPendingRetryAlarm, resumePendingRetry } from "./progress";
 import { startOAuth, handleTokenExpired, handleOAuthTimeout, OAUTH_TIMEOUT_ALARM } from "./oauth";
-import { submitAlias, reportAlias } from "./alias";
+import { submitAlias, reportAlias, sendFeedback } from "./alias";
 import { clearTabBadge, isBadgeClearAlarm, tabIdFromBadgeAlarm, updatePendingBadge } from "./badge";
 import { setTabState, removeTabState, getTabState, pruneTabStates } from "./tab-state";
 import { clearBlock } from "../utils/request-queue";
@@ -198,6 +199,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case "ALIAS_REPORT":
       reportAlias(payload as AliasReportPayload).then(sendResponse);
+      return true;
+
+    case "FEEDBACK_REPORT":
+      sendFeedback(payload as FeedbackReportPayload).then(sendResponse);
       return true;
   }
 });

@@ -148,5 +148,17 @@
       "Added a \"Retry now\" button on the error screen — no need to reload the page anymore.",
       "Fewer requests sent to AniList: the extension waits after an error and spaces out its retries, to reduce load on their servers."
     ]
+  },
+  "0.6.0": {
+    "fr": [
+      "Le signalement est plus complet : tu peux maintenant préciser le problème (mauvaise œuvre, œuvre introuvable sur AniList, titre ou chapitre mal détecté, détection qui ne marche pas sur un site) et ajouter une note.",
+      "Le bouton « Signaler un problème » est aussi disponible quand la détection échoue, sur les sites non pris en charge et quand la recherche AniList ne trouve rien.",
+      "Les signalements sont désormais pris en compte même sans avoir activé la contribution aux correspondances de titres."
+    ],
+    "en": [
+      "Reporting is more complete: you can now say what's wrong (wrong title, title not found on AniList, title or chapter detected wrongly, detection not working on a site) and add a note.",
+      "The \"Report a problem\" button is also available when detection fails, on unsupported sites, and when the AniList search finds nothing.",
+      "Reports now work even if you haven't enabled title match contribution."
+    ]
   }
 }

@@ -2,6 +2,7 @@ import type {
   AliasReportPayload,
   AliasSubmitPayload,
   AniListMedia,
+  FeedbackReportPayload,
   MediaDetection,
   MediaType,
   UpdateResult,
@@ -39,6 +40,10 @@ export function requestUpdate(mediaId: number, progress: number, mediaType: Medi
 
 export function reportAlias(payload: AliasReportPayload) {
   return send<{ success: boolean }>({ type: "ALIAS_REPORT", payload });
+}
+
+export function reportFeedback(payload: FeedbackReportPayload) {
+  return send<{ success: boolean }>({ type: "FEEDBACK_REPORT", payload });
 }
 
 export function submitAlias(payload: AliasSubmitPayload) {
