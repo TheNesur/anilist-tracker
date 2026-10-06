@@ -1,6 +1,8 @@
 import type { MediaDetection, SupportedSite } from "../../types";
 import { cleanTitle, extractChapterNumber, stripChapterSuffix, stripScanlationSuffix } from "../utils";
 
+const RE_CHAPTER = /(?:chapitre|chapter)\s*(\d+(?:\.\d+)?)/i;
+
 export class AniverseParser {
   site: SupportedSite = "aniverse";
 
@@ -32,6 +34,11 @@ export class AniverseParser {
   private readHeading(): string | null {
     const text = document.querySelector("h1")?.textContent?.replace(/\s+/g, " ").trim();
     if (!text || !/(?:chapitre|chapter)\s*\d/i.test(text)) return null;
+
+    const headingChapter = text.match(RE_CHAPTER)?.[1];
+    const titleChapter = document.title.match(RE_CHAPTER)?.[1];
+    if (headingChapter && titleChapter && parseFloat(headingChapter) !== parseFloat(titleChapter)) return null;
+
     return text;
   }
 }

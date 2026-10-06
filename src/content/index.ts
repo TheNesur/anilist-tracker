@@ -7,6 +7,7 @@ if (window.self !== window.top) {
 const NAV_EVENT = "anilist-tracker:navigation";
 const POLL_INTERVAL_MS = 150;
 const POLL_TIMEOUT_MS = 8_000;
+const URL_WATCH_INTERVAL_MS = 400;
 
 let pollTimer: number | null = null;
 let lastUrl = window.location.href;
@@ -127,6 +128,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 window.addEventListener(NAV_EVENT, onNavigation);
+window.setInterval(onNavigation, URL_WATCH_INTERVAL_MS);
 
 window.addEventListener("visibilitychange", () => {
   if (document.hidden || !pendingWhileHidden) return;
