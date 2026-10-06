@@ -11,6 +11,7 @@ const SITE_META: Record<SupportedSite, { displayName: string; isAnime: boolean }
   flame: { displayName: "Flame Comics", isAnime: false },
   reaper: { displayName: "Reaper Scans", isAnime: false },
   raijin: { displayName: "Raijin Scans", isAnime: false },
+  aniverse: { displayName: "Aniverse", isAnime: false },
   webtoon: { displayName: "Webtoon", isAnime: false },
   mangadex: { displayName: "MangaDex", isAnime: false },
   mangaplus: { displayName: "MangaPlus", isAnime: false },
@@ -32,6 +33,9 @@ const HOSTNAME_ENTRIES: [string, SupportedSite][] = [
 
   ["raijin-scans.fr", "raijin"],
   ["www.raijin-scans.fr", "raijin"],
+
+  ["aniverse.fr", "aniverse"],
+  ["www.aniverse.fr", "aniverse"],
 
   ["webtoons.com", "webtoon"],
   ["www.webtoons.com", "webtoon"],

@@ -15,6 +15,7 @@ export type SupportedSite =
   | "flame"
   | "reaper"
   | "raijin"
+  | "aniverse"
   | "webtoon"
   | "mangadex"
   | "mangaplus"

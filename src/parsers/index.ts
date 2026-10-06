@@ -1,5 +1,6 @@
 import type { MediaDetection, SupportedSite } from "../types";
 import { RaijinParser } from "./manga/raijin";
+import { AniverseParser } from "./manga/aniverse";
 import { WebtoonParser } from "./manga/webtoon";
 import { MangaDexParser } from "./manga/mangadex";
 import { MangaPlusParser } from "./manga/mangaplus";
@@ -25,6 +26,7 @@ function resolveParser(host: string): SiteParser | null {
   if (host.includes("flamecomics")) return new FlameParser();
   if (host.includes("reaperscans")) return new ReaperParser();
   if (host.includes("raijin-scans") || host.includes("raijinscan")) return new RaijinParser();
+  if (host.includes("aniverse")) return new AniverseParser();
   if (host.includes("webtoons")) return new WebtoonParser();
   if (host.includes("mangadex")) return new MangaDexParser();
   if (host.includes("mangaplus")) return new MangaPlusParser();
