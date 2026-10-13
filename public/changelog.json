@@ -151,14 +151,72 @@
   },
   "0.6.0": {
     "fr": [
-      "Le signalement est plus complet : tu peux maintenant préciser le problème (mauvaise œuvre, œuvre introuvable sur AniList, titre ou chapitre mal détecté, détection qui ne marche pas sur un site) et ajouter une note.",
-      "Le bouton « Signaler un problème » est aussi disponible quand la détection échoue, sur les sites non pris en charge et quand la recherche AniList ne trouve rien.",
-      "Les signalements sont désormais pris en compte même sans avoir activé la contribution aux correspondances de titres."
+      {
+        "tag": "new",
+        "text": "Aniverse, la refonte de Raijin Scans : suivi des chapitres de manga et des épisodes d'anime. Raijin Scans reste pris en charge."
+      },
+      {
+        "tag": "new",
+        "text": "Aniwatch : suivi des épisodes et des films."
+      },
+      {
+        "tag": "new",
+        "text": "Une page liste tous les sites compatibles, avec un filtre par type (manga ou anime). Elle est accessible depuis les paramètres."
+      },
+      {
+        "tag": "new",
+        "text": "Signalement détaillé : choisissez le type de problème (mauvaise œuvre, œuvre introuvable, mauvaise détection, site qui ne marche pas) et ajoutez une note."
+      },
+      {
+        "tag": "new",
+        "text": "Le bouton « Signaler un problème » apparaît aussi quand la détection échoue, sur un site non supporté ou quand AniList ne trouve rien."
+      },
+      {
+        "tag": "fix",
+        "text": "Votre choix d'une œuvre est bien mémorisé : il n'est plus redemandé à chaque épisode ou chapitre sur les sites non supportés."
+      },
+      {
+        "tag": "fix",
+        "text": "Les signalements sont bien enregistrés, même sans avoir activé la contribution aux correspondances. Seuls le domaine du site, le titre détecté et votre note sont envoyés."
+      },
+      {
+        "tag": "fix",
+        "text": "Le changement de chapitre ou d'épisode est repéré plus vite sur les sites qui ne rechargent pas la page."
+      }
     ],
     "en": [
-      "Reporting is more complete: you can now say what's wrong (wrong title, title not found on AniList, title or chapter detected wrongly, detection not working on a site) and add a note.",
-      "The \"Report a problem\" button is also available when detection fails, on unsupported sites, and when the AniList search finds nothing.",
-      "Reports now work even if you haven't enabled title match contribution."
+      {
+        "tag": "new",
+        "text": "Aniverse, the redesign of Raijin Scans: manga chapter and anime episode tracking. Raijin Scans is still supported."
+      },
+      {
+        "tag": "new",
+        "text": "Aniwatch: episode and movie tracking."
+      },
+      {
+        "tag": "new",
+        "text": "A new page lists all supported sites, with a filter by type (manga or anime). You can open it from the settings."
+      },
+      {
+        "tag": "new",
+        "text": "Detailed reporting: choose the type of problem (wrong title, title not found, wrong detection, site not working) and add a note."
+      },
+      {
+        "tag": "new",
+        "text": "The \"Report a problem\" button also appears when detection fails, on an unsupported site, or when AniList finds nothing."
+      },
+      {
+        "tag": "fix",
+        "text": "Your choice of title is now remembered: it is no longer asked again for every episode or chapter on unsupported sites."
+      },
+      {
+        "tag": "fix",
+        "text": "Reports are saved even if you haven't enabled title match contribution. Only the site's domain, the detected title and your note are sent."
+      },
+      {
+        "tag": "fix",
+        "text": "Chapter and episode changes are picked up faster on sites that don't reload the page."
+      }
     ]
   }
 }

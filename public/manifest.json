@@ -46,7 +46,9 @@
         "https://www.voir-anime.to/*",
         "https://anime-sama.to/*",
         "https://anime-sama.fr/*",
-        "https://www.anime-sama.fr/*"
+        "https://www.anime-sama.fr/*",
+        "https://aniwatch.cx/*",
+        "https://www.aniwatch.cx/*"
       ],
       "js": [
         "src/content/index.ts",

@@ -1,6 +1,6 @@
 import { escapeHtml } from "../utils/dom";
 import { t } from "../utils/i18n";
-import { getDisplayName, isAnimeSite } from "../sites/registry";
+import { getDisplayName } from "../sites/registry";
 import type { GenericDetectionResult, MediaType, PopupState, ReportContextName } from "../types";
 import { btnLogin, stateContainer } from "./elements";
 import { getActiveTabId, requestRefresh } from "./state";
@@ -86,7 +86,7 @@ export function renderState(state: PopupState): void {
       break;
 
     case "unsupported_page": {
-      const anime = isAnimeSite(state.site);
+      const anime = state.anime;
       stateContainer.innerHTML = `
         <div class="state-box">
           <div class="state-icon">${anime ? "📺" : "📖"}</div>

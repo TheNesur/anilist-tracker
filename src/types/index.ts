@@ -22,6 +22,7 @@ export type SupportedSite =
   | "crunchyroll"
   | "voiranime"
   | "anime-sama"
+  | "aniwatch"
   | "generic";
 
 export interface GenericDetectionResult {
@@ -227,7 +228,7 @@ export type PopupState =
   | { type: "unauthenticated" }
   | { type: "loading" }
   | { type: "unsupported_site"; hostname: string }
-  | { type: "unsupported_page"; site: SupportedSite; hostname: string }
+  | { type: "unsupported_page"; site: SupportedSite; hostname: string; anime: boolean }
   | { type: "detection_failed"; site: SupportedSite; hostname: string }
   | { type: "generic_type_pick"; candidate: GenericDetectionResult; hostname: string }
   | { type: "detected"; detection: MediaDetection; progress: number | null; media: AniListMedia | null; searchResults: AniListMedia[] | null; isManualMatch: boolean }

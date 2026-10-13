@@ -1,4 +1,4 @@
-import { getSiteForHostname } from "../sites/registry";
+import { getSiteForHostname, isAnimeSite } from "../sites/registry";
 import type { MediaDetection, MediaType, GenericDetectionResult, PopupState } from "../types";
 import { tryGenericDetection } from "./generic-detect";
 import { notifyDetection } from "./messaging";
@@ -77,8 +77,11 @@ async function computeState(): Promise<PopupState> {
   }
 
   let hostname: string;
+  let pathname: string;
   try {
-    hostname = new URL(url).hostname;
+    const parsed = new URL(url);
+    hostname = parsed.hostname;
+    pathname = parsed.pathname;
   } catch {
     return { type: "unsupported_site", hostname: "unknown" };
   }
@@ -132,5 +135,5 @@ async function computeState(): Promise<PopupState> {
     return { type: "detection_failed", site, hostname };
   }
 
-  return { type: "unsupported_page", site, hostname };
+  return { type: "unsupported_page", site, hostname, anime: isAnimeSite(site, pathname) };
 }

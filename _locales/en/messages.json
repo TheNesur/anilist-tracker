@@ -149,11 +149,35 @@
   "sectionBehavior": {
     "message": "Behavior"
   },
+  "betaFeatures": {
+    "message": "Beta features"
+  },
+  "betaFeaturesHint": {
+    "message": "Show experimental options that are still being tested"
+  },
+  "sectionBeta": {
+    "message": "Beta"
+  },
   "autoUpdate": {
     "message": "Auto-update"
   },
   "autoUpdateHint": {
     "message": "Update progress without confirmation"
+  },
+  "sectionSupportedSites": {
+    "message": "Supported sites"
+  },
+  "supportedSitesHint": {
+    "message": "Other sites are handled by generic detection, which is less reliable."
+  },
+  "filterAll": {
+    "message": "All"
+  },
+  "searchSites": {
+    "message": "Search a site…"
+  },
+  "noSitesFound": {
+    "message": "No site found"
   },
   "sectionInfo": {
     "message": "Information"

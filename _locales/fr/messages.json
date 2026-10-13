@@ -149,11 +149,35 @@
   "sectionBehavior": {
     "message": "Comportement"
   },
+  "betaFeatures": {
+    "message": "Fonctionnalités bêta"
+  },
+  "betaFeaturesHint": {
+    "message": "Affiche des options expérimentales encore en test"
+  },
+  "sectionBeta": {
+    "message": "Bêta"
+  },
   "autoUpdate": {
     "message": "Mise à jour automatique"
   },
   "autoUpdateHint": {
     "message": "Met à jour la progression sans confirmation"
+  },
+  "sectionSupportedSites": {
+    "message": "Sites compatibles"
+  },
+  "supportedSitesHint": {
+    "message": "Les autres sites passent par la détection générique, moins fiable."
+  },
+  "filterAll": {
+    "message": "Tous"
+  },
+  "searchSites": {
+    "message": "Rechercher un site…"
+  },
+  "noSitesFound": {
+    "message": "Aucun site trouvé"
   },
   "sectionInfo": {
     "message": "Informations"

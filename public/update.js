@@ -18,6 +18,27 @@
     changelog = {};
   }
 
+  const TAG_LABELS = {
+    new: isFrench ? "Nouveau" : "New",
+    fix: isFrench ? "Corrigé" : "Fixed",
+  };
+
+  function renderChange(change) {
+    const li = document.createElement("li");
+    if (typeof change === "string") {
+      li.textContent = change;
+      return li;
+    }
+    if (TAG_LABELS[change.tag]) {
+      const tag = document.createElement("span");
+      tag.className = `tag tag-${change.tag}`;
+      tag.textContent = TAG_LABELS[change.tag];
+      li.appendChild(tag);
+    }
+    li.appendChild(document.createTextNode(change.text));
+    return li;
+  }
+
   const entry = changelog[version] ?? null;
   const list = document.getElementById("changes");
 
@@ -27,9 +48,7 @@
       ? "Voici ce qui a changé dans cette version :"
       : "Here's what changed in this version:";
     for (const change of changes) {
-      const li = document.createElement("li");
-      li.textContent = change;
-      list.appendChild(li);
+      list.appendChild(renderChange(change));
     }
   } else {
     document.getElementById("subtitle").textContent = isFrench
@@ -79,9 +98,7 @@
       const ul = document.createElement("ul");
       const changes = isFrench ? changelog[v].fr : changelog[v].en;
       for (const change of changes) {
-        const li = document.createElement("li");
-        li.textContent = change;
-        ul.appendChild(li);
+        ul.appendChild(renderChange(change));
       }
       block.appendChild(ul);
       historyDiv.appendChild(block);
