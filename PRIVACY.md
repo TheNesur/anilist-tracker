@@ -49,12 +49,25 @@ When enabled, submitting a correction sends:
 
 This data is used to build a community-verified list of title corrections: a correction is only suggested to other users once it has been independently submitted by several different accounts, to prevent a single mistaken or malicious submission from affecting others. Looking up whether a correction already exists for a title (which happens automatically, regardless of whether contribution is enabled) does not send any identifying information — only the normalized title and media type.
 
+### Reporting problems
+
+The popup lets you report a problem: a wrong title match, a title that can't be found on AniList, a title or chapter detected wrongly, or a site where detection doesn't work. Reports are sent only when you press "Send", and work independently of the "Contribute title matches" setting.
+
+A report sends:
+- The type of problem you selected and the optional note you typed
+- The **hostname only** of the site you were on (e.g. `example.com`) — never the full page URL or any content of the page itself
+- The detected title and media type, and the AniList entry involved (its ID and title) when the report is about a specific match
+- Which part of the popup you reported from (for example, "detection failed")
+- A pseudonymized identifier derived from your AniList account ID using a one-way cryptographic function (HMAC), used to limit duplicate or abusive reports
+
+Reports are reviewed by the maintainer to fix detection on sites and to correct bad title matches. A match reported as wrong by several different accounts is temporarily no longer suggested to other users until it is reviewed. Please don't include personal information in the note.
+
 ## Third-party services
 
 The extension communicates with the following services:
 
 - **AniList API** (`https://graphql.anilist.co`) — to authenticate your account, search for media entries, read your current progress (individually or in bulk for the catalog status feature), and update it
-- **Authentication endpoint** (`https://auth.mraitchkovitch.fr`) — to exchange the OAuth authorization code for an access token, and to handle the community title-matching feature described above
+- **Authentication endpoint** (`https://auth.mraitchkovitch.fr`) — to exchange the OAuth authorization code for an access token, and to handle the community title-matching and problem reporting features described above
 
 No analytics, tracking, or advertising services are used.
 

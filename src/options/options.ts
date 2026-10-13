@@ -101,6 +101,8 @@ async function init() {
   document.getElementById("section-mappings")!.textContent = t("sectionMappings");
   await renderMappings();
 
+  document.getElementById("link-sites")!.textContent = t("sectionSupportedSites");
+
   const mappingsSearch = document.getElementById("mappings-search") as HTMLInputElement;
   mappingsSearch.placeholder = t("searchMappings");
   mappingsSearch.addEventListener("input", () => {

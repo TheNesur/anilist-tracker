@@ -42,6 +42,11 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       sourcemap: false,
       modulePreload: false,
+      rollupOptions: {
+        input: {
+          sites: "src/sites/sites.html",
+        },
+      },
     },
     server: {
       cors: true,

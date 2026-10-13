@@ -68,6 +68,13 @@ function injectedDetection(): GenericDetectionResult | null {
       .trim();
   }
 
+  function stripChapterSuffix(title: string): string {
+    const stripped = title
+      .replace(/(?:\s+|\s*[-–—:|,]\s*)(?:chapter|chapitre|ch\.?|ep\.?|episode|épisode)\s*\d+(?:\.\d+)?\b.*$/i, "")
+      .trim();
+    return stripped || title.trim();
+  }
+
   function extractTitle(): string | null {
     const ogTitle = document.querySelector<HTMLMetaElement>("meta[property='og:title']")?.content?.trim();
     const twitterTitle = document.querySelector<HTMLMetaElement>("meta[name='twitter:title']")?.content?.trim();
@@ -105,7 +112,7 @@ function injectedDetection(): GenericDetectionResult | null {
   if (possibleTypes.length === 0) possibleTypes.push("MANGA", "ANIME");
 
   return {
-    title: rawTitle,
+    title: stripChapterSuffix(rawTitle),
     progress: Math.floor(progress),
     url: window.location.href,
     possibleTypes,

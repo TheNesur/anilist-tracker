@@ -1,5 +1,6 @@
 import type { MediaDetection, SupportedSite } from "../types";
 import { RaijinParser } from "./manga/raijin";
+import { AniverseParser } from "./manga/aniverse";
 import { WebtoonParser } from "./manga/webtoon";
 import { MangaDexParser } from "./manga/mangadex";
 import { MangaPlusParser } from "./manga/mangaplus";
@@ -10,6 +11,19 @@ import { AnimeSamaMangaParser } from "./manga/anime-sama";
 import { CrunchyrollParser } from "./anime/crunchyroll";
 import { VoirAnimeParser } from "./anime/voiranime";
 import { AnimeSamaParser } from "./anime/anime-sama";
+import { AniwatchParser } from "./anime/aniwatch";
+import { AniverseAnimeParser } from "./anime/aniverse";
+
+function createAniverseParser(): SiteParser {
+  const manga = new AniverseParser();
+  const anime = new AniverseAnimeParser();
+  const active = () => (window.location.pathname.startsWith("/watch/") ? anime : manga);
+  return {
+    site: "aniverse",
+    isChapterPage: () => active().isChapterPage(),
+    detect: () => active().detect(),
+  };
+}
 
 export interface SiteParser {
   site: SupportedSite;
@@ -25,12 +39,14 @@ function resolveParser(host: string): SiteParser | null {
   if (host.includes("flamecomics")) return new FlameParser();
   if (host.includes("reaperscans")) return new ReaperParser();
   if (host.includes("raijin-scans") || host.includes("raijinscan")) return new RaijinParser();
+  if (host.includes("aniverse")) return createAniverseParser();
   if (host.includes("webtoons")) return new WebtoonParser();
   if (host.includes("mangadex")) return new MangaDexParser();
   if (host.includes("mangaplus")) return new MangaPlusParser();
 
   if (host.includes("crunchyroll")) return new CrunchyrollParser();
   if (host.includes("voir-anime")) return new VoirAnimeParser();
+  if (host === "aniwatch.cx") return new AniwatchParser();
   if (host.includes("anime-sama")) {
     const parts = window.location.pathname.split("/").filter(Boolean);
     if (parts[2] === "scan") return new AnimeSamaMangaParser();

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "permissions": [
@@ -33,6 +33,8 @@
         "https://www.reaperscans.com/*",
         "https://raijin-scans.fr/*",
         "https://www.raijin-scans.fr/*",
+        "https://aniverse.fr/*",
+        "https://www.aniverse.fr/*",
         "https://www.webtoons.com/*",
         "https://webtoons.com/*",
         "https://mangadex.org/*",
@@ -44,7 +46,9 @@
         "https://www.voir-anime.to/*",
         "https://anime-sama.to/*",
         "https://anime-sama.fr/*",
-        "https://www.anime-sama.fr/*"
+        "https://www.anime-sama.fr/*",
+        "https://aniwatch.cx/*",
+        "https://www.aniwatch.cx/*"
       ],
       "js": [
         "src/content/index.ts",

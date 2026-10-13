@@ -4,7 +4,7 @@
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)
-![Version](https://img.shields.io/badge/version-0.4.5-green)
+![Version](https://img.shields.io/badge/version-0.6.0-green)
 ![License](https://img.shields.io/badge/License-MIT-green)
 [![Edge Add-ons](https://img.shields.io/badge/Edge%20Add--ons-available-0078D4?logo=microsoftedge)](https://microsoftedge.microsoft.com/addons/detail/anilist-tracker)
 
@@ -42,14 +42,24 @@
 | MangaDex | mangadex.org |
 | MangaPlus | mangaplus.shueisha.co.jp |
 | Webtoon | webtoons.com |
+| Asura Comics | asuracomic.net |
+| Flame Comics | flamecomics.xyz |
+| Reaper Scans | reaperscans.com |
+| Raijin Scans | raijin-scans.fr |
+| Aniverse | aniverse.fr |
+| Anime Sama | anime-sama.fr |
 
 ### Anime
 
 | Site | URL |
 |------|-----|
 | Crunchyroll | crunchyroll.com |
+| Voir Anime | voir-anime.to |
+| Anime Sama | anime-sama.fr |
+| Aniverse | aniverse.fr |
+| Aniwatch | aniwatch.cx |
 
-> More sites are supported. The full list is available in the extension settings.
+> The same list is available in the extension settings.
 
 ### Any other site
 

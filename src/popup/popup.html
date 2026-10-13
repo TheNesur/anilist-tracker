@@ -208,6 +208,76 @@
     .btn-report:disabled { color: var(--text-muted); cursor: default; opacity: 0.7; }
     .btn-report svg { width: 13px; height: 13px; flex-shrink: 0; }
 
+    .state-box .report-entry { margin-top: 12px; }
+
+    .report-form {
+      margin-top: 8px;
+      padding: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-align: left;
+    }
+
+    .report-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .report-option input { margin-top: 2px; accent-color: var(--accent); }
+
+    .report-title {
+      font-size: 12px;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .report-note {
+      display: block;
+      width: 100%;
+      min-height: 56px;
+      margin-top: 8px;
+      padding: 7px 10px;
+      resize: vertical;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 12px;
+      color: var(--text-primary);
+      outline: none;
+    }
+
+    .report-note:focus { border-color: var(--accent); }
+
+    .report-hint {
+      margin-top: 6px;
+      font-size: 11px;
+      line-height: 1.4;
+      color: var(--text-muted);
+    }
+
+    .report-error {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--error);
+    }
+
+    .report-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .report-actions .btn { padding: 7px 10px; font-size: 12px; }
+
+    .report-done {
+      display: inline-block;
+      padding-top: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
     /* State container */
     #state-container { padding: 14px 16px; }
 

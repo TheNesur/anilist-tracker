@@ -37,6 +37,14 @@ export function cleanTitle(raw: string): string {
   return cleaned || raw.trim();
 }
 
+const RE_CHAPTER_SUFFIX =
+  /(?:\s+|\s*[-–—:|,]\s*)(?:chapter|chapitre|ch\.?|ep\.?|episode|épisode)\s*\d+(?:\.\d+)?\b.*$/i;
+
+export function stripChapterSuffix(title: string): string {
+  const stripped = title.replace(RE_CHAPTER_SUFFIX, "").trim();
+  return stripped || title.trim();
+}
+
 const RE_LANG_PARENS = /\s*\((vf|vostfr|vostf|vo|raw|fr|en|es|de|jp|kr|cn|pt|it|ru|ar|tr)\)\s*$/i;
 const RE_LANG_BRACKETS = /\s*\[(vf|vostfr|vostf|vo|raw|fr|en|es|de|jp|kr|cn|pt|it|ru|ar|tr|scan\s*vf|scan\s*fr)\]\s*$/i;
 const RE_SEPARATOR_LANG = /\s*[-–—:|]\s*(scan\s*)?(vf|vostfr|vostf|vo|raw|fr)\b.*$/i;

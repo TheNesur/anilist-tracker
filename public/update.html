@@ -13,6 +13,7 @@
       --text-secondary: #c5cae9;
       --text-muted: #6b7c93;
       --accent: #3db4f2;
+      --ok: #4cca51;
     }
 
     :root[data-theme="light"] {
@@ -24,6 +25,7 @@
       --text-secondary: #2d3f55;
       --text-muted: #6b7c93;
       --accent: #1a8ac4;
+      --ok: #2e9e45;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -42,7 +44,7 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 32px;
-      max-width: 480px;
+      max-width: 580px;
       width: 100%;
     }
 
@@ -76,12 +78,28 @@
 
     li {
       font-size: 14px;
-      padding: 8px 0 8px 22px;
+      line-height: 1.55;
+      padding: 11px 0 11px 22px;
       position: relative;
       border-bottom: 1px solid var(--border);
     }
 
     li:last-child { border-bottom: none; }
+
+    .tag {
+      display: inline-block;
+      background: var(--bg-tertiary);
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.4;
+      padding: 1px 8px;
+      border-radius: 999px;
+      margin-right: 8px;
+      vertical-align: 1px;
+    }
+
+    .tag-new { color: var(--accent); }
+    .tag-fix { color: var(--ok); }
 
     li::before {
       content: "✦";
