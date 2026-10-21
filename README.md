@@ -73,8 +73,8 @@ If a site isn't in our supported list, the extension attempts **generic detectio
 
 | Store | Status |
 |-------|--------|
-| [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/anilist-tracker) | ✅ Available |
-| Chrome Web Store | 🔜 Coming soon |
+| [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/hegknpgmdcadfdadbbadpkabndogneoi) | ✅ Available |
+| [Chrome Web Store](https://chromewebstore.google.com/detail/anilist-tracker/jfpamdighodolhbeepemgphglgepgcoc) ✅ Available |
 
 ### Manual / Development
 
