@@ -90,8 +90,8 @@ npm install
 
 ```env
 VITE_ANILIST_CLIENT_ID=your_client_id
-VITE_ANILIST_REDIRECT_URI=https://auth.mraitchkovitch.fr/oauth-return
-VITE_TOKEN_ENDPOINT=https://auth.mraitchkovitch.fr/callback
+VITE_ANILIST_REDIRECT_URI=anilist_id
+VITE_TOKEN_ENDPOINT=token
 ```
 
 > The redirect URI points to the backend, not to the extension itself — the OAuth flow opens in a normal browser tab (sharing your existing AniList session) and the backend serves a landing page that the extension detects and closes automatically. No need to look up your extension ID.
