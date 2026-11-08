@@ -45,15 +45,36 @@ export interface CatalogParser {
   detectEntries(): CatalogEntry[];
 }
 
+export interface AniListMediaRelationEdge {
+  relationType: "PREQUEL" | "SEQUEL" | string;
+  node: {
+    id: number;
+    type?: MediaType;
+    format?: string | null;
+    status?: string | null;
+    episodes?: number | null;
+    countryOfOrigin?: string | null;
+    title: { romaji: string; english: string | null; native: string | null };
+    synonyms?: string[];
+    coverImage?: { medium: string };
+    siteUrl?: string;
+  };
+}
+
 export interface AniListMedia {
   id: number;
   type?: MediaType;
   format?: string | null;
+  status?: string | null;
+  episodes?: number | null;
   countryOfOrigin?: string | null;
   title: { romaji: string; english: string | null; native: string | null };
   synonyms?: string[];
   coverImage: { medium: string };
   siteUrl: string;
+  relations?: {
+    edges: AniListMediaRelationEdge[];
+  };
 }
 
 export interface AniListMediaList {
@@ -148,7 +169,7 @@ export type Message =
   | { type: "UPDATE_PROGRESS"; payload: { mediaId: number; progress: number; mediaType: MediaType } }
   | { type: "SEARCH_ANILIST"; payload: { title: string; mediaType: MediaType } }
   | { type: "START_OAUTH" }
-  | { type: "GET_PROGRESS"; payload: { mediaId: number } }
+  | { type: "GET_PROGRESS"; payload: { mediaId: number; rawProgress?: number; detectedTitle?: string; mediaType?: MediaType } }
   | { type: "LOCAL_UPDATE_PROGRESS"; payload: { progress: number } }
   | { type: "ALIAS_SUBMIT"; payload: AliasSubmitPayload }
   | { type: "ALIAS_REPORT"; payload: AliasReportPayload }

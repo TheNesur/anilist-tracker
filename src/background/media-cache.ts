@@ -46,7 +46,10 @@ export async function resolveMedia(id: number, token?: string | null): Promise<A
   const cache = await readCache();
   const entry = cache[String(id)];
 
-  if (entry && Date.now() - entry.at < TTL_MS) {
+  const needsRelationsUpgrade =
+    entry?.media.type === "ANIME" && entry.media.relations === undefined;
+
+  if (entry && !needsRelationsUpgrade && Date.now() - entry.at < TTL_MS) {
     return entry.media;
   }
 
