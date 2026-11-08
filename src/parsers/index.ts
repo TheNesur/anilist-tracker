@@ -13,6 +13,9 @@ import { VoirAnimeParser } from "./anime/voiranime";
 import { AnimeSamaParser } from "./anime/anime-sama";
 import { AniwatchParser } from "./anime/aniwatch";
 import { AniverseAnimeParser } from "./anime/aniverse";
+import { AnimeXinParser } from "./anime/animexin";
+import { DonghuaStreamParser } from "./anime/donghuastream";
+import { LuciferDonghuaParser } from "./anime/luciferdonghua";
 
 function createAniverseParser(): SiteParser {
   const manga = new AniverseParser();
@@ -47,6 +50,9 @@ function resolveParser(host: string): SiteParser | null {
   if (host.includes("crunchyroll")) return new CrunchyrollParser();
   if (host.includes("voir-anime")) return new VoirAnimeParser();
   if (host === "aniwatch.cx") return new AniwatchParser();
+  if (host.includes("animexin")) return new AnimeXinParser();
+  if (host.includes("donghuastream")) return new DonghuaStreamParser();
+  if (host.includes("luciferdonghua")) return new LuciferDonghuaParser();
   if (host.includes("anime-sama")) {
     const parts = window.location.pathname.split("/").filter(Boolean);
     if (parts[2] === "scan") return new AnimeSamaMangaParser();
