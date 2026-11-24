@@ -178,22 +178,42 @@ async function selectMedia(media: AniListMedia): Promise<void> {
     });
   }
 
-  const response = await fetchProgress(media.id);
+  const response = await fetchProgress(media.id, detection);
   const progress = response?.progress ?? null;
+  const effectiveMedia = response?.resolvedMedia ?? media;
+  const effectiveDetection =
+    detection && typeof response?.resolvedProgress === "number"
+      ? { ...detection, progress: response.resolvedProgress }
+      : detection;
+
+  setSelectedMedia(effectiveMedia);
+  if (effectiveDetection) {
+    setCurrentDetection(effectiveDetection);
+  }
 
   await updateTabState({
-    confirmedMedia: media,
+    lastDetection: effectiveDetection,
+    confirmedMedia: effectiveMedia,
     confirmedMediaManual: true,
     currentProgress: progress,
   });
 
   const titleEl = document.getElementById("media-title");
-  if (titleEl) titleEl.textContent = media.title.english ?? media.title.romaji;
+  if (titleEl) titleEl.textContent = effectiveMedia.title.english ?? effectiveMedia.title.romaji;
 
-  const progressHint = document.getElementById("progress-hint");
-  if (progressHint && progress !== null) progressHint.textContent = `(${progress})`;
+  const progressEl = stateContainer.querySelector(".media-progress");
+  if (progressEl && effectiveDetection) {
+    const isAnime = effectiveDetection.mediaType === "ANIME";
+    const progressLabel = isAnime
+      ? t("episodeLabel", String(effectiveDetection.progress))
+      : t("chapterLabel", String(effectiveDetection.progress));
+    progressEl.innerHTML =
+      progress !== null
+        ? `${escapeHtml(progressLabel)} <span class="progress-hint" id="progress-hint">(${progress})</span>`
+        : escapeHtml(progressLabel);
+  }
 
-  if (detection) showConfirm(detection, progress, true);
+  if (effectiveDetection) showConfirm(effectiveDetection, progress, true);
 
   document.getElementById("results-section")!.style.display = "none";
   document.getElementById("confirm-section")!.style.display = "block";
