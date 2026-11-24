@@ -183,14 +183,124 @@ query ($search: String, $perPage: Int, $formats: [MediaFormat]) {
   }
 }`;
 
-export async function searchManga(title: string, token?: string | null): Promise<AniListMedia[]> {
-  const data = await gqlRequest<{ Page: { media: AniListMedia[] } }>(
-    SEARCH_MANGA,
-    { search: title, perPage: SEARCH_PER_PAGE, formats: MANGA_FORMATS },
-    token
-  );
-  return data.Page.media;
+const RE_SEARCH_MEDIA_TAG_INNER =
+  /^(?:4k|1080p|720p|480p|360p|hd|fhd|uhd|web-?dl|bd|dvd|raw|sub|dub|eng\s*sub|sub\s*indo|indo\s*sub|multi\s*sub|batch|complete|remake|uncensored|re-?upload|\d{4})$/i;
+const RE_SEARCH_SEASON_STRIP = /\s+(?:season|saison|s)\s*\d+.*$/i;
+
+export function generateSearchVariants(rawTitle: string): string[] {
+  const list: string[] = [];
+  const add = (s: string) => {
+    const clean = s.replace(/\s+/g, " ").trim();
+    if (clean.length >= 2 && !list.includes(clean)) {
+      list.push(clean);
+    }
+  };
+
+  // 1. Bracket and parenthesis content (e.g. [A Will Eternal] or (Throne of Seal))
+  const bracketMatches = Array.from(rawTitle.matchAll(/[\[\(]([^\)\]]+)[\)\]]/g));
+  const bracketParts: string[] = [];
+  for (const m of bracketMatches) {
+    const inside = m[1].trim();
+    if (!RE_SEARCH_MEDIA_TAG_INNER.test(inside)) {
+      bracketParts.push(inside);
+    }
+  }
+
+  // 2. Title without brackets/parentheses
+  const withoutBrackets = rawTitle
+    .replace(/[\[\(][^\)\]]+[\)\]]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Prioritize bracket parts if they exist (usually the alternate/English title)
+  for (const b of bracketParts) {
+    add(b);
+  }
+
+  if (withoutBrackets) {
+    add(withoutBrackets);
+  }
+
+  // Also original with brackets replaced by space
+  add(rawTitle.replace(/[\[\]\(\)]/g, " "));
+
+  // Colon / Dash splitting (e.g. "Title: Subtitle" -> "Title")
+  const currentItems = [...list];
+  for (const item of currentItems) {
+    const colonIdx = item.search(/[:–—\-]/);
+    if (colonIdx > 2) {
+      add(item.slice(0, colonIdx).trim());
+    }
+    const seasonStripped = item.replace(RE_SEARCH_SEASON_STRIP, "").trim();
+    if (seasonStripped && seasonStripped !== item) {
+      add(seasonStripped);
+    }
+  }
+
+  // Pinyin syllable combinations for 2-5 word titles (common in Chinese Donghua / Korean Manhwa)
+  const pinyinItems = [...list];
+  for (const item of pinyinItems) {
+    const words = item.split(/\s+/);
+    const isPinyinLike =
+      words.length >= 2 &&
+      words.length <= 5 &&
+      words.every((w) => /^[a-zA-Z]{2,7}$/.test(w));
+    if (isPinyinLike) {
+      if (words.length === 4) {
+        add(`${words[0]} ${words[1]} ${words[2]}${words[3]}`);
+        add(`${words[0]}${words[1]} ${words[2]}${words[3]}`);
+      } else if (words.length === 3) {
+        add(`${words[0]} ${words[1]}${words[2]}`);
+        add(`${words[0]}${words[1]} ${words[2]}`);
+      } else if (words.length === 2) {
+        add(`${words[0]}${words[1]}`);
+      }
+    }
+  }
+
+  return list;
 }
+
+export async function searchManga(title: string, token?: string | null): Promise<AniListMedia[]> {
+  const variants = generateSearchVariants(title);
+  const toTry = variants.slice(0, 4);
+
+  for (const queryTitle of toTry) {
+    try {
+      const data = await gqlRequest<{ Page: { media: AniListMedia[] } }>(
+        SEARCH_MANGA,
+        { search: queryTitle, perPage: SEARCH_PER_PAGE, formats: MANGA_FORMATS },
+        token
+      );
+      if (data.Page.media && data.Page.media.length > 0) {
+        return data.Page.media;
+      }
+    } catch (err) {
+      if (queryTitle === toTry[0] && toTry.length === 1) throw err;
+    }
+  }
+
+  return [];
+}
+
+const MEDIA_RELATIONS_FIELDS = `
+      relations {
+        edges {
+          relationType(version: 2)
+          node {
+            id
+            type
+            format
+            status
+            episodes
+            countryOfOrigin
+            title { romaji english native }
+            synonyms
+            coverImage { medium }
+            siteUrl
+          }
+        }
+      }`;
 
 const SEARCH_ANIME = `
 query ($search: String, $perPage: Int, $formats: [MediaFormat]) {
@@ -199,21 +309,38 @@ query ($search: String, $perPage: Int, $formats: [MediaFormat]) {
       id
       type
       format
+      status
+      episodes
+      countryOfOrigin
       title { romaji english native }
       synonyms
       coverImage { medium }
       siteUrl
+      ${MEDIA_RELATIONS_FIELDS}
     }
   }
 }`;
 
 export async function searchAnime(title: string, token?: string | null): Promise<AniListMedia[]> {
-  const data = await gqlRequest<{ Page: { media: AniListMedia[] } }>(
-    SEARCH_ANIME,
-    { search: title, perPage: SEARCH_PER_PAGE, formats: ANIME_FORMATS },
-    token
-  );
-  return data.Page.media;
+  const variants = generateSearchVariants(title);
+  const toTry = variants.slice(0, 4);
+
+  for (const queryTitle of toTry) {
+    try {
+      const data = await gqlRequest<{ Page: { media: AniListMedia[] } }>(
+        SEARCH_ANIME,
+        { search: queryTitle, perPage: SEARCH_PER_PAGE, formats: ANIME_FORMATS },
+        token
+      );
+      if (data.Page.media && data.Page.media.length > 0) {
+        return data.Page.media;
+      }
+    } catch (err) {
+      if (queryTitle === toTry[0] && toTry.length === 1) throw err;
+    }
+  }
+
+  return [];
 }
 
 const GET_MEDIA_BY_ID = `
@@ -222,11 +349,14 @@ query ($id: Int) {
     id
     type
     format
+    status
+    episodes
     countryOfOrigin
     title { romaji english native }
     synonyms
     coverImage { medium }
     siteUrl
+    ${MEDIA_RELATIONS_FIELDS}
   }
 }`;
 

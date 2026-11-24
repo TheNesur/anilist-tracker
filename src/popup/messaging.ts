@@ -23,10 +23,19 @@ export function searchAniList(title: string, mediaType: MediaType) {
   });
 }
 
-export function fetchProgress(mediaId: number) {
-  return send<{ progress: number | null }>({
+export function fetchProgress(mediaId: number, detection?: MediaDetection | null) {
+  return send<{
+    progress: number | null;
+    resolvedMedia?: AniListMedia | null;
+    resolvedProgress?: number | null;
+  }>({
     type: "GET_PROGRESS",
-    payload: { mediaId },
+    payload: {
+      mediaId,
+      rawProgress: detection?.progress,
+      detectedTitle: detection?.title,
+      mediaType: detection?.mediaType,
+    },
   });
 }
 

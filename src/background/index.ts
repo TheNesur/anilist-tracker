@@ -10,6 +10,7 @@ import {
 } from "../types";
 import { normalizeSearchTitle } from "../parsers/utils";
 import { handleDetection, handleGetProgressCache } from "./detection";
+import { resolveAnimeSeason } from "./season-resolver";
 import { handleUpdate, flushPendingUpdates, isPendingRetryAlarm, resumePendingRetry } from "./progress";
 import { startOAuth, handleTokenExpired, handleOAuthTimeout, OAUTH_TIMEOUT_ALARM } from "./oauth";
 import { submitAlias, reportAlias, sendFeedback } from "./alias";
@@ -122,7 +123,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     case "GET_PROGRESS": {
-      const p = payload as { mediaId: number };
+      const p = payload as {
+        mediaId: number;
+        rawProgress?: number;
+        detectedTitle?: string;
+        mediaType?: MediaType;
+      };
       (async () => {
         const token = await getToken();
         const storage = await getStorage();
@@ -131,8 +137,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           return;
         }
         try {
-          const entry = await getProgress(p.mediaId, storage.userId, token);
-          sendResponse({ progress: entry?.progress ?? 0 });
+          let targetMediaId = p.mediaId;
+          let resolvedMedia = null;
+          let resolvedProgress: number | null = null;
+
+          if (
+            p.mediaType === "ANIME" &&
+            typeof p.rawProgress === "number" &&
+            typeof p.detectedTitle === "string"
+          ) {
+            const seasonResolved = await resolveAnimeSeason(
+              p.mediaId,
+              p.rawProgress,
+              p.detectedTitle,
+              token
+            );
+            if (seasonResolved) {
+              targetMediaId = seasonResolved.media.id;
+              resolvedMedia = seasonResolved.media;
+              resolvedProgress = seasonResolved.progress;
+            }
+          }
+
+          const entry = await getProgress(targetMediaId, storage.userId, token);
+          sendResponse({
+            progress: entry?.progress ?? 0,
+            resolvedMedia,
+            resolvedProgress,
+          });
         } catch (err) {
           if (isTokenExpiredError(err)) {
             await handleTokenExpired();
@@ -147,11 +179,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const p = payload as { title: string; mediaType: MediaType };
       (async () => {
         const token = await getToken();
-        const searchTitle = normalizeSearchTitle(p.title);
         try {
           const results = p.mediaType === "ANIME"
-            ? await searchAnime(searchTitle, token)
-            : await searchManga(searchTitle, token);
+            ? await searchAnime(p.title, token)
+            : await searchManga(p.title, token);
           sendResponse({ results });
         } catch (err) {
           if (isTokenExpiredError(err)) {

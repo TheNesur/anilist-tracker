@@ -23,6 +23,7 @@ import { lookupAlias } from "./alias";
 import { handleUpdate, queuePendingUpdate } from "./progress";
 import { migrationsReady } from "./migrations";
 import { primeMedia, resolveMedia } from "./media-cache";
+import { resolveAnimeSeason } from "./season-resolver";
 import { ensureViewerLoaded, handleTokenExpired } from "./oauth";
 import { clearTabBadge, setTabBadge } from "./badge";
 import { setTabState } from "./tab-state";
@@ -106,10 +107,9 @@ async function runDetection(detection: MediaDetection, tabId: number): Promise<v
     }
 
     if (mediaId === null) {
-      const searchTitle = normalizeSearchTitle(detection.title);
       const results = detection.mediaType === "ANIME"
-        ? await searchAnime(searchTitle, token)
-        : await searchManga(searchTitle, token);
+        ? await searchAnime(detection.title, token)
+        : await searchManga(detection.title, token);
 
       if (results.length === 0) {
         const alias = await lookupAlias(detection.title, detection.mediaType);
@@ -142,6 +142,23 @@ async function runDetection(detection: MediaDetection, tabId: number): Promise<v
       }
     }
 
+    let effectiveDetection = detection;
+    let resolvedMedia: AniListMedia | null = null;
+
+    if (detection.mediaType === "ANIME") {
+      const seasonResolved = await resolveAnimeSeason(
+        mediaId,
+        detection.progress,
+        detection.title,
+        token
+      );
+      if (seasonResolved) {
+        mediaId = seasonResolved.media.id;
+        resolvedMedia = seasonResolved.media;
+        effectiveDetection = { ...detection, progress: seasonResolved.progress };
+      }
+    }
+
     let userId: number | null = null;
     let currentProgress: number | null = null;
     let progressUnknown = false;
@@ -168,34 +185,34 @@ async function runDetection(detection: MediaDetection, tabId: number): Promise<v
     }
 
     if (settings.autoUpdate && progressUnknown) {
-      await queuePendingUpdate(mediaId, detection.progress, detection.mediaType, tabId);
-      const queuedMedia = await resolveMedia(mediaId, token);
-      await notifyUser(tabId, detection, null, queuedMedia ?? undefined, null, "queued");
+      await queuePendingUpdate(mediaId, effectiveDetection.progress, effectiveDetection.mediaType, tabId);
+      const queuedMedia = resolvedMedia ?? (await resolveMedia(mediaId, token));
+      await notifyUser(tabId, effectiveDetection, null, queuedMedia ?? undefined, null, "queued");
       return;
     }
 
     const shouldUpdate =
-      settings.autoUpdate && (currentProgress === null || detection.progress > currentProgress);
+      settings.autoUpdate && (currentProgress === null || effectiveDetection.progress > currentProgress);
 
     if (shouldUpdate) {
-      const result = await handleUpdate(mediaId, detection.progress, detection.mediaType, {
+      const result = await handleUpdate(mediaId, effectiveDetection.progress, effectiveDetection.mediaType, {
         tabId,
         knownProgress: currentProgress,
       });
-      const media = await resolveMedia(mediaId, token);
+      const media = resolvedMedia ?? (await resolveMedia(mediaId, token));
 
       if (result.queued) {
-        await notifyUser(tabId, detection, null, media ?? undefined, currentProgress, "queued");
+        await notifyUser(tabId, effectiveDetection, null, media ?? undefined, currentProgress, "queued");
         return;
       }
 
       if (media) {
         const newProgress = result.success === false
           ? currentProgress
-          : result.progress ?? detection.progress;
+          : result.progress ?? effectiveDetection.progress;
         await notifyUser(
           tabId,
-          detection,
+          effectiveDetection,
           null,
           media,
           newProgress,
@@ -207,9 +224,9 @@ async function runDetection(detection: MediaDetection, tabId: number): Promise<v
       return;
     }
 
-    const media = await resolveMedia(mediaId, token);
+    const media = resolvedMedia ?? (await resolveMedia(mediaId, token));
     if (media) {
-      await notifyUser(tabId, detection, null, media, currentProgress);
+      await notifyUser(tabId, effectiveDetection, null, media, currentProgress);
     } else {
       console.error("[AniList Tracker] Media not found by id", mediaId);
       await setTabState(tabId, { detectionSearching: false });

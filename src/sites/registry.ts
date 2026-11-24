@@ -26,6 +26,9 @@ const SITE_META: Record<SupportedSite, { displayName: string; isAnime: boolean; 
   voiranime: { displayName: "Voir Anime", isAnime: true, kinds: ["ANIME"] },
   "anime-sama": { displayName: "Anime Sama", isAnime: true, kinds: ["MANGA", "ANIME"] },
   aniwatch: { displayName: "Aniwatch", isAnime: true, kinds: ["ANIME"] },
+  animexin: { displayName: "AnimeXin", isAnime: true, kinds: ["ANIME"] },
+  donghuastream: { displayName: "DonghuaStream", isAnime: true, kinds: ["ANIME"] },
+  luciferdonghua: { displayName: "Lucifer Donghua", isAnime: true, kinds: ["ANIME"] },
   generic: { displayName: "Generic Site", isAnime: false, kinds: [] },
 };
 
@@ -65,6 +68,15 @@ const HOSTNAME_ENTRIES: [string, SupportedSite][] = [
 
   ["aniwatch.cx", "aniwatch"],
   ["www.aniwatch.cx", "aniwatch"],
+
+  ["animexin.dev", "animexin"],
+  ["www.animexin.dev", "animexin"],
+
+  ["donghuastream.org", "donghuastream"],
+  ["www.donghuastream.org", "donghuastream"],
+
+  ["luciferdonghua.in", "luciferdonghua"],
+  ["www.luciferdonghua.in", "luciferdonghua"],
 ];
 
 export const HOSTNAME_TO_SITE: Record<string, SupportedSite> = Object.fromEntries(HOSTNAME_ENTRIES);

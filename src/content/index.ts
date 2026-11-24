@@ -1,4 +1,5 @@
 import { getParser, type SiteParser } from "../parsers";
+import { initVideoWatcher, setActiveDetectionForTracking } from "./video-watcher";
 
 if (window.self !== window.top) {
   throw new Error("AniList Tracker: skipping iframe context");
@@ -35,6 +36,7 @@ function detectAndNotify(parser: SiteParser): void {
   }
 
   const signature = `${detection.url}|${detection.mediaType}|${detection.progress}`;
+  setActiveDetectionForTracking(detection);
   if (signature === lastNotified) return;
   lastNotified = signature;
 
@@ -118,6 +120,7 @@ function runInitial(): void {
 }
 
 hookHistoryNavigation();
+initVideoWatcher();
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id) return;
   if ((message as { type?: string })?.type !== "REDETECT") return;
