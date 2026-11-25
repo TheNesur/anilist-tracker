@@ -1,6 +1,8 @@
 import { getCatalogParser } from "../parsers/catalog";
 import { mappingKey } from "../utils/storage";
 import { t } from "../utils/i18n";
+import { isHostnameEnabled } from "../sites/enabled";
+import { claimOnce } from "./guard";
 import type { CatalogEntry } from "../types";
 
 if (window.self !== window.top) {
@@ -79,6 +81,7 @@ function applyBadge(entry: CatalogEntry, status: CatalogStatus, label: string): 
 async function runCatalogOverlay(): Promise<void> {
   const parser = getCatalogParser();
   if (!parser || !parser.isCatalogPage()) return;
+  if (!(await isHostnameEnabled(window.location.hostname))) return;
 
   const settings = await chrome.storage.local.get({ showCatalogStatus: false });
   if (!settings.showCatalogStatus) return;
@@ -158,12 +161,17 @@ function setupObserver(): void {
 function init(): void {
   execute();
   setupObserver();
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.enabledSites) scheduleRun();
+  });
 }
 
-if (document.readyState === "interactive" || document.readyState === "complete") {
-  init();
-} else {
-  document.addEventListener("readystatechange", () => {
-    if (document.readyState === "interactive") init();
-  }, { once: true });
+if (claimOnce("catalog")) {
+  if (document.readyState === "interactive" || document.readyState === "complete") {
+    init();
+  } else {
+    document.addEventListener("readystatechange", () => {
+      if (document.readyState === "interactive") init();
+    }, { once: true });
+  }
 }

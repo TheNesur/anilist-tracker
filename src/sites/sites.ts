@@ -2,12 +2,18 @@ import { getTheme } from "../utils/storage";
 import { t } from "../utils/i18n";
 import type { MediaType } from "../types";
 import { getSupportedSites, type SupportedSiteEntry } from "./registry";
+import { hasSiteAccess } from "./access";
+import { readEnabledSites } from "./enabled";
+import { setSiteEnabled } from "./apply";
 
 type KindFilter = "ALL" | MediaType;
 
 const sites = getSupportedSites();
 let kindFilter: KindFilter = "ALL";
 let query = "";
+let enabledIds = new Set<string>();
+let accessIds = new Set<string>();
+let busyId: string | null = null;
 
 function kindLabel(kind: MediaType): string {
   return kind === "MANGA" ? t("typeManga") : t("typeAnime");
@@ -24,10 +30,38 @@ function buildCard(site: SupportedSiteEntry): HTMLElement {
   const card = document.createElement("div");
   card.className = "card";
 
+  const head = document.createElement("div");
+  head.className = "card-head";
+
   const name = document.createElement("div");
   name.className = "card-name";
   name.textContent = site.displayName;
-  card.appendChild(name);
+  head.appendChild(name);
+
+  const toggle = document.createElement("label");
+  toggle.className = "switch";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.checked = enabledIds.has(site.id);
+  input.disabled = busyId !== null;
+  input.setAttribute("aria-label", site.displayName);
+  input.addEventListener("change", () => handleToggle(site, input.checked));
+  const slider = document.createElement("span");
+  slider.className = "slider";
+  toggle.append(input, slider);
+  head.appendChild(toggle);
+  card.appendChild(head);
+
+  const status = document.createElement("div");
+  const isEnabled = enabledIds.has(site.id);
+  const needsPermission = isEnabled && !accessIds.has(site.id);
+  status.className = `status ${needsPermission ? "status-warn" : isEnabled ? "status-on" : "status-off"}`;
+  status.textContent = needsPermission
+    ? t("siteStatusPermissionMissing")
+    : isEnabled
+      ? t("siteStatusActive")
+      : t("siteStatusDisabled");
+  card.appendChild(status);
 
   const hosts = document.createElement("div");
   hosts.className = "card-hosts";
@@ -49,9 +83,36 @@ function buildCard(site: SupportedSiteEntry): HTMLElement {
     chip.textContent = kindLabel(kind);
     kinds.appendChild(chip);
   }
+  if (site.official) {
+    const chip = document.createElement("span");
+    chip.className = "kind kind-official";
+    chip.textContent = t("badgeOfficial");
+    kinds.appendChild(chip);
+  }
   card.appendChild(kinds);
 
   return card;
+}
+
+async function refreshState(): Promise<void> {
+  enabledIds = new Set(await readEnabledSites());
+  const access = new Set<string>();
+  for (const site of sites) {
+    if (await hasSiteAccess(site.id)) access.add(site.id);
+  }
+  accessIds = access;
+}
+
+async function handleToggle(site: SupportedSiteEntry, enabled: boolean): Promise<void> {
+  if (busyId !== null) return;
+  busyId = site.id;
+  try {
+    await setSiteEnabled(site.id, enabled);
+  } finally {
+    busyId = null;
+    await refreshState();
+    renderGrid();
+  }
 }
 
 function renderGrid(): void {
@@ -106,8 +167,16 @@ async function init(): Promise<void> {
     });
   });
 
+  await refreshState();
   renderFilters();
   renderGrid();
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes.enabledSites || busyId !== null) return;
+    refreshState().then(renderGrid);
+  });
+  chrome.permissions.onAdded.addListener(() => refreshState().then(renderGrid));
+  chrome.permissions.onRemoved.addListener(() => refreshState().then(renderGrid));
 }
 
 init();

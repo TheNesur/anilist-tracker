@@ -1,0 +1,40 @@
+{
+  "_comment": "Permissions shipped in 0.6.0. New sites must NOT be added here; add them as optional in src/sites/catalog.ts.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "alarms",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://graphql.anilist.co/*",
+    "https://auth.mraitchkovitch.fr/*"
+  ],
+  "content_scripts_matches": [
+    "https://asuracomic.net/*",
+    "https://www.asuracomic.net/*",
+    "https://flamecomics.xyz/*",
+    "https://www.flamecomics.xyz/*",
+    "https://reaperscans.com/*",
+    "https://www.reaperscans.com/*",
+    "https://raijin-scans.fr/*",
+    "https://www.raijin-scans.fr/*",
+    "https://aniverse.fr/*",
+    "https://www.aniverse.fr/*",
+    "https://www.webtoons.com/*",
+    "https://webtoons.com/*",
+    "https://mangadex.org/*",
+    "https://www.mangadex.org/*",
+    "https://mangaplus.shueisha.co.jp/*",
+    "https://www.crunchyroll.com/*",
+    "https://crunchyroll.com/*",
+    "https://voir-anime.to/*",
+    "https://www.voir-anime.to/*",
+    "https://anime-sama.to/*",
+    "https://anime-sama.fr/*",
+    "https://www.anime-sama.fr/*",
+    "https://aniwatch.cx/*",
+    "https://www.aniwatch.cx/*"
+  ]
+}

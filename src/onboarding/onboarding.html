@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AniList Tracker</title>
+  <style>
+    :root[data-theme="dark"] {
+      --bg-primary: #0b1622;
+      --bg-secondary: #151f2e;
+      --bg-tertiary: #1a2738;
+      --border: #1f2d40;
+      --text-primary: #e0e6ed;
+      --text-secondary: #c5cae9;
+      --text-muted: #6b7c93;
+      --accent: #3db4f2;
+    }
+
+    :root[data-theme="light"] {
+      --bg-primary: #f0f4f8;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e8edf2;
+      --border: #d0d9e4;
+      --text-primary: #1a2738;
+      --text-secondary: #2d3f55;
+      --text-muted: #6b7c93;
+      --accent: #1a8ac4;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 40px 24px 56px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .intro {
+      color: var(--text-muted);
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .group { margin-bottom: 24px; }
+
+    .group-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .group-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+    }
+
+    .group-actions { display: inline-flex; gap: 4px; }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font: inherit;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .link-btn:hover { background: var(--bg-tertiary); }
+
+    .list {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    .row:last-child { border-bottom: none; }
+    .row:hover { background: var(--bg-tertiary); }
+
+    .row input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .row-main { flex: 1; min-width: 0; }
+
+    .row-name {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .row-hosts {
+      font-size: 12px;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chip {
+      background: rgba(46, 204, 113, 0.15);
+      color: #2ecc71;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+
+    .footer {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-start;
+      margin-top: 8px;
+    }
+
+    .note, .error {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .error { color: #f39c12; }
+
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 600;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+
+    .btn:disabled { opacity: 0.6; cursor: progress; }
+
+    .done { text-align: center; padding: 56px 0; }
+    .done h1 { margin-bottom: 12px; }
+    .done p { color: var(--text-muted); line-height: 1.5; }
+
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div id="picker">
+      <h1 id="title"></h1>
+      <p class="intro" id="intro"></p>
+      <div id="groups"></div>
+      <div class="footer">
+        <p class="note" id="permission-note" hidden></p>
+        <p class="error" id="error" hidden></p>
+        <button type="button" class="btn" id="save"></button>
+      </div>
+    </div>
+    <div class="done" id="done" hidden>
+      <h1 id="done-title"></h1>
+      <p id="done-text"></p>
+    </div>
+  </div>
+  <script src="onboarding.ts" type="module"></script>
+</body>
+</html>

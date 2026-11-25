@@ -23,6 +23,7 @@ export type SupportedSite =
   | "voiranime"
   | "anime-sama"
   | "aniwatch"
+  | "mangapill"
   | "generic";
 
 export interface GenericDetectionResult {
@@ -200,6 +201,8 @@ export interface StorageData extends Settings, AccountData {
   pendingUpdates: PendingUpdate[];
   pendingRetryMinutes: number;
   schemaVersion: number;
+  enabledSites: SupportedSite[] | null;
+  onboardingDone: boolean;
 }
 
 export const DEFAULT_STORAGE: StorageData = {
@@ -212,6 +215,8 @@ export const DEFAULT_STORAGE: StorageData = {
   pendingUpdates: [],
   pendingRetryMinutes: 5,
   schemaVersion: 0,
+  enabledSites: null,
+  onboardingDone: false,
 };
 
 export interface SessionData {
@@ -229,6 +234,7 @@ export type PopupState =
   | { type: "loading" }
   | { type: "unsupported_site"; hostname: string }
   | { type: "unsupported_page"; site: SupportedSite; hostname: string; anime: boolean }
+  | { type: "site_disabled"; site: SupportedSite; hostname: string; needsPermission: boolean }
   | { type: "detection_failed"; site: SupportedSite; hostname: string }
   | { type: "generic_type_pick"; candidate: GenericDetectionResult; hostname: string }
   | { type: "detected"; detection: MediaDetection; progress: number | null; media: AniListMedia | null; searchResults: AniListMedia[] | null; isManualMatch: boolean }

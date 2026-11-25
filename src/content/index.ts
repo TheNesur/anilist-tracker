@@ -1,4 +1,6 @@
 import { getParser, type SiteParser } from "../parsers";
+import { isHostnameEnabled } from "../sites/enabled";
+import { claimOnce } from "./guard";
 
 if (window.self !== window.top) {
   throw new Error("AniList Tracker: skipping iframe context");
@@ -13,6 +15,8 @@ let pollTimer: number | null = null;
 let lastUrl = window.location.href;
 let lastNotified: string | null = null;
 let pendingWhileHidden = false;
+let active = false;
+let booted = false;
 
 function stopPolling(): void {
   if (pollTimer === null) return;
@@ -44,6 +48,7 @@ function detectAndNotify(parser: SiteParser): void {
 }
 
 function startPolling(): void {
+  if (!active) return;
   const parser = getParser();
   if (!parser) return;
 
@@ -117,32 +122,56 @@ function runInitial(): void {
   );
 }
 
-hookHistoryNavigation();
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (sender.id !== chrome.runtime.id) return;
-  if ((message as { type?: string })?.type !== "REDETECT") return;
-  lastNotified = null;
-  pendingWhileHidden = false;
-  startPolling();
-  sendResponse({ ok: true });
-});
+function boot(): void {
+  if (booted) return;
+  booted = true;
 
-window.addEventListener(NAV_EVENT, onNavigation);
-window.setInterval(onNavigation, URL_WATCH_INTERVAL_MS);
-
-window.addEventListener("visibilitychange", () => {
-  if (document.hidden || !pendingWhileHidden) return;
-  pendingWhileHidden = false;
-  startPolling();
-});
-
-window.addEventListener("pagehide", stopPolling);
-
-window.addEventListener("pageshow", (event) => {
-  if (event.persisted) {
+  hookHistoryNavigation();
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (sender.id !== chrome.runtime.id) return;
+    if ((message as { type?: string })?.type !== "REDETECT") return;
+    if (!active) return;
     lastNotified = null;
+    pendingWhileHidden = false;
     startPolling();
-  }
-});
+    sendResponse({ ok: true });
+  });
 
-runInitial();
+  window.addEventListener(NAV_EVENT, onNavigation);
+  window.setInterval(onNavigation, URL_WATCH_INTERVAL_MS);
+
+  window.addEventListener("visibilitychange", () => {
+    if (document.hidden || !pendingWhileHidden) return;
+    pendingWhileHidden = false;
+    startPolling();
+  });
+
+  window.addEventListener("pagehide", stopPolling);
+
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) {
+      lastNotified = null;
+      startPolling();
+    }
+  });
+}
+
+async function applyEnabledState(): Promise<void> {
+  const enabled = await isHostnameEnabled(window.location.hostname).catch(() => false);
+  if (enabled === active) return;
+  active = enabled;
+  if (!active) {
+    stopPolling();
+    return;
+  }
+  boot();
+  lastNotified = null;
+  runInitial();
+}
+
+if (claimOnce("detector") && getParser()) {
+  applyEnabledState();
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.enabledSites) applyEnabledState();
+  });
+}

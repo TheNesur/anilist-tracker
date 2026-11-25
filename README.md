@@ -4,8 +4,8 @@
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)
-![Version](https://img.shields.io/badge/version-0.6.0-green)
-![License](https://img.shields.io/badge/License-MIT-green)
+![Version](https://img.shields.io/badge/version-0.6.1-green)
+[![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-orange)](./LICENSE.md)
 [![Edge Add-ons](https://img.shields.io/badge/Edge%20Add--ons-available-0078D4?logo=microsoftedge)](https://microsoftedge.microsoft.com/addons/detail/anilist-tracker)
 
 ---
@@ -73,10 +73,13 @@ If a site isn't in our supported list, the extension attempts **generic detectio
 
 | Store | Status |
 |-------|--------|
-| [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/anilist-tracker) | ✅ Available |
-| Chrome Web Store | 🔜 Coming soon |
+| [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/hegknpgmdcadfdadbbadpkabndogneoi) | ✅ Available |
+| [Chrome Web Store](https://chromewebstore.google.com/detail/anilist-tracker/jfpamdighodolhbeepemgphglgepgcoc) | ✅ Available |
+| Opera Add-ons | ⏳ Under review |
 
 ### Manual / Development
+
+Building and running the extension yourself for personal, noncommercial use is allowed. See [LICENSE.md](./LICENSE.md) for the terms.
 
 **Prerequisites:** Node.js 18+, npm
 
@@ -89,9 +92,12 @@ npm install
 **Configure environment** — create a `.env` file at the project root:
 
 ```env
-VITE_ANILIST_CLIENT_ID=your_client_id
-VITE_ANILIST_REDIRECT_URI=https://auth.mraitchkovitch.fr/oauth-return
-VITE_TOKEN_ENDPOINT=https://auth.mraitchkovitch.fr/callback
+# Client ID of your own AniList API client (https://anilist.co/settings/developer)
+VITE_ANILIST_CLIENT_ID=your_anilist_client_id
+# Redirect URI registered in your AniList client: the landing page served by your own backend
+VITE_ANILIST_REDIRECT_URI=https://your-backend.example/oauth-return
+# Endpoint of your own backend that exchanges the OAuth code for an access token
+VITE_TOKEN_ENDPOINT=https://your-backend.example/callback
 ```
 
 > The redirect URI points to the backend, not to the extension itself — the OAuth flow opens in a normal browser tab (sharing your existing AniList session) and the backend serves a landing page that the extension detects and closes automatically. No need to look up your extension ID.
@@ -142,7 +148,8 @@ On supported catalog/homepage listings, an optional, separate flow runs alongsid
 src/
 ├── background/         # Service worker — OAuth, AniList API, message routing, alias system
 ├── content/
-│   ├── index.ts        # Content script — chapter/episode detection on supported sites
+│   ├── index.ts        # Content script — chapter/episode detection on enabled sites
+│   ├── dynamic-entry.ts # Entry of the content/dynamic.js bundle injected on optional sites
 │   └── catalog.ts       # Content script — optional catalog/homepage status overlay
 ├── parsers/
 │   ├── manga/           # Site-specific DOM parsers (manga/webtoon)
@@ -152,6 +159,8 @@ src/
 │   └── index.ts          # Parser factory
 ├── popup/               # Extension popup UI
 ├── options/              # Settings page
+├── onboarding/           # First-run page: choose which sites to enable (manga / anime)
+├── sites/                # Site catalog, enabled-sites state, permission requests, sites page
 ├── types/                # Shared TypeScript types
 └── utils/                # AniList GraphQL client, storage, i18n
 _locales/
@@ -166,10 +175,13 @@ The OAuth token exchange and community title-matching endpoints are handled by a
 ## Adding a New Site
 
 1. Create a parser class in `src/parsers/manga/` or `src/parsers/anime/` implementing `SiteParser`
-2. Add the site to `SupportedSite` in `src/types/index.ts`
-3. Register the parser in `src/parsers/index.ts` → `getParser()`
-4. Add URL patterns to `public/manifest.json` → `content_scripts.matches`
-5. Add the hostname mapping in `src/popup/popup.ts` → `SUPPORTED_HOSTNAMES`
+2. Add the site id to `SupportedSite` in `src/types/index.ts`
+3. Register the parser in `src/parsers/index.ts` → `resolveParser()`
+4. Add the site to `src/sites/catalog.ts` (display name, kinds, hostnames, `official`, `defaultEnabled`) with `access: "optional"`
+
+**Do not add the site to `public/manifest.json`.** New required host permissions or content script matches make the browser disable the extension on update until the user accepts them. Sites with `access: "optional"` are declared in `optional_host_permissions` (generated from the catalog at build time), requested at runtime when the user turns the site on, and injected through `chrome.scripting.registerContentScripts` using the separate `content/dynamic.js` bundle (`vite.content.config.ts`). The existing sites keep `access: "static"` and stay in the manifest as they were in 0.6.0.
+
+`npm run build` runs `scripts/check-permissions.mjs`, which fails if the built manifest requires anything beyond `scripts/frozen-manifest.json`.
 
 ```typescript
 export class MySiteParser implements SiteParser {
@@ -241,6 +253,8 @@ Additional security measures:
 
 Please keep PRs focused and avoid mixing unrelated changes.
 
+By submitting a pull request, you agree that your contribution is provided under the project's license, and that the maintainer may relicense it, including under commercial terms.
+
 ---
 
 ## Privacy
@@ -253,4 +267,10 @@ See [PRIVACY.md](./PRIVACY.md) for the full privacy policy.
 
 ## License
 
-MIT — see [LICENSE](./LICENSE)
+Licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0) with additional terms — see [LICENSE.md](./LICENSE.md).
+
+- Noncommercial use, personal builds and forks are allowed.
+- Commercial use requires written permission.
+- Publishing this software, or a modified version of it, on any extension store requires written permission.
+
+To request a commercial license or a permission, [open an issue](https://github.com/TheNesur/anilist-tracker/issues).

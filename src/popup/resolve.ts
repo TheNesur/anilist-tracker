@@ -1,3 +1,5 @@
+import { hasSiteAccess } from "../sites/access";
+import { readEnabledSites } from "../sites/enabled";
 import { getSiteForHostname, isAnimeSite } from "../sites/registry";
 import type { MediaDetection, MediaType, GenericDetectionResult, PopupState } from "../types";
 import { tryGenericDetection } from "./generic-detect";
@@ -91,8 +93,17 @@ async function computeState(): Promise<PopupState> {
     return { type: "token_expired" };
   }
 
-  const session = await readTabState();
   const site = getSiteForHostname(hostname)?.id ?? null;
+
+  if (site) {
+    const enabled = (await readEnabledSites()).includes(site);
+    const hasAccess = await hasSiteAccess(site);
+    if (!enabled || !hasAccess) {
+      return { type: "site_disabled", site, hostname, needsPermission: enabled && !hasAccess };
+    }
+  }
+
+  const session = await readTabState();
   const isCurrentPage = Boolean(session.lastDetectionUrl && session.lastDetectionUrl === url);
   const isManualMatch = Boolean(session.confirmedMediaManual);
 

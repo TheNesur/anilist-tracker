@@ -5,6 +5,7 @@ import type { GenericDetectionResult, MediaType, PopupState, ReportContextName }
 import { btnLogin, stateContainer } from "./elements";
 import { getActiveTabId, requestRefresh } from "./state";
 import { retryDetection } from "./messaging";
+import { enableSiteFromPopup } from "./enable-site";
 import { renderDetected } from "./views/detected";
 import { REPORT_OPTIONS, buildReportEntry, isReportableHostname } from "./views/report";
 
@@ -64,6 +65,24 @@ export function renderState(state: PopupState): void {
       document.getElementById("btn-retry-generic")!.addEventListener("click", requestRefresh);
       appendSiteReport(state.hostname, "unsupported_site");
       break;
+
+    case "site_disabled": {
+      const name = getDisplayName(state.site);
+      stateContainer.innerHTML = `
+        <div class="state-box">
+          <div class="state-icon">⏸️</div>
+          <p class="state-title">${escapeHtml(t("stateSiteDisabled"))}</p>
+          <p class="state-text">${escapeHtml(t(state.needsPermission ? "stateSitePermissionMissing" : "stateSiteDisabledText", name))}</p>
+          <button class="btn btn-primary" id="btn-enable-site" style="margin-top:10px">${escapeHtml(t("btnEnableSite"))}</button>
+        </div>`;
+      const enableBtn = document.getElementById("btn-enable-site") as HTMLButtonElement;
+      enableBtn.addEventListener("click", async () => {
+        enableBtn.disabled = true;
+        await enableSiteFromPopup(state.site);
+        requestRefresh();
+      });
+      break;
+    }
 
     case "generic_type_pick":
       stateContainer.innerHTML = `

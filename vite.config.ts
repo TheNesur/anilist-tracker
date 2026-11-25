@@ -3,11 +3,17 @@ import { crx } from "@crxjs/vite-plugin";
 import { readFileSync, existsSync } from "fs";
 import manifest from "./public/manifest.json";
 import pkg from "./package.json";
+import { getCatalog, toMatchPatterns } from "./src/sites/catalog";
 
 export default defineConfig(({ mode }) => {
-  const manifestWithVersion: typeof manifest & { key?: string } = {
+  const optionalHostPermissions = getCatalog(mode === "development")
+    .filter((site) => site.access === "optional")
+    .flatMap(toMatchPatterns);
+
+  const manifestWithVersion: typeof manifest & { key?: string; optional_host_permissions?: string[] } = {
     ...manifest,
     version: pkg.version,
+    ...(optionalHostPermissions.length > 0 ? { optional_host_permissions: optionalHostPermissions } : {}),
   };
 
   if (mode === "development") {
@@ -45,6 +51,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           sites: "src/sites/sites.html",
+          onboarding: "src/onboarding/onboarding.html",
         },
       },
     },

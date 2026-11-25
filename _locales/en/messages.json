@@ -168,7 +168,7 @@
     "message": "Supported sites"
   },
   "supportedSitesHint": {
-    "message": "Other sites are handled by generic detection, which is less reliable."
+    "message": "Turn sites on or off here. Other sites are handled by generic detection, which is less reliable."
   },
   "filterAll": {
     "message": "All"
@@ -367,5 +367,86 @@
   },
   "reportKindOther": {
     "message": "Something else"
+  },
+  "badgeOfficial": {
+    "message": "Official"
+  },
+  "siteStatusActive": {
+    "message": "Active"
+  },
+  "siteStatusDisabled": {
+    "message": "Disabled"
+  },
+  "siteStatusPermissionMissing": {
+    "message": "Permission missing"
+  },
+  "stateSiteDisabled": {
+    "message": "Site not enabled"
+  },
+  "stateSiteDisabledText": {
+    "message": "$site$ is supported, but tracking is turned off for it.",
+    "placeholders": {
+      "site": {
+        "content": "$1"
+      }
+    }
+  },
+  "stateSitePermissionMissing": {
+    "message": "$site$ is enabled, but your browser has not granted access to it yet.",
+    "placeholders": {
+      "site": {
+        "content": "$1"
+      }
+    }
+  },
+  "btnEnableSite": {
+    "message": "Enable this site"
+  },
+  "onboardingTitle": {
+    "message": "Welcome to AniList Tracker"
+  },
+  "onboardingIntro": {
+    "message": "Pick the sites you want AniList Tracker to follow. You can change this at any time from the settings."
+  },
+  "onboardingGroupManga": {
+    "message": "Manga"
+  },
+  "onboardingGroupAnime": {
+    "message": "Anime"
+  },
+  "onboardingGroupBoth": {
+    "message": "Manga and anime"
+  },
+  "onboardingSelectAll": {
+    "message": "All"
+  },
+  "onboardingSelectNone": {
+    "message": "None"
+  },
+  "onboardingSave": {
+    "message": "Save and continue"
+  },
+  "onboardingSaving": {
+    "message": "Saving…"
+  },
+  "onboardingPermissionNote": {
+    "message": "Your browser will ask for permission to access the sites that need it."
+  },
+  "onboardingDenied": {
+    "message": "Permission refused for: $sites$. These sites stay disabled, you can enable them later from the settings.",
+    "placeholders": {
+      "sites": {
+        "content": "$1"
+      }
+    }
+  },
+  "onboardingError": {
+    "message": "Something went wrong while saving. Please try again."
+  },
+  "onboardingDoneTitle": {
+    "message": "You're all set"
+  },
+  "onboardingDoneText": {
+    "message": "Click the AniList Tracker icon in your toolbar to connect your AniList account."
   }
 }

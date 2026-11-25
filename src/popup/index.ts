@@ -72,10 +72,13 @@ function registerListeners(): void {
     if (changes.pendingUpdates) {
       renderPendingQueue();
     }
-    if (changes.tokenExpired) {
+    if (changes.tokenExpired || changes.enabledSites) {
       scheduleResolve();
     }
   });
+
+  chrome.permissions.onAdded.addListener(() => scheduleResolve());
+  chrome.permissions.onRemoved.addListener(() => scheduleResolve());
 }
 
 btnLogin.addEventListener("click", async () => {

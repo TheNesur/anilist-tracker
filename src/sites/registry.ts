@@ -1,4 +1,5 @@
 import type { MediaType, SupportedSite } from "../types";
+import { getCatalog, type CatalogSite } from "./catalog";
 
 export interface SiteInfo {
   id: SupportedSite;
@@ -11,67 +12,31 @@ export interface SupportedSiteEntry {
   displayName: string;
   hostnames: string[];
   kinds: MediaType[];
+  official: boolean;
+  access: CatalogSite["access"];
+  defaultEnabled: boolean;
 }
 
-const SITE_META: Record<SupportedSite, { displayName: string; isAnime: boolean; kinds: MediaType[] }> = {
-  asura: { displayName: "Asura Comics", isAnime: false, kinds: ["MANGA"] },
-  flame: { displayName: "Flame Comics", isAnime: false, kinds: ["MANGA"] },
-  reaper: { displayName: "Reaper Scans", isAnime: false, kinds: ["MANGA"] },
-  raijin: { displayName: "Raijin Scans", isAnime: false, kinds: ["MANGA"] },
-  aniverse: { displayName: "Aniverse", isAnime: false, kinds: ["MANGA", "ANIME"] },
-  webtoon: { displayName: "Webtoon", isAnime: false, kinds: ["MANGA"] },
-  mangadex: { displayName: "MangaDex", isAnime: false, kinds: ["MANGA"] },
-  mangaplus: { displayName: "MangaPlus", isAnime: false, kinds: ["MANGA"] },
-  crunchyroll: { displayName: "Crunchyroll", isAnime: true, kinds: ["ANIME"] },
-  voiranime: { displayName: "Voir Anime", isAnime: true, kinds: ["ANIME"] },
-  "anime-sama": { displayName: "Anime Sama", isAnime: true, kinds: ["MANGA", "ANIME"] },
-  aniwatch: { displayName: "Aniwatch", isAnime: true, kinds: ["ANIME"] },
-  generic: { displayName: "Generic Site", isAnime: false, kinds: [] },
-};
+export const INCLUDE_DEV_SITES = import.meta.env.MODE === "development";
 
-const HOSTNAME_ENTRIES: [string, SupportedSite][] = [
-  ["asuracomic.net", "asura"],
-  ["www.asuracomic.net", "asura"],
+export const SITES: CatalogSite[] = getCatalog(INCLUDE_DEV_SITES);
 
-  ["flamecomics.xyz", "flame"],
-  ["www.flamecomics.xyz", "flame"],
+const GENERIC_INFO: SiteInfo = { id: "generic", displayName: "Generic Site", isAnime: false };
 
-  ["reaperscans.com", "reaper"],
-  ["www.reaperscans.com", "reaper"],
+const SITE_BY_ID = new Map<SupportedSite, CatalogSite>(SITES.map((site) => [site.id, site]));
 
-  ["raijin-scans.fr", "raijin"],
-  ["www.raijin-scans.fr", "raijin"],
+export const HOSTNAME_TO_SITE: Record<string, SupportedSite> = Object.fromEntries(
+  SITES.flatMap((site) => site.hostnames.map((host) => [host, site.id] as const))
+);
 
-  ["aniverse.fr", "aniverse"],
-  ["www.aniverse.fr", "aniverse"],
-
-  ["webtoons.com", "webtoon"],
-  ["www.webtoons.com", "webtoon"],
-
-  ["mangadex.org", "mangadex"],
-  ["www.mangadex.org", "mangadex"],
-
-  ["mangaplus.shueisha.co.jp", "mangaplus"],
-
-  ["crunchyroll.com", "crunchyroll"],
-  ["www.crunchyroll.com", "crunchyroll"],
-
-  ["voir-anime.to", "voiranime"],
-  ["www.voir-anime.to", "voiranime"],
-
-  ["anime-sama.to", "anime-sama"],
-  ["anime-sama.fr", "anime-sama"],
-  ["www.anime-sama.fr", "anime-sama"],
-
-  ["aniwatch.cx", "aniwatch"],
-  ["www.aniwatch.cx", "aniwatch"],
-];
-
-export const HOSTNAME_TO_SITE: Record<string, SupportedSite> = Object.fromEntries(HOSTNAME_ENTRIES);
+export function getCatalogSite(site: SupportedSite): CatalogSite | null {
+  return SITE_BY_ID.get(site) ?? null;
+}
 
 export function getSiteInfo(site: SupportedSite): SiteInfo {
-  const meta = SITE_META[site];
-  return { id: site, ...meta };
+  const entry = SITE_BY_ID.get(site);
+  if (!entry) return { ...GENERIC_INFO, id: site };
+  return { id: entry.id, displayName: entry.displayName, isAnime: entry.isAnime };
 }
 
 export function getSiteForHostname(hostname: string): SiteInfo | null {
@@ -81,22 +46,22 @@ export function getSiteForHostname(hostname: string): SiteInfo | null {
 }
 
 export function getSupportedSites(): SupportedSiteEntry[] {
-  const entries: SupportedSiteEntry[] = [];
-  for (const [id, meta] of Object.entries(SITE_META) as [SupportedSite, (typeof SITE_META)[SupportedSite]][]) {
-    if (id === "generic") continue;
-    const hostnames = HOSTNAME_ENTRIES
-      .filter(([host, site]) => site === id && !host.startsWith("www."))
-      .map(([host]) => host);
-    entries.push({ id, displayName: meta.displayName, hostnames, kinds: meta.kinds });
-  }
-  return entries.sort((a, b) => a.displayName.localeCompare(b.displayName));
+  return SITES.map((site) => ({
+    id: site.id,
+    displayName: site.displayName,
+    hostnames: site.hostnames.filter((host) => !host.startsWith("www.")),
+    kinds: site.kinds,
+    official: site.official,
+    access: site.access,
+    defaultEnabled: site.defaultEnabled,
+  })).sort((a, b) => a.displayName.localeCompare(b.displayName));
 }
 
 export function getDisplayName(site: SupportedSite): string {
-  return SITE_META[site].displayName;
+  return getSiteInfo(site).displayName;
 }
 
 export function isAnimeSite(site: SupportedSite, pathname?: string): boolean {
   if (site === "aniverse") return pathname?.startsWith("/watch/") ?? false;
-  return SITE_META[site].isAnime;
+  return getSiteInfo(site).isAnime;
 }

@@ -17,15 +17,36 @@ import { clearTabBadge, isBadgeClearAlarm, tabIdFromBadgeAlarm, updatePendingBad
 import { setTabState, removeTabState, getTabState, pruneTabStates } from "./tab-state";
 import { clearBlock } from "../utils/request-queue";
 import { migrationsReady } from "./migrations";
+import {
+  applyInstallDefaults,
+  migrateLegacyInstall,
+  openOnboarding,
+  refreshDisabledBadge,
+  syncSites,
+  syncSitesOncePerSession,
+} from "./sites";
 
 migrationsReady.then(() => pruneTabStates()).catch(() => {});
 migrationsReady.then(() => resumePendingRetry()).catch(() => {});
 
 chrome.runtime.onInstalled.addListener((details) => {
-  if (details.reason !== "update") return;
-
   (async () => {
-    await migrationsReady;
+    if (details.reason === "install") {
+      const needsOnboarding = await applyInstallDefaults();
+      await syncSites();
+      if (needsOnboarding) await openOnboarding();
+      return;
+    }
+
+    if (details.reason === "update") {
+      await migrationsReady;
+      await migrateLegacyInstall();
+    }
+
+    await syncSites();
+
+    if (details.reason !== "update") return;
+
     const settings = await getSettings();
     if (settings.showUpdatePage) {
       chrome.tabs.create({ url: chrome.runtime.getURL("update.html") });
@@ -33,12 +54,40 @@ chrome.runtime.onInstalled.addListener((details) => {
       chrome.action.setBadgeText({ text: "\u2605" });
       chrome.action.setBadgeBackgroundColor({ color: "#3db4f2" });
     }
-  })();
+  })().catch(() => {});
 });
 
 chrome.runtime.onStartup.addListener(() => {
   pruneTabStates().catch(() => {});
   resumePendingRetry().catch(() => {});
+  syncSites().catch(() => {});
+});
+
+syncSitesOncePerSession().catch(() => {});
+
+chrome.permissions.onAdded.addListener(() => {
+  syncSites().catch(() => {});
+});
+
+chrome.permissions.onRemoved.addListener(() => {
+  syncSites().catch(() => {});
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local" || !changes.enabledSites) return;
+  syncSites().catch(() => {});
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url === undefined && changeInfo.status !== "complete") return;
+  refreshDisabledBadge(tabId, tab.url).catch(() => {});
+});
+
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  chrome.tabs
+    .get(tabId)
+    .then((tab) => refreshDisabledBadge(tabId, tab.url))
+    .catch(() => {});
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {

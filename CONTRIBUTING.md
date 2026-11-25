@@ -57,8 +57,9 @@ review times.
 ## Adding support for a new reading/streaming site
 
 See the "Adding a New Site" section in the [README](./README.md) for the
-exact steps (parser class, `SupportedSite` registration, manifest content
-script matches, hostname mapping).
+exact steps (parser class, `SupportedSite` registration, catalog entry in
+`src/sites/catalog.ts`). New sites must be `access: "optional"`; never add
+them to `public/manifest.json`.
 
 Only officially licensed sites are listed publicly in the README/store
 descriptions — scanlation site support may still be accepted but won't be

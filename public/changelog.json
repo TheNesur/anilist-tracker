@@ -218,5 +218,43 @@
         "text": "Chapter and episode changes are picked up faster on sites that don't reload the page."
       }
     ]
+  },
+  "0.6.1": {
+    "fr": [
+      {
+        "tag": "new",
+        "text": "Page d'accueil à l'installation : choisissez les sites que vous voulez suivre, classés en manga et anime."
+      },
+      {
+        "tag": "new",
+        "text": "Chaque site peut être activé ou désactivé à tout moment depuis la page des sites compatibles."
+      },
+      {
+        "tag": "new",
+        "text": "Sur un site compatible mais désactivé, le popup propose de l'activer en un clic."
+      },
+      {
+        "tag": "new",
+        "text": "Les prochains sites ajoutés seront activables à la demande : plus de désactivation de l'extension à la mise à jour. Vos sites actuels restent activés."
+      }
+    ],
+    "en": [
+      {
+        "tag": "new",
+        "text": "Welcome page on install: choose the sites you want to track, split into manga and anime."
+      },
+      {
+        "tag": "new",
+        "text": "Each site can be turned on or off at any time from the supported sites page."
+      },
+      {
+        "tag": "new",
+        "text": "On a supported site that is turned off, the popup offers to enable it in one click."
+      },
+      {
+        "tag": "new",
+        "text": "Future sites will be enabled on demand, so updates no longer disable the extension. Your current sites stay enabled."
+      }
+    ]
   }
 }

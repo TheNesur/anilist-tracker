@@ -168,7 +168,7 @@
     "message": "Sites compatibles"
   },
   "supportedSitesHint": {
-    "message": "Les autres sites passent par la détection générique, moins fiable."
+    "message": "Activez ou désactivez les sites ici. Les autres sites passent par la détection générique, moins fiable."
   },
   "filterAll": {
     "message": "Tous"
@@ -367,5 +367,86 @@
   },
   "reportKindOther": {
     "message": "Autre problème"
+  },
+  "badgeOfficial": {
+    "message": "Officiel"
+  },
+  "siteStatusActive": {
+    "message": "Actif"
+  },
+  "siteStatusDisabled": {
+    "message": "Désactivé"
+  },
+  "siteStatusPermissionMissing": {
+    "message": "Autorisation manquante"
+  },
+  "stateSiteDisabled": {
+    "message": "Site non activé"
+  },
+  "stateSiteDisabledText": {
+    "message": "$site$ est compatible, mais le suivi est désactivé pour ce site.",
+    "placeholders": {
+      "site": {
+        "content": "$1"
+      }
+    }
+  },
+  "stateSitePermissionMissing": {
+    "message": "$site$ est activé, mais le navigateur ne lui a pas encore accordé l'accès.",
+    "placeholders": {
+      "site": {
+        "content": "$1"
+      }
+    }
+  },
+  "btnEnableSite": {
+    "message": "Activer ce site"
+  },
+  "onboardingTitle": {
+    "message": "Bienvenue sur AniList Tracker"
+  },
+  "onboardingIntro": {
+    "message": "Choisissez les sites que AniList Tracker doit suivre. Vous pourrez changer ça à tout moment dans les paramètres."
+  },
+  "onboardingGroupManga": {
+    "message": "Manga"
+  },
+  "onboardingGroupAnime": {
+    "message": "Anime"
+  },
+  "onboardingGroupBoth": {
+    "message": "Manga et anime"
+  },
+  "onboardingSelectAll": {
+    "message": "Tout"
+  },
+  "onboardingSelectNone": {
+    "message": "Aucun"
+  },
+  "onboardingSave": {
+    "message": "Enregistrer et continuer"
+  },
+  "onboardingSaving": {
+    "message": "Enregistrement…"
+  },
+  "onboardingPermissionNote": {
+    "message": "Votre navigateur vous demandera l'autorisation d'accéder aux sites qui en ont besoin."
+  },
+  "onboardingDenied": {
+    "message": "Autorisation refusée pour : $sites$. Ces sites restent désactivés, vous pourrez les activer plus tard dans les paramètres.",
+    "placeholders": {
+      "sites": {
+        "content": "$1"
+      }
+    }
+  },
+  "onboardingError": {
+    "message": "Une erreur est survenue à l'enregistrement. Réessayez."
+  },
+  "onboardingDoneTitle": {
+    "message": "Tout est prêt"
+  },
+  "onboardingDoneText": {
+    "message": "Cliquez sur l'icône AniList Tracker dans la barre d'outils pour connecter votre compte AniList."
   }
 }
